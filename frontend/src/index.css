@@ -1,0 +1,20 @@
+.custom-placeholder input::placeholder {
+  color: ***REMOVED***bfbfbf !important;
+  opacity: 1;
+}
+.custom-placeholder input:-webkit-input-placeholder {
+  color: ***REMOVED***bfbfbf !important;
+  opacity: 1;
+}
+.custom-placeholder input:-moz-placeholder {
+  color: ***REMOVED***bfbfbf !important;
+  opacity: 1;
+}
+.custom-placeholder input:-ms-input-placeholder {
+  color: ***REMOVED***bfbfbf !important;
+  opacity: 1;
+}
+.custom-placeholder input[type='password']::placeholder {
+  color: ***REMOVED***bfbfbf !important;
+  opacity: 1;
+}

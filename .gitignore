@@ -103,4 +103,4 @@ ENV/
 
 ***REMOVED*** custom
 data/
-todo/
+frontend/node_modules/
