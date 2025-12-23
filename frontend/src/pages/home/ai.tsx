@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
-  Card,
   Input,
   Button,
   Space,
@@ -10,7 +9,6 @@ import {
   Select,
   message,
   Empty,
-  Divider,
 } from 'antd';
 import {
   SendOutlined,
@@ -20,7 +18,6 @@ import {
   CopyOutlined,
   CheckOutlined,
   MenuOutlined,
-  CloseOutlined,
 } from '@ant-design/icons';
 import MarkdownIt from 'markdown-it';
 import axios from 'axios';
@@ -31,6 +28,7 @@ declare const API_URL: string;
 const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
 const { Option } = Select;
+
 
 // 初始化 Markdown 渲染器
 const md = new MarkdownIt({
@@ -44,7 +42,7 @@ const md = new MarkdownIt({
 const API_BASE_URL = API_URL;
 
 // 常量定义
-const STREAM_UPDATE_THROTTLE = 50; // 流式更新节流时间（毫秒）
+const STREAM_UPDATE_THROTTLE = 16; // 流式更新节流时间（毫秒），约60fps
 const MAX_MESSAGE_HISTORY = 20; // 前端保留的最大消息数
 
 // 消息类型定义
@@ -58,14 +56,15 @@ interface Message {
 }
 
 // 模型类型
-type ModelType = 'gemini-3-pro' | 'gemini-3-flash' | 'deepseek-v3-2';
+type ModelType = 'Gemini-3-pro' | 'Gemini-3-flash' | 'DeepSeek-v3-2' | 'GLM-4-7';
 
 // 获取模型显示名称
 const getModelDisplayName = (model: ModelType | string): string => {
   const modelMap: Record<string, string> = {
-    'gemini-3-pro': 'Gemini 3 Pro',
-    'gemini-3-flash': 'Gemini 3 Flash',
-    'deepseek-v3-2': 'DeepSeek V3.2',
+    'Gemini-3-pro': 'Gemini 3 Pro',
+    'Gemini-3-flash': 'Gemini 3 Flash',
+    'DeepSeek-v3-2': 'DeepSeek V3.2',
+    'GLM-4-7': 'GLM-4-7',
   };
   return modelMap[model] || model || 'Unknown';
 };
@@ -74,9 +73,11 @@ const getModelDisplayName = (model: ModelType | string): string => {
 const getModelAvatar = (model: ModelType | string | undefined): string => {
   if (!model) return '/avatars/assistant.png';
   
-  if (model === 'deepseek-v3-2') {
+  if (model === 'DeepSeek-v3-2') {
     return '/avatars/deepseek.png';
-  } else if (model === 'gemini-3-pro' || model === 'gemini-3-flash') {
+  } else if (model === 'GLM-4-7') {
+    return '/avatars/zai.png';
+  } else if (model === 'Gemini-3-pro' || model === 'Gemini-3-flash') {
     return '/avatars/google.png';
   }
   
@@ -90,7 +91,16 @@ const getUserAvatar = (): string => {
 
 // 消息内容组件（优化 Markdown 渲染）
 const MessageContent: React.FC<{ message: Message }> = React.memo(({ message }) => {
-  const htmlContent = React.useMemo(() => md.render(message.content || ''), [message.content]);
+  // 使用 markdown-it 解析
+  const htmlContent = React.useMemo(() => {
+    try {
+      return md.render(message.content || '');
+    } catch (error) {
+      console.error('Markdown 渲染错误:', error);
+      // 如果渲染出错，返回转义的原始内容
+      return (message.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  }, [message.content]);
   
   return (
     <>
@@ -113,19 +123,46 @@ const AIAssistant: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>('deepseek-v3-2');
+  const [selectedModel, setSelectedModel] = useState<ModelType>('DeepSeek-v3-2');
+  
+  // 处理模型切换，自动清空对话
+  const handleModelChange = useCallback((newModel: ModelType) => {
+    setSelectedModel(newModel);
+    // 清空对话历史
+    setMessages([]);
+    setInputValue('');
+    // 清空流式响应结束标记
+    streamEndedRef.current.clear();
+    // 清除待执行的定时器
+    if (streamUpdateTimerRef.current) {
+      clearTimeout(streamUpdateTimerRef.current);
+      streamUpdateTimerRef.current = null;
+    }
+    message.info(`已切换到 ${getModelDisplayName(newModel)}`);
+  }, []);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null); // 聊天消息容器的 ref
   const inputRef = useRef<any>(null);
   const streamUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastStreamUpdateRef = useRef<number>(0);
+  const streamEndedRef = useRef<Set<string>>(new Set()); // 记录已结束流式响应的消息ID
 
-  // 自动滚动到底部（节流优化）
+  // 自动滚动到底部（固定在聊天容器内滚动，不滚动整个页面）
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (messagesContainerRef.current) {
+        // 在聊天容器内滚动，而不是滚动整个页面
+        messagesContainerRef.current.scrollTo({
+          top: messagesContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      } else if (messagesEndRef.current) {
+        // 如果容器 ref 不存在，使用 fallback（但应该避免这种情况）
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
     });
   }, []);
 
@@ -143,12 +180,47 @@ const AIAssistant: React.FC = () => {
   // 复制消息内容
   const handleCopy = useCallback(async (content: string, messageId: string) => {
     try {
-      await navigator.clipboard.writeText(content);
-      setCopiedId(messageId);
-      message.success('已复制到剪贴板');
-      setTimeout(() => setCopiedId(null), 2000);
+      // 优先使用现代的 Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(content);
+          setCopiedId(messageId);
+          message.success('已复制到剪贴板');
+          setTimeout(() => setCopiedId(null), 2000);
+          return;
+        } catch (clipboardError) {
+          console.log('Clipboard API 失败，尝试 fallback 方法:', clipboardError);
+        }
+      }
+      
+      // Fallback: 使用 document.execCommand（兼容性更好）
+      const textarea = document.createElement('textarea');
+      textarea.value = content;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-999999px';
+      textarea.style.top = '-999999px';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      
+      try {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        if (successful) {
+          setCopiedId(messageId);
+          message.success('已复制到剪贴板');
+          setTimeout(() => setCopiedId(null), 2000);
+        } else {
+          throw new Error('execCommand 复制失败');
+        }
+      } catch (execError) {
+        document.body.removeChild(textarea);
+        throw execError;
+      }
     } catch (err) {
-      message.error('复制失败');
+      console.error('复制失败:', err);
+      message.error('复制失败，请手动选择文本复制');
     }
   }, []);
 
@@ -161,17 +233,47 @@ const AIAssistant: React.FC = () => {
       clearTimeout(streamUpdateTimerRef.current);
       streamUpdateTimerRef.current = null;
     }
+    // 清空流式响应结束标记
+    streamEndedRef.current.clear();
   }, []);
 
-  // 节流更新流式消息内容
+  // 使用 requestAnimationFrame 优化流式消息更新，提升流畅度
   const throttledUpdateStreamMessage = useCallback((messageId: string, content: string) => {
+    // 如果流式响应已结束，不再更新
+    if (streamEndedRef.current.has(messageId)) {
+      return;
+    }
+    
     const now = Date.now();
     
+    // 使用 requestAnimationFrame 来优化渲染性能
     if (now - lastStreamUpdateRef.current < STREAM_UPDATE_THROTTLE) {
       if (streamUpdateTimerRef.current) {
         clearTimeout(streamUpdateTimerRef.current);
       }
       streamUpdateTimerRef.current = setTimeout(() => {
+        // 再次检查流式响应是否已结束
+        if (streamEndedRef.current.has(messageId)) {
+          return;
+        }
+        requestAnimationFrame(() => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId
+                ? { ...msg, content, streaming: true }
+                : msg
+            )
+          );
+          lastStreamUpdateRef.current = Date.now();
+          scrollToBottom();
+        });
+      }, STREAM_UPDATE_THROTTLE);
+    } else {
+      requestAnimationFrame(() => {
+        // 再次检查流式响应是否已结束
+        if (streamEndedRef.current.has(messageId)) {
+          return;
+        }
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === messageId
@@ -179,19 +281,9 @@ const AIAssistant: React.FC = () => {
               : msg
           )
         );
-        lastStreamUpdateRef.current = Date.now();
+        lastStreamUpdateRef.current = now;
         scrollToBottom();
-      }, STREAM_UPDATE_THROTTLE);
-    } else {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId
-            ? { ...msg, content, streaming: true }
-            : msg
-        )
-      );
-      lastStreamUpdateRef.current = now;
-      scrollToBottom();
+      });
     }
   }, [scrollToBottom]);
 
@@ -270,18 +362,28 @@ const AIAssistant: React.FC = () => {
           const { done, value } = await reader.read();
           if (done) break;
 
+          // 解码新数据
           const chunk = decoder.decode(value, { stream: true });
           if (chunk) {
             fullContent += chunk;
+            // 使用节流更新，避免过于频繁的渲染
             throttledUpdateStreamMessage(assistantMessageId, fullContent);
           }
         }
 
+        // 标记流式响应已结束，防止节流函数再次更新状态
+        streamEndedRef.current.add(assistantMessageId);
+        
+        // 确保清除所有待执行的定时器
         if (streamUpdateTimerRef.current) {
           clearTimeout(streamUpdateTimerRef.current);
           streamUpdateTimerRef.current = null;
         }
+        
+        // 重置最后更新时间
+        lastStreamUpdateRef.current = 0;
 
+        // 直接更新最终状态，确保 streaming 和 loading 都被正确设置为 false
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId
@@ -327,6 +429,9 @@ const AIAssistant: React.FC = () => {
         responseContent = '抱歉，发生了错误';
       }
 
+      // 标记流式响应已结束（非流式响应也标记，保持一致性）
+      streamEndedRef.current.add(assistantMessageId);
+      
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
@@ -338,9 +443,13 @@ const AIAssistant: React.FC = () => {
             : msg
         )
       );
+      setLoading(false);
       scrollToBottom();
     } catch (error: any) {
       console.error('Error sending message:', error);
+      
+      // 标记流式响应已结束
+      streamEndedRef.current.add(assistantMessageId);
       
       if (streamUpdateTimerRef.current) {
         clearTimeout(streamUpdateTimerRef.current);
@@ -373,6 +482,7 @@ const AIAssistant: React.FC = () => {
             : msg
         )
       );
+      setLoading(false);
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -443,14 +553,15 @@ const AIAssistant: React.FC = () => {
         <Space size="middle">
           <Select
             value={selectedModel}
-            onChange={setSelectedModel}
+            onChange={handleModelChange}
             style={{ width: 160 }}
             size="middle"
             bordered={false}
           >
-            <Option value="deepseek-v3-2">DeepSeek V3.2</Option>
-            <Option value="gemini-3-flash">Gemini 3 Flash</Option>
-            <Option value="gemini-3-pro">Gemini 3 Pro</Option>
+            <Option value="DeepSeek-v3-2">DeepSeek V3.2</Option>
+            <Option value="Gemini-3-flash">Gemini 3 Flash</Option>
+            <Option value="Gemini-3-pro">Gemini 3 Pro</Option>
+            <Option value="GLM-4-7">GLM-4.7</Option>
           </Select>
           <Button
             type="text"
@@ -504,11 +615,14 @@ const AIAssistant: React.FC = () => {
         >
           {/* 消息列表 */}
           <div
+            ref={messagesContainerRef}
             style={{
               flex: 1,
               overflowY: 'auto',
+              overflowX: 'hidden',
               padding: '24px',
               background: '***REMOVED***ffffff',
+              position: 'relative',
             }}
           >
             {messages.length === 0 ? (
@@ -550,7 +664,7 @@ const AIAssistant: React.FC = () => {
                     maxWidth: '400px',
                   }}
                 >
-                  支持 Gemini 3 Pro、Gemini 3 Flash 和 DeepSeek V3.2
+                  支持 Gemini 3 Pro、Gemini 3 Flash、DeepSeek V3.2 和 GLM-4.7
                 </Text>
               </div>
             ) : (

@@ -12,7 +12,8 @@ app.config['SECRET_KEY'] = 'you-will-never-guess'
 from flask_cors import CORS
 CORS(app)
 
-from chat import ark_deepseek_v3_2, ark_deepseek_v3_2_stream
+from llm.chat import ark_deepseek_v3_2, ark_deepseek_v3_2_stream
+from llm.glm import glm, glm_stream
 
 def get_current_time(format_string="%Y-%m-%d-%H-%M-%S"):
     return time.strftime(format_string, time.localtime())
@@ -45,10 +46,10 @@ def chat():
             
             messages = request.json['messages'][-10:] ***REMOVED*** 选最近的10轮对话
             stream = request.json['stream']
-            model = request.json.get('model', 'deepseek-v3-2') ***REMOVED*** 默认使用 deepseek-v3-2
+            model = request.json.get('model', 'DeepSeek-v3-2') ***REMOVED*** 默认使用 DeepSeek-v3-2
 
             ***REMOVED*** 根据模型类型选择对应的函数
-            if model == 'deepseek-v3-2':
+            if model == 'DeepSeek-v3-2':
                 if stream:  ***REMOVED*** 流式数据请求
                     @stream_with_context
                     def stream_data():
@@ -57,9 +58,16 @@ def chat():
                     return Response(stream_data(), mimetype="text/plain;charset=utf-8")
                 else:
                     reasoning_content, content = ark_deepseek_v3_2(messages)
-            elif model in ['gemini-3-pro', 'gemini-3-flash']:
-                ***REMOVED*** TODO: 实现 Gemini 3 Pro/Flash 的调用
-                ***REMOVED*** 目前暂时使用 deepseek-v3-2 作为 fallback
+            elif model == 'GLM-4-7':
+                if stream:  ***REMOVED*** 流式数据请求
+                    @stream_with_context
+                    def stream_data():
+                        for t in glm_stream(messages):
+                            yield t
+                    return Response(stream_data(), mimetype="text/plain;charset=utf-8")
+                else:
+                    reasoning_content, content = glm(messages)
+            elif model in ['Gemini-3-pro', 'Gemini-3-flash']:
                 if stream:  ***REMOVED*** 流式数据请求
                     @stream_with_context
                     def stream_data():
