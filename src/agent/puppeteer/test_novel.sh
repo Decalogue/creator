@@ -12,6 +12,6 @@ if [ ! -f "config/policy.json" ]; then
 fi
 
 echo "开始运行测试..."
-python main.py Novel validation --data_limit 1
+python main.py Novel validation --data_limit 20
 
 echo "测试完成！"

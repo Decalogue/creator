@@ -9,5 +9,5 @@ swift deploy \
     --port 6002 \
     --vllm_gpu_memory_utilization 0.9 \
     --vllm_max_model_len 8192 \
-    --max_new_tokens 2048 \
+    --max_new_tokens 4096 \
     --served_model_name qwen-2.5
