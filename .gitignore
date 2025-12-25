@@ -103,4 +103,5 @@ ENV/
 
 ***REMOVED*** custom
 data/
+src/llm/result/
 frontend/node_modules/

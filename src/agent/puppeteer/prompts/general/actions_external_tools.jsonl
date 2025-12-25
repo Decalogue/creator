@@ -1,0 +1,5 @@
+{"action": "search_arxiv", "prompt": "你选择在arXiv上搜索学术论文。请提供与学术研究相关的具体术语，例如论文标题、关键词或物理学、数学、计算机科学、机器学习等领域的主题。以json格式返回。示例：{\"action\": \"search_arxiv\", \"parameter\": \"量子计算\"}"}
+{"action": "search_bing", "prompt": "你选择使用Bing搜索信息。请提供与你的查询相关的描述性短语或关键词，包括概念、名称、事件或具体问题，以获取广泛的结果，包括新闻、文章和网站。以json格式返回。示例：{\"action\": \"search_bing\", \"parameter\": \"人工智能最新进展\"}"}
+{"action": "access_website", "prompt": "你选择访问一个网站。请提供你想要访问的URL或与当前问题最相关的URL。以json格式返回。示例：{\"action\": \"access_website\", \"parameter\": \"https://www.example.com\"}"}
+{"action": "run_python", "prompt": "你选择编写并运行Python代码。请在参数中编写通用的Python代码来解决这类问题，仅使用标准Python库。确保在相关情况下使用'print'函数输出所有结果。以json格式返回。示例：{\"action\": \"run_python\", \"parameter\": \"print('Hello, World!')\"}"}
+{"action": "read_file", "prompt": "你选择读取一个文件。请提供你想要读取的文件名。以json格式返回。示例：{\"action\": \"read_file\", \"parameter\": \"data.txt\"}"}

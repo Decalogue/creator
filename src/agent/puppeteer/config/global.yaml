@@ -1,0 +1,23 @@
+logging:
+  level: INFO
+  logpath: ./logs
+
+file_path:
+  root_file_path: ./data
+
+***REMOVED*** Reward Model
+model_weight_path: /root/data/AI/pretrain/Skywork-Reward-V2-Qwen3-4B
+
+***REMOVED*** API Keys
+api_keys:
+  openai_api_key: "EMPTY"
+  openai_base_url: http://localhost:6002/v1
+  bing_api_key: ""
+
+max_retry_times: 5
+max_json_reformat_turns: 5
+external_tools_enabled: True
+
+graph:
+  max_parallel_paths: 4
+  max_step_num: 5
