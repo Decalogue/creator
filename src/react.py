@@ -9,11 +9,12 @@ ReAct 流程：
 4. 重复上述过程，直到得到最终答案
 """
 import json
+import os
 import re
-from typing import List, Dict, Optional, Tuple
-from llm.chat import ark_deepseek_v3_2
-from llm.chat import ark_client
+from typing import List, Dict, Optional, Tuple, Any
+
 from tools import default_registry
+from llm.chat import ark_client, ark_deepseek_v3_2
 
 
 class ReActAgent:
@@ -53,7 +54,7 @@ class ReActAgent:
         
         return "\n".join(descriptions)
     
-    def _parse_action(self, text: str) -> Optional[Tuple[str, Dict]]:
+    def _parse_action(self, text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
         """
         从模型输出中解析行动
         
@@ -94,15 +95,30 @@ class ReActAgent:
         
         return None
     
-    def _execute_action(self, action_name: str, action_input: Dict) -> str:
+    def _execute_action(self, action_name: str, action_input: Dict[str, Any]) -> str:
         """执行行动并返回观察结果"""
         try:
-            result = self.tools.execute_skill(action_name, action_input)
+            result = self.tools.execute_tool(action_name, action_input)
             return f"执行成功: {result}"
         except ValueError as e:
             return f"执行失败: {str(e)}"
         except Exception as e:
             return f"执行出错: {str(e)}"
+    
+    def _extract_final_answer(self, content: str) -> Optional[str]:
+        """从内容中提取最终答案"""
+        if not content:
+            return None
+        
+        if "Final Answer:" in content or "最终答案:" in content:
+            final_answer_match = re.search(
+                r'(?:Final Answer|最终答案):\s*(.+)',
+                content,
+                re.IGNORECASE | re.DOTALL
+            )
+            if final_answer_match:
+                return final_answer_match.group(1).strip()
+        return None
     
     def _build_system_prompt(self) -> str:
         """构建系统提示词"""
@@ -164,8 +180,10 @@ Final Answer: [最终答案]
             ***REMOVED*** 调用 LLM 进行推理（尝试使用 Function Calling）
             try:
                 ***REMOVED*** 尝试使用 OpenAI Function Calling API
+                ***REMOVED*** 模型名称可以通过环境变量或配置设置
+                model_name = os.getenv("REACT_MODEL", "ep-20251209150604-gxb42")
                 response = ark_client.chat.completions.create(
-                    model="ep-20251209150604-gxb42", ***REMOVED*** deepseek-v3-2-251201
+                    model=model_name,
                     messages=self.conversation_history,
                     tools=tools if tools else None,
                     tool_choice="auto" if tools else None,
@@ -232,18 +250,12 @@ Final Answer: [最终答案]
                     continue
                 
                 ***REMOVED*** 如果没有工具调用，检查是否有最终答案
-                if content and ("Final Answer:" in content or "最终答案:" in content):
-                    final_answer_match = re.search(
-                        r'(?:Final Answer|最终答案):\s*(.+)',
-                        content,
-                        re.IGNORECASE | re.DOTALL
-                    )
-                    if final_answer_match:
-                        final_answer = final_answer_match.group(1).strip()
-                        if verbose:
-                            print("=" * 60)
-                            print(f"\n最终答案: {final_answer}")
-                        return final_answer
+                final_answer = self._extract_final_answer(content)
+                if final_answer:
+                    if verbose:
+                        print("=" * 60)
+                        print(f"\n最终答案: {final_answer}")
+                    return final_answer
                 
                 ***REMOVED*** 如果只有内容没有工具调用，可能是最终答案
                 if content and not tool_calls:
@@ -314,7 +326,13 @@ Final Answer: [最终答案]
         if verbose:
             print("\n达到最大迭代次数，返回最后的内容")
         
-        return content
+        ***REMOVED*** 尝试从最后一条消息中提取内容
+        if self.conversation_history:
+            last_message = self.conversation_history[-1]
+            if isinstance(last_message, dict) and "content" in last_message:
+                return last_message["content"] or "达到最大迭代次数，未能获得最终答案"
+        
+        return "达到最大迭代次数，未能获得最终答案"
 
 
 def example_1_simple_calculation():
