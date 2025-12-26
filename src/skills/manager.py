@@ -2,9 +2,8 @@
 Skill Manager
 管理所有 Skills，实现扫描、加载和渐进式披露
 """
-import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from .skill import Skill, SkillMetadata
 
 
@@ -33,7 +32,7 @@ class SkillManager:
         ***REMOVED*** 扫描并加载所有 Skills
         self.scan_skills()
     
-    def scan_skills(self):
+    def scan_skills(self) -> None:
         """扫描 Skills 目录，加载所有 Skills 的元数据"""
         if not self.skills_dir.exists():
             return
@@ -81,7 +80,7 @@ class SkillManager:
             相关的 Skills 列表
         """
         query_lower = query.lower()
-        scored_skills = []
+        scored_skills: List[Tuple[int, Skill]] = []
         
         for skill in self._skills.values():
             score = 0
@@ -146,7 +145,7 @@ class SkillManager:
         
         return "\n\n---\n\n".join(context_parts)
     
-    def reload_skill(self, name: str):
+    def reload_skill(self, name: str) -> None:
         """重新加载指定的 Skill"""
         skill = self._skills.get(name)
         if skill:

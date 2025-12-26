@@ -1,10 +1,6 @@
-"""
-时间查询技能示例
-获取当前时间和日期信息
-"""
 from typing import Any, Dict
 from datetime import datetime
-from .base import Skill
+from .base import Tool
 
 ***REMOVED*** 尝试导入 pytz，如果没有则使用标准库
 try:
@@ -14,8 +10,8 @@ except ImportError:
     HAS_PYTZ = False
 
 
-class TimeSkill(Skill):
-    """时间查询技能"""
+class TimeTool(Tool):
+    """时间查询工具"""
     
     def __init__(self):
         super().__init__(

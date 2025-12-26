@@ -1,16 +1,10 @@
-"""
-Function Calling 系统测试
-验证所有功能是否正常工作
-
-注意：虽然内部使用 "Skill" 命名，但这是一个标准的 Function Calling 系统。
-"""
 import json
-from skills import default_registry
+from tools import default_registry
 
 
 def test_calculator():
-    """测试计算器技能"""
-    print("测试计算器技能...")
+    """测试计算器工具"""
+    print("测试计算器工具...")
     
     test_cases = [
         {"expression": "2 + 3"},
@@ -22,15 +16,15 @@ def test_calculator():
     
     for case in test_cases:
         try:
-            result = default_registry.execute_skill("calculator", case)
+            result = default_registry.execute_tool("calculator", case)
             print(f"  ✓ {case['expression']} -> {result}")
         except Exception as e:
             print(f"  ✗ {case['expression']} -> 错误: {e}")
 
 
 def test_weather():
-    """测试天气查询技能"""
-    print("\n测试天气查询技能...")
+    """测试天气查询工具"""
+    print("\n测试天气查询工具...")
     
     test_cases = [
         {"city": "北京"},
@@ -41,15 +35,15 @@ def test_weather():
     
     for case in test_cases:
         try:
-            result = default_registry.execute_skill("get_weather", case)
+            result = default_registry.execute_tool("get_weather", case)
             print(f"  ✓ {case['city']} -> {result[:50]}...")
         except Exception as e:
             print(f"  ✗ {case['city']} -> 错误: {e}")
 
 
 def test_time():
-    """测试时间查询技能"""
-    print("\n测试时间查询技能...")
+    """测试时间查询工具"""
+    print("\n测试时间查询工具...")
     
     test_cases = [
         {},
@@ -60,7 +54,7 @@ def test_time():
     
     for case in test_cases:
         try:
-            result = default_registry.execute_skill("get_current_time", case)
+            result = default_registry.execute_tool("get_current_time", case)
             print(f"  ✓ {case} -> {result[:60]}...")
         except Exception as e:
             print(f"  ✗ {case} -> 错误: {e}")
@@ -72,7 +66,7 @@ def test_function_schema():
     
     functions = default_registry.get_all_functions()
     
-    print(f"  共 {len(functions)} 个技能函数")
+    print(f"  共 {len(functions)} 个工具函数")
     
     for func in functions:
         func_def = func["function"]
@@ -92,21 +86,21 @@ def test_registry():
     """测试注册表功能"""
     print("\n测试注册表功能...")
     
-    ***REMOVED*** 测试列出所有技能
-    skills = default_registry.list_skills()
-    print(f"  已注册技能: {skills}")
-    assert len(skills) >= 3
+    ***REMOVED*** 测试列出所有工具
+    tools = default_registry.list_tools()
+    print(f"  已注册工具: {tools}")
+    assert len(tools) >= 3
     
-    ***REMOVED*** 测试获取技能
-    calculator = default_registry.get_skill("calculator")
+    ***REMOVED*** 测试获取工具
+    calculator = default_registry.get_tool("calculator")
     assert calculator is not None
     assert calculator.name == "calculator"
-    print("  ✓ 技能获取正常")
+    print("  ✓ 工具获取正常")
     
-    ***REMOVED*** 测试获取不存在的技能
-    not_found = default_registry.get_skill("not_exist")
+    ***REMOVED*** 测试获取不存在的工具
+    not_found = default_registry.get_tool("not_exist")
     assert not_found is None
-    print("  ✓ 不存在的技能返回 None")
+    print("  ✓ 不存在的工具返回 None")
 
 
 def test_validation():
@@ -114,7 +108,7 @@ def test_validation():
     print("\n测试参数验证...")
     
     ***REMOVED*** 测试计算器验证
-    calculator = default_registry.get_skill("calculator")
+    calculator = default_registry.get_tool("calculator")
     
     ***REMOVED*** 有效参数
     assert calculator.validate_arguments({"expression": "2 + 3"})

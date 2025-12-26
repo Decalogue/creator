@@ -2,8 +2,16 @@
 Skills 系统测试
 验证所有功能是否正常工作
 """
-from skills import default_manager
-from skills.skill import Skill
+import sys
+from pathlib import Path
+
+***REMOVED*** 添加项目根目录到 Python 路径
+if __name__ == "__main__" and not __package__:
+    src_dir = Path(__file__).parent.parent
+    if str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+
+from skills import default_manager, Skill
 
 
 def test_skill_loading():

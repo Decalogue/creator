@@ -2,19 +2,32 @@
 Skills 系统使用示例
 演示渐进式披露机制和 Skill 管理
 """
+import sys
+from pathlib import Path
+
+***REMOVED*** 添加项目根目录到 Python 路径
+if __name__ == "__main__" and not __package__:
+    src_dir = Path(__file__).parent.parent
+    if str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+
 from skills import default_manager
+
+
+def print_section(title: str, width: int = 60):
+    """打印章节标题"""
+    print("\n" + "=" * width)
+    print(title)
+    print("=" * width)
 
 
 def example_1_list_skills():
     """示例 1：列出所有 Skills"""
-    print("=" * 60)
-    print("示例 1：列出所有 Skills")
-    print("=" * 60)
+    print_section("示例 1：列出所有 Skills")
     
     skills = default_manager.list_skills()
     print(f"\n可用 Skills: {skills}")
     
-    ***REMOVED*** 获取所有 Skills 的元数据
     all_metadata = default_manager.get_all_metadata()
     print(f"\n共 {len(all_metadata)} 个 Skills:\n")
     
@@ -28,9 +41,7 @@ def example_1_list_skills():
 
 def example_2_progressive_disclosure():
     """示例 2：渐进式披露机制"""
-    print("=" * 60)
-    print("示例 2：渐进式披露机制")
-    print("=" * 60)
+    print_section("示例 2：渐进式披露机制")
     
     calculator = default_manager.get_skill('calculator')
     if not calculator:
@@ -50,7 +61,8 @@ def example_2_progressive_disclosure():
     print("-" * 60)
     context_level2 = calculator.get_context(level=2)
     tokens_level2 = calculator.estimate_tokens(level=2)
-    print(context_level2[:500] + "..." if len(context_level2) > 500 else context_level2)
+    preview = context_level2[:500] + "..." if len(context_level2) > 500 else context_level2
+    print(preview)
     print(f"\n估算 Token 数: {tokens_level2}")
     
     ***REMOVED*** 第三层：所有资源（按需加载，无限制）
@@ -61,7 +73,8 @@ def example_2_progressive_disclosure():
     if resources:
         print(f"\n加载资源 '{resources[0]}':")
         resource_content = calculator.load_resource(resources[0])
-        print(resource_content[:300] + "..." if len(resource_content) > 300 else resource_content)
+        preview = resource_content[:300] + "..." if len(resource_content) > 300 else resource_content
+        print(preview)
     
     context_level3 = calculator.get_context(level=3)
     tokens_level3 = calculator.estimate_tokens(level=3)
@@ -70,9 +83,7 @@ def example_2_progressive_disclosure():
 
 def example_3_skill_selection():
     """示例 3：根据查询选择 Skills"""
-    print("\n" + "=" * 60)
-    print("示例 3：根据查询选择 Skills")
-    print("=" * 60)
+    print_section("示例 3：根据查询选择 Skills")
     
     queries = [
         "帮我计算 10 * 5 + 20",
@@ -94,12 +105,9 @@ def example_3_skill_selection():
 
 def example_4_with_llm():
     """示例 4：与 LLM 集成"""
-    print("\n" + "=" * 60)
-    print("示例 4：与 LLM 集成（伪代码）")
-    print("=" * 60)
+    print_section("示例 4：与 LLM 集成（代码示例）")
     
-    example_code = '''
-from skills import default_manager
+    example_code = '''from skills import default_manager
 from llm.chat import ark_deepseek_v3_2
 
 def chat_with_skills(user_query: str):
@@ -133,16 +141,15 @@ def chat_with_skills(user_query: str):
 result = chat_with_skills("帮我计算 25 * 8 + 100")
 print(result)
 '''
-    
     print(example_code)
 
 
 if __name__ == "__main__":
+    print_section("Skills 系统使用示例", 60)
+    
     example_1_list_skills()
     example_2_progressive_disclosure()
     example_3_skill_selection()
     example_4_with_llm()
     
-    print("\n" + "=" * 60)
-    print("所有示例运行完成！")
-    print("=" * 60)
+    print_section("所有示例运行完成！", 60)

@@ -2,11 +2,10 @@
 Skill 类定义
 表示一个 Skill，包含元数据、主体内容和资源文件
 """
-import os
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass
+from typing import Dict, Optional, List
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -16,14 +15,8 @@ class SkillMetadata:
     description: str
     version: str = "1.0.0"
     author: Optional[str] = None
-    tags: List[str] = None
-    triggers: List[str] = None  ***REMOVED*** 触发关键词
-    
-    def __post_init__(self):
-        if self.tags is None:
-            self.tags = []
-        if self.triggers is None:
-            self.triggers = []
+    tags: List[str] = field(default_factory=list)
+    triggers: List[str] = field(default_factory=list)  ***REMOVED*** 触发关键词
 
 
 class Skill:
@@ -53,7 +46,7 @@ class Skill:
         ***REMOVED*** 加载元数据（第一层，始终加载）
         self._load_metadata()
     
-    def _load_metadata(self):
+    def _load_metadata(self) -> None:
         """加载 SKILL.md 的元数据部分（YAML front matter）"""
         with open(self.skill_md_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -64,31 +57,22 @@ class Skill:
             if len(parts) >= 3:
                 yaml_content = parts[1].strip()
                 metadata_dict = yaml.safe_load(yaml_content) or {}
-                
-                self._metadata = SkillMetadata(
-                    name=metadata_dict.get('name', self.skill_path.name),
-                    description=metadata_dict.get('description', ''),
-                    version=metadata_dict.get('version', '1.0.0'),
-                    author=metadata_dict.get('author'),
-                    tags=metadata_dict.get('tags', []),
-                    triggers=metadata_dict.get('triggers', [])
-                )
             else:
-                ***REMOVED*** 如果没有 YAML front matter，使用默认值
-                self._metadata = SkillMetadata(
-                    name=self.skill_path.name,
-                    description='',
-                    version='1.0.0'
-                )
+                metadata_dict = {}
         else:
-            ***REMOVED*** 如果没有 YAML front matter，使用默认值
-            self._metadata = SkillMetadata(
-                name=self.skill_path.name,
-                description='',
-                version='1.0.0'
-            )
+            metadata_dict = {}
+        
+        ***REMOVED*** 创建元数据对象
+        self._metadata = SkillMetadata(
+            name=metadata_dict.get('name', self.skill_path.name),
+            description=metadata_dict.get('description', ''),
+            version=metadata_dict.get('version', '1.0.0'),
+            author=metadata_dict.get('author'),
+            tags=metadata_dict.get('tags', []),
+            triggers=metadata_dict.get('triggers', [])
+        )
     
-    def load_body(self):
+    def load_body(self) -> str:
         """加载 SKILL.md 的主体内容（第二层，触发时加载）"""
         if self._body is not None:
             return self._body
@@ -133,11 +117,10 @@ class Skill:
     
     def list_resources(self) -> List[str]:
         """列出所有可用的资源文件"""
-        resources = []
-        for file in self.skill_path.iterdir():
-            if file.is_file() and file.name != "SKILL.md":
-                resources.append(file.name)
-        return resources
+        return [
+            file.name for file in self.skill_path.iterdir()
+            if file.is_file() and file.name != "SKILL.md"
+        ]
     
     @property
     def metadata(self) -> SkillMetadata:

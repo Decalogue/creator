@@ -1,15 +1,11 @@
-"""
-天气查询技能示例
-模拟天气查询功能
-"""
+import random
 from typing import Any, Dict
 from datetime import datetime
-import random
-from .base import Skill
+from .base import Tool
 
 
-class WeatherSkill(Skill):
-    """天气查询技能（模拟实现）"""
+class WeatherTool(Tool):
+    """天气查询工具（模拟实现）"""
     
     def __init__(self):
         super().__init__(
@@ -58,7 +54,7 @@ class WeatherSkill(Skill):
     
     def execute(self, arguments: Dict[str, Any]) -> str:
         """查询天气"""
-        city = arguments["city"]
+        city = str(arguments["city"]).strip()
         date = arguments.get("date")
         
         if date is None:

@@ -1,13 +1,9 @@
-"""
-计算器技能示例
-支持基本的数学运算
-"""
 from typing import Any, Dict
-from .base import Skill
+from .base import Tool
 
 
-class CalculatorSkill(Skill):
-    """计算器技能"""
+class CalculatorTool(Tool):
+    """计算器工具"""
     
     def __init__(self):
         super().__init__(
@@ -39,13 +35,22 @@ class CalculatorSkill(Skill):
         if "expression" not in arguments:
             return False
         
-        expression = str(arguments["expression"])
+        expression = str(arguments["expression"]).strip()
+        if not expression:
+            return False
         
         ***REMOVED*** 只允许数字、运算符和空格
         allowed_chars = set("0123456789+-*/.()^ ")
-        ***REMOVED*** 也允许 ** 表示幂运算
-        if not all(c in allowed_chars or expression[i:i+2] == "**" for i, c in enumerate(expression)):
-            return False
+        
+        ***REMOVED*** 检查每个字符是否在允许列表中，或者是否是 "**" 的一部分
+        i = 0
+        while i < len(expression):
+            if expression[i] in allowed_chars:
+                i += 1
+            elif i < len(expression) - 1 and expression[i:i+2] == "**":
+                i += 2
+            else:
+                return False
         
         ***REMOVED*** 不允许导入或执行代码
         dangerous_keywords = ["import", "exec", "eval", "__", "open", "file"]
@@ -58,19 +63,23 @@ class CalculatorSkill(Skill):
     
     def execute(self, arguments: Dict[str, Any]) -> str:
         """执行计算"""
-        expression = arguments["expression"]
+        expression = str(arguments["expression"]).strip()
         original_expression = expression
         
         try:
             ***REMOVED*** 将 ^ 替换为 **
             expression = expression.replace("^", "**")
             
-            ***REMOVED*** 使用更安全的方式计算
-            ***REMOVED*** 只允许数字、运算符和括号
+            ***REMOVED*** 再次验证（双重检查）
             allowed_chars = set("0123456789+-*/.() ")
-            if not all(c in allowed_chars or expression[i:i+2] == "**" 
-                      for i, c in enumerate(expression)):
-                return "计算错误：表达式包含不允许的字符"
+            i = 0
+            while i < len(expression):
+                if expression[i] in allowed_chars:
+                    i += 1
+                elif i < len(expression) - 1 and expression[i:i+2] == "**":
+                    i += 2
+                else:
+                    return "计算错误：表达式包含不允许的字符"
             
             ***REMOVED*** 安全地计算表达式（限制内置函数）
             result = eval(expression, {"__builtins__": {}}, {})

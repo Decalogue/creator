@@ -1,24 +1,18 @@
-"""
-Function Calling 模块
-提供统一的函数调用接口，支持 OpenAI Function Calling 格式
+from .base import Tool, ToolRegistry, default_registry
+from .calculator import CalculatorTool
+from .weather import WeatherTool
+from .time import TimeTool
 
-注意：虽然内部使用 "Skill" 命名，但这是一个标准的 Function Calling 系统。
-"""
-from .base import Skill, SkillRegistry, default_registry
-from .calculator import CalculatorSkill
-from .weather import WeatherSkill
-from .time import TimeSkill
-
-***REMOVED*** 自动注册所有内置技能
-default_registry.register(CalculatorSkill())
-default_registry.register(WeatherSkill())
-default_registry.register(TimeSkill())
+***REMOVED*** 自动注册所有内置工具
+default_registry.register(CalculatorTool())
+default_registry.register(WeatherTool())
+default_registry.register(TimeTool())
 
 __all__ = [
-    "Skill",
-    "SkillRegistry",
+    "Tool",
+    "ToolRegistry",
     "default_registry",
-    "CalculatorSkill",
-    "WeatherSkill",
-    "TimeSkill",
+    "CalculatorTool",
+    "WeatherTool",
+    "TimeTool",
 ]
