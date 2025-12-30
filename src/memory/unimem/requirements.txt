@@ -1,0 +1,37 @@
+***REMOVED*** UniMem 依赖
+
+***REMOVED*** 核心依赖
+numpy>=1.24.0
+pydantic>=2.0.0
+
+***REMOVED*** 存储后端
+redis>=5.0.0
+psycopg2-binary>=2.9.0  ***REMOVED*** PostgreSQL
+
+***REMOVED*** 向量数据库
+qdrant-client>=1.6.0
+***REMOVED*** faiss-cpu>=1.7.4  ***REMOVED*** 可选
+***REMOVED*** pymilvus>=2.3.0  ***REMOVED*** 可选
+
+***REMOVED*** 图数据库
+neo4j>=5.0.0
+***REMOVED*** networkx>=3.1  ***REMOVED*** 可选，用于开发/测试
+
+***REMOVED*** LLM 和嵌入
+openai>=1.0.0
+sentence-transformers>=2.2.0
+
+***REMOVED*** 工具库
+python-dateutil>=2.8.0
+
+***REMOVED*** 日志
+structlog>=23.0.0
+
+***REMOVED*** 可选：各架构的依赖
+***REMOVED*** 这些依赖会根据实际使用的架构自动安装
+***REMOVED*** - LightRAG
+***REMOVED*** - A-Mem
+***REMOVED*** - HindSight
+***REMOVED*** - MemMachine
+***REMOVED*** - LightMem
+
