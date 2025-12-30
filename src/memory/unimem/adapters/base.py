@@ -1,24 +1,12 @@
-"""
-适配器基类
-
-提供所有适配器的公共基类
-"""
-
+import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 class BaseAdapter(ABC):
-    """
-    适配器基类
-    
-    所有功能适配器都应继承此类，实现 UniMem 的功能需求。
-    适配器从各大架构吸收精华思路，但接口按照 UniMem 的需求定义。
-    """
-    
+    """适配器基类"""
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
         初始化适配器

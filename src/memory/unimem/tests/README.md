@@ -79,13 +79,13 @@ python -m unittest discover -s unimem/tests -p "test_*.py" -v
 
 ```bash
 # 测试网络链接适配器
-python -m pytest unimem/tests/test_network_link_adapter.py -v
+python -m pytest unimem/tests/test_atom_link_adapter.py -v
 
 # 运行特定测试类
-python -m pytest unimem/tests/test_network_link_adapter.py::TestNetworkLinkAdapter -v
+python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapter -v
 
 # 运行特定测试方法
-python -m pytest unimem/tests/test_network_link_adapter.py::TestNetworkLinkAdapter::test_construct_atomic_note -v
+python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapter::test_construct_atomic_note -v
 ```
 
 ### 运行集成测试
@@ -100,7 +100,7 @@ docker run -d -p 6333:6333 -p 6334:6334 qdrant/qdrant
 export RUN_INTEGRATION_TESTS=1
 
 # 3. 运行集成测试
-python -m pytest unimem/tests/test_network_link_adapter.py::TestNetworkLinkAdapterIntegration -v
+python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterIntegration -v
 ```
 
 ## 测试分类

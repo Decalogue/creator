@@ -6,7 +6,7 @@
 
 from typing import List, Optional
 from ..types import RetrievalResult, Memory, Context
-from ..adapters import GraphAdapter, NetworkLinkAdapter, RetrievalAdapter
+from ..adapters import GraphAdapter, AtomLinkAdapter, RetrievalAdapter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ class RetrievalEngine:
     def __init__(
         self,
         graph_adapter: GraphAdapter,
-        network_link_adapter: NetworkLinkAdapter,
+        atom_link_adapter: AtomLinkAdapter,
         retrieval_adapter: RetrievalAdapter,
         storage_manager=None,
     ):
@@ -31,12 +31,12 @@ class RetrievalEngine:
         
         Args:
             graph_adapter: 图结构适配器（参考 LightRAG）
-            network_link_adapter: 网络链接适配器（参考 A-Mem）
+            atom_link_adapter: 原子链接适配器（参考 A-Mem）
             retrieval_adapter: 检索引擎适配器（参考各架构）
             storage_manager: 存储管理器（用于 FoA/DA/LTM 检索）
         """
         self.graph_adapter = graph_adapter
-        self.network_link_adapter = network_link_adapter
+        self.atom_link_adapter = atom_link_adapter
         self.retrieval_adapter = retrieval_adapter
         self.storage_manager = storage_manager
         
@@ -64,7 +64,7 @@ class RetrievalEngine:
         
         使用网络链接适配器进行语义检索
         """
-        return self.network_link_adapter.semantic_retrieval(query, top_k=top_k)
+        return self.atom_link_adapter.semantic_retrieval(query, top_k=top_k)
     
     def subgraph_link_retrieval(self, query: str, top_k: int = 10) -> List[Memory]:
         """
@@ -72,7 +72,7 @@ class RetrievalEngine:
         
         使用网络链接适配器进行子图链接检索
         """
-        return self.network_link_adapter.subgraph_link_retrieval(query, top_k=top_k)
+        return self.atom_link_adapter.subgraph_link_retrieval(query, top_k=top_k)
     
     def temporal_retrieval(self, query: str, top_k: int = 10) -> List[Memory]:
         """

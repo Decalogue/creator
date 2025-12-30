@@ -1,7 +1,7 @@
 """
 UniMem: 统一记忆系统
 
-整合六大顶级架构的核心优势：
+整合六大核心架构的优势：
 - HindSight: 操作接口层（Retain/Recall/Reflect）
 - CogMem: 存储管理层（FoA/DA/LTM）
 - A-Mem: 网络组织层（原子笔记网络）
