@@ -27,7 +27,7 @@ from .adapters import (
     LayeredStorageAdapter,
     MemoryTypeAdapter,
     GraphAdapter,
-    NetworkLinkAdapter,
+    AtomLinkAdapter,
     RetrievalAdapter,
     UpdateAdapter,
 )
@@ -108,13 +108,14 @@ class UniMem:
         else:
             self.config = UniMemConfig().to_dict()
         
-        ***REMOVED*** 验证配置
-        self._validate_config()
-        
+        ***REMOVED*** 先设置后端属性（验证配置时需要用到）
         self.storage_backend = storage_backend
         self.graph_backend = graph_backend
         self.vector_backend = vector_backend
         self.max_concurrent_operations = max_concurrent_operations
+        
+        ***REMOVED*** 验证配置
+        self._validate_config()
         
         ***REMOVED*** 线程安全锁
         self._lock = threading.RLock()
@@ -138,17 +139,17 @@ class UniMem:
         )
         self.network = NetworkManager(
             graph_adapter=self.graph_adapter,
-            network_link_adapter=self.network_adapter,
+            atom_link_adapter=self.network_adapter,
         )
         self.retrieval = RetrievalEngine(
             graph_adapter=self.graph_adapter,
-            network_link_adapter=self.network_adapter,
+            atom_link_adapter=self.network_adapter,
             retrieval_adapter=self.retrieval_adapter,
             storage_manager=self.storage,
         )
         self.update_manager = UpdateManager(
             graph_adapter=self.graph_adapter,
-            network_link_adapter=self.network_adapter,
+            atom_link_adapter=self.network_adapter,
             update_adapter=self.update_adapter,
         )
         
@@ -222,9 +223,9 @@ class UniMem:
             self.graph_adapter = GraphAdapter(config=graph_config)
             self.graph_adapter.initialize()
             
-            ***REMOVED*** 网络链接适配器（参考 A-Mem）
+            ***REMOVED*** 原子链接适配器（参考 A-Mem）
             network_config = self.config.get("network", {})
-            self.network_adapter = NetworkLinkAdapter(config=network_config)
+            self.network_adapter = AtomLinkAdapter(config=network_config)
             self.network_adapter.initialize()
             
             ***REMOVED*** 检索引擎适配器（参考各架构）
@@ -248,7 +249,7 @@ class UniMem:
             "LayeredStorage": self.storage_adapter,
             "MemoryType": self.memory_type_adapter,
             "Graph": self.graph_adapter,
-            "NetworkLink": self.network_adapter,
+            "AtomLink": self.network_adapter,
             "Retrieval": self.retrieval_adapter,
             "Update": self.update_adapter,
         }
@@ -455,7 +456,7 @@ class UniMem:
                             rollback_actions.append(lambda: self._rollback_relations(relations))
                     
                 ***REMOVED*** 7. 网络管理器：生成链接
-                self._record_adapter_call("NetworkLinkAdapter", "generate_links")
+                self._record_adapter_call("AtomLinkAdapter", "generate_links")
                 links = self.network.generate_links(memory, top_k=10)
                 memory.links = links
                 
@@ -768,7 +769,7 @@ class UniMem:
             "layered_storage": self.storage_adapter.health_check(),
             "memory_type": self.memory_type_adapter.health_check(),
             "graph": self.graph_adapter.health_check(),
-            "network_link": self.network_adapter.health_check(),
+            "atom_link": self.network_adapter.health_check(),
             "retrieval": self.retrieval_adapter.health_check(),
             "update": self.update_adapter.health_check(),
         }

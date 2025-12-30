@@ -18,7 +18,7 @@ class UpdateManager:
     def __init__(
         self,
         graph_adapter=None,
-        network_link_adapter=None,
+        atom_link_adapter=None,
         update_adapter=None,
     ):
         """
@@ -26,16 +26,16 @@ class UpdateManager:
         
         Args:
             graph_adapter: 图结构适配器（参考 LightRAG）
-            network_link_adapter: 网络链接适配器（参考 A-Mem）
+            atom_link_adapter: 原子链接适配器（参考 A-Mem）
             update_adapter: 更新机制适配器（参考 LightMem + A-Mem）
         """
         self.graph_adapter = graph_adapter
-        self.network_link_adapter = network_link_adapter
+        self.atom_link_adapter = atom_link_adapter
         self.update_adapter = update_adapter
         
         self.ripple_updater = RippleEffectUpdater(
             graph_adapter=graph_adapter,
-            network_link_adapter=network_link_adapter,
+            atom_link_adapter=atom_link_adapter,
             update_adapter=update_adapter,
         )
         

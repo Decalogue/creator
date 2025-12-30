@@ -14,7 +14,7 @@ UniMem 采用**功能导向的适配器设计**，按照功能需求而非架构
 | 分层存储 | `LayeredStorageAdapter` | CogMem | FoA/DA/LTM 三层存储 |
 | 记忆分类 | `MemoryTypeAdapter` | MemMachine | 多类型记忆分类 |
 | 图结构 | `GraphAdapter` | LightRAG | 实体-关系建模和图结构 |
-| 网络链接 | `NetworkLinkAdapter` | A-Mem | 原子笔记网络和动态链接 |
+| 原子链接 | `AtomLinkAdapter` | A-Mem | 原子笔记网络和动态链接 |
 | 检索引擎 | `RetrievalAdapter` | 各架构 | 多维检索和结果融合 |
 | 更新机制 | `UpdateAdapter` | LightMem + A-Mem | 涟漪效应和睡眠更新 |
 
@@ -188,7 +188,7 @@ flowchart TD
     
     Layer2 --> Layer3[第三层: 网络组织层]
     Layer3 --> GraphLayer[图结构层<br/>GraphAdapter<br/>实体节点、关系边、双层索引]
-    Layer3 --> NetworkLayer[原子笔记网络层<br/>NetworkLinkAdapter<br/>原子笔记、动态链接、记忆演化]
+    Layer3 --> NetworkLayer[原子笔记网络层<br/>AtomLinkAdapter<br/>原子笔记、动态链接、记忆演化]
     NetworkLayer -.->|映射关系| GraphLayer
     
     Layer3 --> Layer4[第四层: 检索引擎层<br/>RetrievalAdapter]
@@ -293,7 +293,7 @@ flowchart TD
     A[网络组织层] 
     
     A --> GraphLayer[图结构层<br/>GraphAdapter]
-    A --> NetworkLayer[原子笔记网络层<br/>NetworkLinkAdapter]
+    A --> NetworkLayer[原子笔记网络层<br/>AtomLinkAdapter]
     
     GraphLayer --> Entity[实体节点<br/>Entity Nodes]
     GraphLayer --> Relation[关系边<br/>Relation Edges]
@@ -429,7 +429,7 @@ flowchart TD
 - **LTM (Long-Term Memory)**: 长期存储，无限制
 - **多类型记忆**: 情景记忆、语义记忆、用户画像记忆
 
-***REMOVED******REMOVED******REMOVED*** 3. 网络组织层（GraphAdapter + NetworkLinkAdapter）
+***REMOVED******REMOVED******REMOVED*** 3. 网络组织层（GraphAdapter + AtomLinkAdapter）
 
 - **图结构**: 实体-关系建模，双层检索
 - **原子笔记网络**: 动态链接，记忆演化
@@ -507,7 +507,7 @@ unimem/
 │   ├── layered_storage_adapter.py  ***REMOVED*** 分层存储适配器
 │   ├── memory_type_adapter.py  ***REMOVED*** 记忆分类适配器
 │   ├── graph_adapter.py      ***REMOVED*** 图结构适配器
-│   ├── network_link_adapter.py  ***REMOVED*** 网络链接适配器
+│   ├── atom_link_adapter.py  ***REMOVED*** 原子链接适配器
 │   ├── retrieval_adapter.py  ***REMOVED*** 检索引擎适配器
 │   ├── update_adapter.py    ***REMOVED*** 更新机制适配器
 │   ├── registry.py          ***REMOVED*** 适配器注册表
@@ -533,7 +533,7 @@ unimem/
 ├── tests/                   ***REMOVED*** 测试模块
 │   ├── __init__.py
 │   ├── conftest.py          ***REMOVED*** 测试配置
-│   ├── test_network_link_adapter.py  ***REMOVED*** 网络链接适配器测试
+│   ├── test_atom_link_adapter.py  ***REMOVED*** 原子链接适配器测试
 │   └── README.md            ***REMOVED*** 测试文档
 ├── examples/                ***REMOVED*** 使用示例
 │   └── basic_usage.py       ***REMOVED*** 基本使用示例

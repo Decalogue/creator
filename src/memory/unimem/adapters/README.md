@@ -21,7 +21,7 @@
        ├─── LayeredStorageAdapter ────> 参考 CogMem（三层架构）
        ├─── MemoryTypeAdapter ────> 参考 MemMachine（多类型）
        ├─── GraphAdapter ────> 参考 LightRAG（图结构）
-       ├─── NetworkLinkAdapter ────> 参考 A-Mem（原子笔记网络）
+       ├─── AtomLinkAdapter ────> 参考 A-Mem（原子笔记网络）
        ├─── RetrievalAdapter ────> 参考各架构（多维检索）
        └─── UpdateAdapter ────> 参考 LightMem + A-Mem（更新机制）
 ```
@@ -100,13 +100,13 @@ class GraphAdapterImpl(GraphAdapter):
         pass
 ```
 
-***REMOVED******REMOVED******REMOVED*** 5. NetworkLinkAdapter（网络链接适配器）
+***REMOVED******REMOVED******REMOVED*** 5. AtomLinkAdapter（原子链接适配器）
 
 **功能需求**：原子笔记网络和动态链接生成  
 **参考架构**：A-Mem（原子笔记网络 + 记忆演化）
 
 ```python
-class NetworkLinkAdapterImpl(NetworkLinkAdapter):
+class AtomLinkAdapterImpl(AtomLinkAdapter):
     def construct_atomic_note(self, content, timestamp, entities) -> Memory:
         """构建原子笔记 - 参考 A-Mem 的原子笔记思路"""
         pass

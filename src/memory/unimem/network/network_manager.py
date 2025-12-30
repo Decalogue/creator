@@ -6,7 +6,7 @@
 
 from typing import List, Set, Optional
 from ..types import Entity, Relation, Memory
-from ..adapters import GraphAdapter, NetworkLinkAdapter
+from ..adapters import GraphAdapter, AtomLinkAdapter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,23 +16,23 @@ class NetworkManager:
     """
     网络管理器：管理图结构和原子笔记网络
     
-    直接使用 GraphAdapter 和 NetworkLinkAdapter 进行操作
+    直接使用 GraphAdapter 和 AtomLinkAdapter 进行操作
     """
     
     def __init__(
         self,
         graph_adapter: GraphAdapter,
-        network_link_adapter: NetworkLinkAdapter,
+        atom_link_adapter: AtomLinkAdapter,
     ):
         """
         初始化网络管理器
         
         Args:
             graph_adapter: 图结构适配器（参考 LightRAG）
-            network_link_adapter: 网络链接适配器（参考 A-Mem）
+            atom_link_adapter: 原子链接适配器（参考 A-Mem）
         """
         self.graph_adapter = graph_adapter
-        self.network_link_adapter = network_link_adapter
+        self.atom_link_adapter = atom_link_adapter
         
         logger.info("NetworkManager initialized")
     
@@ -63,15 +63,15 @@ class NetworkManager:
         
         使用网络链接适配器构建
         """
-        memory = self.network_link_adapter.construct_atomic_note(
+        memory = self.atom_link_adapter.construct_atomic_note(
             content=content,
             timestamp=timestamp,
             entities=entities,
         )
         
         ***REMOVED*** 将记忆添加到向量存储
-        if hasattr(self.network_link_adapter, 'add_memory_to_vector_store'):
-            self.network_link_adapter.add_memory_to_vector_store(memory)
+        if hasattr(self.atom_link_adapter, 'add_memory_to_vector_store'):
+            self.atom_link_adapter.add_memory_to_vector_store(memory)
         
         return memory
     
@@ -81,7 +81,7 @@ class NetworkManager:
         
         使用网络链接适配器生成动态链接
         """
-        return self.network_link_adapter.generate_links(memory, top_k=top_k)
+        return self.atom_link_adapter.generate_links(memory, top_k=top_k)
     
     def find_related_memories(self, memory: Memory, top_k: int = 10) -> List[Memory]:
         """
@@ -89,7 +89,7 @@ class NetworkManager:
         
         使用网络链接适配器通过链接网络查找
         """
-        return self.network_link_adapter.find_related_memories(memory, top_k=top_k)
+        return self.atom_link_adapter.find_related_memories(memory, top_k=top_k)
     
     def evolve_memory(
         self,
@@ -102,7 +102,7 @@ class NetworkManager:
         
         使用网络链接适配器进行记忆演化
         """
-        return self.network_link_adapter.evolve_memory(
+        return self.atom_link_adapter.evolve_memory(
             memory=memory,
             related=related,
             new_context=new_context,

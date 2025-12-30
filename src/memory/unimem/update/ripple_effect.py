@@ -17,7 +17,7 @@ class RippleEffectUpdater:
     def __init__(
         self,
         graph_adapter=None,
-        network_link_adapter=None,
+        atom_link_adapter=None,
         update_adapter=None,
         max_depth: int = 3,
         decay_factor: float = 0.5,
@@ -27,13 +27,13 @@ class RippleEffectUpdater:
         
         Args:
             graph_adapter: 图结构适配器（参考 LightRAG）
-            network_link_adapter: 网络链接适配器（参考 A-Mem）
+            atom_link_adapter: 原子链接适配器（参考 A-Mem）
             update_adapter: 更新机制适配器（参考 LightMem）
             max_depth: 最大传播深度
             decay_factor: 衰减因子
         """
         self.graph_adapter = graph_adapter
-        self.network_link_adapter = network_link_adapter
+        self.atom_link_adapter = atom_link_adapter
         self.update_adapter = update_adapter
         self.max_depth = max_depth
         self.decay_factor = decay_factor
@@ -92,10 +92,10 @@ class RippleEffectUpdater:
                 pass
         
         ***REMOVED*** 通过网络链接适配器找到相关记忆（参考 A-Mem）
-        if self.network_link_adapter:
+        if self.atom_link_adapter:
             for link_id in links:
                 ***REMOVED*** TODO: 实现从链接ID获取记忆的方法
-                ***REMOVED*** linked_memory = self.network_link_adapter.get_memory(link_id)
+                ***REMOVED*** linked_memory = self.atom_link_adapter.get_memory(link_id)
                 pass
         
         return list(set(related))
@@ -110,8 +110,8 @@ class RippleEffectUpdater:
         
         for memory in wave:
             ***REMOVED*** 通过网络链接适配器找到间接相关节点（参考 A-Mem）
-            if self.network_link_adapter:
-                indirect = self.network_link_adapter.find_related_memories(memory)
+            if self.atom_link_adapter:
+                indirect = self.atom_link_adapter.find_related_memories(memory)
                 related.extend(indirect)
         
         return list(set(related))
@@ -130,9 +130,9 @@ class RippleEffectUpdater:
         for node in wave:
             try:
                 ***REMOVED*** 网络链接适配器：演化记忆（参考 A-Mem）
-                if self.network_link_adapter:
-                    related = self.network_link_adapter.find_related_memories(node)
-                    evolved = self.network_link_adapter.evolve_memory(
+                if self.atom_link_adapter:
+                    related = self.atom_link_adapter.find_related_memories(node)
+                    evolved = self.atom_link_adapter.evolve_memory(
                         memory=node,
                         related=related,
                         new_context=getattr(node, 'context', ''),

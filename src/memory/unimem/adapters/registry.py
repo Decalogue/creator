@@ -109,7 +109,7 @@ def _auto_register():
     from .layered_storage_adapter import LayeredStorageAdapter
     from .memory_type_adapter import MemoryTypeAdapter
     from .graph_adapter import GraphAdapter
-    from .network_link_adapter import NetworkLinkAdapter
+    from .atom_link_adapter import AtomLinkAdapter
     from .retrieval_adapter import RetrievalAdapter
     from .update_adapter import UpdateAdapter
     
@@ -117,7 +117,7 @@ def _auto_register():
     AdapterRegistry.register("layered_storage", LayeredStorageAdapter)
     AdapterRegistry.register("memory_type", MemoryTypeAdapter)
     AdapterRegistry.register("graph", GraphAdapter)
-    AdapterRegistry.register("network_link", NetworkLinkAdapter)
+    AdapterRegistry.register("atom_link", AtomLinkAdapter)
     AdapterRegistry.register("retrieval", RetrievalAdapter)
     AdapterRegistry.register("update", UpdateAdapter)
     
