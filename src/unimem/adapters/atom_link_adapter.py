@@ -175,19 +175,73 @@ class AtomLinkAdapter(BaseAdapter):
             logger.warning(f"Failed to parse JSON response: {e}")
             return None
     
-    def _analyze_content(self, content: str, max_new_tokens: int = 1024) -> Dict[str, Any]:
+    def _analyze_content(self, content: str, max_new_tokens: int = 1024, is_creative_content: bool = False) -> Dict[str, Any]:
         """
         使用 LLM 分析内容，提取语义元数据
         
         参考 A-Mem 的 analyze_content 方法
+        增强：支持创作助手的多维度分析（文章/小说类型，写作风格，故事线，场景，人物，事件，线索等）
         
         Args:
             content: 要分析的内容
+            is_creative_content: 是否为创作内容（小说/文章），如果是则提取创作相关维度
             
         Returns:
-            包含 keywords, context, tags 的字典
+            包含 keywords, context, tags 的字典，如果是创作内容还包含创作相关维度
         """
-        prompt = """请对以下内容进行结构化分析，提取语义元数据。要求：
+        if is_creative_content:
+            ***REMOVED*** 创作内容的增强分析
+            prompt = """请对以下创作内容进行结构化分析，提取语义元数据和创作维度信息。要求：
+
+1. 识别最重要的关键词（重点关注名词、动词和核心概念）
+2. 提取核心主题和上下文元素
+3. 创建相关的分类标签
+4. **创作维度分析**（如果适用）：
+   - 文章/小说类型（如：武侠小说、科幻小说、散文、诗歌等）
+   - 写作风格（如：现实主义、浪漫主义、悬疑、幽默等）
+   - 故事线（主要情节线索）
+   - 场景（时间、地点、环境）
+   - 人物（主要角色及其特征）
+   - 事件（关键事件和转折点）
+   - 线索（伏笔、悬念等）
+
+请以 JSON 格式返回结果：
+{
+    "keywords": [
+        // 多个具体、独特的关键词，能够捕捉核心概念和术语
+        // 按重要性从高到低排序
+        // 至少三个关键词，但不要过于冗余
+    ],
+    "context": 
+        // 一句话总结：
+        // - 主要主题/领域
+        // - 核心论点/要点
+        // - 目标受众/目的
+        // 请使用中文描述
+    ,
+    "tags": [
+        // 多个广泛的分类/主题标签
+        // 包括领域、格式和类型标签
+        // 至少三个标签，但不要过于冗余
+        // 可以使用中英文混合
+    ],
+    "creative_dimensions": {
+        // 创作维度（如果适用，否则为 null）
+        "genre": "文章/小说类型",
+        "writing_style": "写作风格",
+        "storyline": "故事线/主要情节",
+        "scenes": ["场景1", "场景2", ...],
+        "characters": ["人物1及其特征", "人物2及其特征", ...],
+        "events": ["事件1", "事件2", ...],
+        "clues": ["线索1", "线索2", ...]
+    }
+}
+
+待分析的内容：
+""" + content
+        else:
+            ***REMOVED*** 通用内容分析
+            prompt = """请对以下内容进行结构化分析，提取语义元数据。要求：
 
 1. 识别最重要的关键词（重点关注名词、动词和核心概念）
 2. 提取核心主题和上下文元素
@@ -230,11 +284,15 @@ class AtomLinkAdapter(BaseAdapter):
             ***REMOVED*** 解析 JSON
             result = self._parse_json_response(response_text)
             if result:
-                return {
+                base_result = {
                     "keywords": result.get("keywords", []),
                     "context": result.get("context", "General"),
                     "tags": result.get("tags", []),
                 }
+                ***REMOVED*** 如果是创作内容，添加创作维度
+                if is_creative_content and "creative_dimensions" in result:
+                    base_result["creative_dimensions"] = result.get("creative_dimensions")
+                return base_result
             else:
                 logger.warning(f"Failed to parse LLM response as JSON: {response_text[:200]}")
                 return {"keywords": [], "context": "General", "tags": []}
@@ -274,7 +332,7 @@ class AtomLinkAdapter(BaseAdapter):
         
         return enhanced
     
-    def construct_atomic_note(self, content: str, timestamp: datetime, entities: List[Entity], generate_summary: bool = True) -> Memory:
+    def construct_atomic_note(self, content: str, timestamp: datetime, entities: List[Entity], generate_summary: bool = True, is_creative_content: bool = False) -> Memory:
         """
         构建原子笔记
         
@@ -289,9 +347,10 @@ class AtomLinkAdapter(BaseAdapter):
             timestamp: 时间戳
             entities: 实体列表
             generate_summary: 是否生成摘要性内容（True：生成摘要，False：使用原始内容）
+            is_creative_content: 是否为创作内容（小说/文章），如果是则提取创作相关维度
         """
-        ***REMOVED*** 分析内容，提取元数据
-        analysis = self._analyze_content(content)
+        ***REMOVED*** 分析内容，提取元数据（支持创作维度）
+        analysis = self._analyze_content(content, is_creative_content=is_creative_content)
         
         ***REMOVED*** 如果启用摘要生成，使用 LLM 生成结构化的摘要
         if generate_summary and self.is_available():
@@ -318,6 +377,17 @@ class AtomLinkAdapter(BaseAdapter):
         if generate_summary and len(content) > len(atomic_content):
             memory.metadata["original_length"] = len(content)
             memory.metadata["is_summary"] = True
+        
+        ***REMOVED*** 如果是创作内容，保存创作维度到 metadata
+        if is_creative_content and "creative_dimensions" in analysis:
+            memory.metadata["creative_dimensions"] = analysis["creative_dimensions"]
+            ***REMOVED*** 将创作维度信息添加到 tags 中以便检索
+            creative_dims = analysis["creative_dimensions"]
+            if creative_dims:
+                if creative_dims.get("genre"):
+                    memory.tags.append(f"类型:{creative_dims['genre']}")
+                if creative_dims.get("writing_style"):
+                    memory.tags.append(f"风格:{creative_dims['writing_style']}")
         
         ***REMOVED*** 存储到内存中（用于快速访问）
         self.memory_store[memory_id] = memory
@@ -778,4 +848,359 @@ class AtomLinkAdapter(BaseAdapter):
         except Exception as e:
             logger.error(f"Error deleting memory from vector store: {e}")
             return False
+    
+    ***REMOVED*** ==================== 创作助手增强功能 ====================
+    
+    def structure_content_hierarchy(self, chapters: List[str], level: str = "summary") -> Dict[str, Any]:
+        """
+        多层级结构化：章节->摘要->大纲->简介
+        
+        根据需求文档：
+        - 流程：章节->摘要->大纲->简介
+        - 维度：文章/小说类型，写作风格，故事线，场景，人物，事件，线索等
+        
+        Args:
+            chapters: 章节内容列表
+            level: 结构化层级 ("summary" | "outline" | "synopsis")
+            
+        Returns:
+            结构化结果字典，包含层级内容和元数据
+        """
+        if not self.is_available():
+            logger.warning("AtomLinkAdapter not available, cannot perform structure_content_hierarchy")
+            return {}
+        
+        try:
+            ***REMOVED*** 根据层级选择不同的 prompt
+            if level == "summary":
+                ***REMOVED*** 章节 -> 摘要
+                prompt = f"""请对以下章节内容进行结构化摘要，提取关键信息。
+
+要求：
+1. 提取核心事件、情节和关键信息
+2. 识别主要角色、场景和重要关系
+3. 保持信息的准确性和完整性
+4. 摘要长度控制在200-300字左右
+
+章节内容：
+{chr(10).join([f"章节{i+1}: {ch[:500]}" for i, ch in enumerate(chapters[:10])])}
+
+请以 JSON 格式返回结果：
+{{
+    "summaries": ["摘要1", "摘要2", ...],
+    "metadata": {{
+        "total_chapters": {len(chapters)},
+        "extracted_info": {{
+            "characters": ["角色1", "角色2", ...],
+            "scenes": ["场景1", "场景2", ...],
+            "events": ["事件1", "事件2", ...]
+        }}
+    }}
+}}"""
+            elif level == "outline":
+                ***REMOVED*** 摘要 -> 大纲
+                prompt = f"""请根据以下摘要内容生成故事大纲。
+
+要求：
+1. 提取主要故事线和情节结构
+2. 识别关键转折点和冲突
+3. 整理时间线和因果关系
+4. 大纲应该清晰、层次分明
+
+摘要内容：
+{chr(10).join([f"摘要{i+1}: {ch[:300]}" for i, ch in enumerate(chapters[:20])])}
+
+请以 JSON 格式返回结果：
+{{
+    "outline": {{
+        "main_storyline": "主要故事线",
+        "plot_points": ["情节点1", "情节点2", ...],
+        "conflicts": ["冲突1", "冲突2", ...],
+        "turning_points": ["转折点1", "转折点2", ...]
+    }},
+    "metadata": {{
+        "structure_type": "故事结构类型",
+        "themes": ["主题1", "主题2", ...]
+    }}
+}}"""
+            else:  ***REMOVED*** level == "synopsis"
+                ***REMOVED*** 大纲 -> 简介
+                prompt = f"""请根据以下大纲内容生成作品简介。
+
+要求：
+1. 概括整个作品的核心内容
+2. 突出主要角色和关键冲突
+3. 吸引读者兴趣
+4. 简介长度控制在150-200字左右
+
+大纲内容：
+{chr(10).join([f"{ch[:400]}" for ch in chapters[:5]])}
+
+请以 JSON 格式返回结果：
+{{
+    "synopsis": "作品简介内容",
+    "metadata": {{
+        "genre": "作品类型",
+        "writing_style": "写作风格",
+        "target_audience": "目标受众"
+    }}
+}}"""
+            
+            messages = [
+                {"role": "system", "content": "你是一个专业的创作助手，擅长对内容进行多层级结构化分析。请始终以有效的 JSON 格式返回结果。"},
+                {"role": "user", "content": prompt}
+            ]
+            
+            _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=2048)
+            result = self._parse_json_response(response_text)
+            
+            if result:
+                return result
+            else:
+                logger.warning(f"Failed to parse structure hierarchy response: {response_text[:200]}")
+                return {}
+        except Exception as e:
+            logger.error(f"Error structuring content hierarchy: {e}")
+            return {}
+    
+    def retrieve_with_reward(self, query: str, original_contents: List[str], top_k: int = 10) -> List[Dict[str, Any]]:
+        """
+        根据结构化结果检索原内容，并计算奖励
+        
+        根据需求文档：
+        - 奖励 = 1 - index/N，其中 index 为索引，N 为原内容列表
+        - 例如对于原章节结构化的摘要，使用摘要在所有章节(N)中检索原章节，索引越靠前奖励越高
+        
+        Args:
+            query: 查询文本（通常是结构化后的摘要/大纲/简介）
+            original_contents: 原始内容列表（如原章节列表）
+            top_k: 返回结果数量
+            
+        Returns:
+            检索结果列表，每个结果包含 memory、score 和 reward
+        """
+        if not self.is_available():
+            return []
+        
+        try:
+            ***REMOVED*** 1. 使用结构化查询检索相似记忆
+            similar_memories = self._search_similar_memories(query, top_k=top_k * 2)
+            
+            ***REMOVED*** 2. 匹配到原始内容并计算奖励
+            results = []
+            N = len(original_contents)
+            
+            for idx, memory in enumerate(similar_memories[:top_k]):
+                ***REMOVED*** 尝试匹配到原始内容
+                matched_index = None
+                for orig_idx, orig_content in enumerate(original_contents):
+                    ***REMOVED*** 简单的匹配逻辑：检查记忆内容是否与原始内容相似
+                    if memory.content[:100] in orig_content or orig_content[:100] in memory.content:
+                        matched_index = orig_idx
+                        break
+                
+                ***REMOVED*** 计算奖励：reward = 1 - index/N
+                if matched_index is not None:
+                    reward = 1.0 - (matched_index / N) if N > 0 else 1.0
+                else:
+                    ***REMOVED*** 如果无法匹配，使用检索排名计算奖励
+                    reward = 1.0 - (idx / top_k) if top_k > 0 else 1.0
+                
+                results.append({
+                    "memory": memory,
+                    "score": memory.metadata.get("similarity_score", 1.0 - idx / top_k),
+                    "reward": reward,
+                    "original_index": matched_index,
+                    "retrieval_rank": idx + 1
+                })
+            
+            ***REMOVED*** 按奖励排序
+            results.sort(key=lambda x: x["reward"], reverse=True)
+            return results[:top_k]
+        except Exception as e:
+            logger.error(f"Error retrieving with reward: {e}")
+            return []
+    
+    def generate_from_hierarchy(self, synopsis: str, target_level: str = "chapter", context_memories: List[Memory] = None) -> str:
+        """
+        生成流程：简介->大纲->摘要->章节
+        
+        根据需求文档：
+        - 流程：简介->大纲->摘要->章节
+        - 上下文：与当前生成目标相关的原子笔记
+        
+        Args:
+            synopsis: 简介内容
+            target_level: 目标层级 ("outline" | "summary" | "chapter")
+            context_memories: 相关的原子笔记（用于提供上下文）
+            
+        Returns:
+            生成的内容
+        """
+        if not self.is_available():
+            logger.warning("AtomLinkAdapter not available, cannot perform generate_from_hierarchy")
+            return ""
+        
+        try:
+            ***REMOVED*** 构建上下文信息
+            context_text = ""
+            if context_memories:
+                context_text = "\n相关原子笔记：\n"
+                for mem in context_memories[:5]:
+                    context_text += f"- {mem.content[:200]}\n"
+                    if mem.metadata.get("creative_dimensions"):
+                        dims = mem.metadata["creative_dimensions"]
+                        if dims.get("characters"):
+                            context_text += f"  人物: {', '.join(dims['characters'][:3])}\n"
+                        if dims.get("scenes"):
+                            context_text += f"  场景: {', '.join(dims['scenes'][:3])}\n"
+            
+            ***REMOVED*** 根据目标层级选择不同的 prompt
+            if target_level == "outline":
+                prompt = f"""请根据以下作品简介生成详细的故事大纲。
+
+要求：
+1. 扩展主要故事线和情节结构
+2. 设计关键转折点和冲突
+3. 规划时间线和因果关系
+4. 大纲应该详细、层次分明
+
+作品简介：
+{synopsis}
+
+{context_text}
+
+请以 JSON 格式返回结果：
+{{
+    "outline": {{
+        "main_storyline": "主要故事线",
+        "plot_points": ["情节点1", "情节点2", ...],
+        "conflicts": ["冲突1", "冲突2", ...],
+        "turning_points": ["转折点1", "转折点2", ...]
+    }}
+}}"""
+            elif target_level == "summary":
+                prompt = f"""请根据以下故事大纲生成章节摘要。
+
+要求：
+1. 为每个主要情节点生成摘要
+2. 保持与大纲的一致性
+3. 摘要应该清晰、连贯
+
+故事大纲：
+{synopsis}
+
+{context_text}
+
+请以 JSON 格式返回结果：
+{{
+    "summaries": ["摘要1", "摘要2", ...]
+}}"""
+            else:  ***REMOVED*** target_level == "chapter"
+                prompt = f"""请根据以下内容生成具体的章节内容。
+
+要求：
+1. 扩展摘要为完整的章节内容
+2. 包含对话、场景描写和情节推进
+3. 保持风格一致性和连贯性
+4. 章节长度控制在1000-2000字左右
+
+内容：
+{synopsis}
+
+{context_text}
+
+请直接返回章节内容，不要包含其他格式："""
+            
+            messages = [
+                {"role": "system", "content": "你是一个专业的创作助手，擅长根据结构化内容生成创作内容。请保持风格一致性和连贯性。"},
+                {"role": "user", "content": prompt}
+            ]
+            
+            _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=4096)
+            
+            ***REMOVED*** 清理响应文本
+            if target_level in ["outline", "summary"]:
+                result = self._parse_json_response(response_text)
+                if result:
+                    if target_level == "outline":
+                        return json.dumps(result.get("outline", {}), ensure_ascii=False, indent=2)
+                    else:
+                        return "\n".join(result.get("summaries", []))
+            
+            ***REMOVED*** 对于章节，直接返回文本
+            return response_text.strip()
+        except Exception as e:
+            logger.error(f"Error generating from hierarchy: {e}")
+            return ""
+    
+    def optimize_prompt_and_context(self, input_text: str, execution_result: str, current_prompt: str = None) -> Dict[str, Any]:
+        """
+        自动优化：根据输入和 Agent 执行结果来优化 prompt 或上下文结构
+        
+        根据需求文档：
+        - 自动优化包括自动根据输入和 Agent 执行结果来优化 prompt 或上下文结构
+        
+        Args:
+            input_text: 输入文本
+            execution_result: Agent 执行结果
+            current_prompt: 当前的 prompt（可选）
+            
+        Returns:
+            优化后的 prompt 和上下文结构
+        """
+        if not self.is_available():
+            return {"optimized_prompt": current_prompt or "", "optimized_context": {}}
+        
+        try:
+            prompt = f"""请分析以下输入和执行结果，优化 prompt 和上下文结构。
+
+输入：
+{input_text[:500]}
+
+执行结果：
+{execution_result[:500]}
+
+当前 Prompt（如果提供）：
+{current_prompt[:500] if current_prompt else "无"}
+
+请分析：
+1. 执行结果是否满足输入要求？
+2. 如果未满足，prompt 或上下文结构需要如何优化？
+3. 提供优化后的 prompt 和上下文结构建议
+
+请以 JSON 格式返回结果：
+{{
+    "analysis": {{
+        "satisfaction": "满足/部分满足/不满足",
+        "issues": ["问题1", "问题2", ...],
+        "suggestions": ["建议1", "建议2", ...]
+    }},
+    "optimized_prompt": "优化后的 prompt",
+    "optimized_context": {{
+        "structure": "上下文结构建议",
+        "key_points": ["要点1", "要点2", ...]
+    }}
+}}"""
+            
+            messages = [
+                {"role": "system", "content": "你是一个专业的 prompt 优化助手，擅长分析执行结果并优化 prompt 和上下文结构。请始终以有效的 JSON 格式返回结果。"},
+                {"role": "user", "content": prompt}
+            ]
+            
+            _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=2048)
+            result = self._parse_json_response(response_text)
+            
+            if result:
+                return {
+                    "optimized_prompt": result.get("optimized_prompt", current_prompt or ""),
+                    "optimized_context": result.get("optimized_context", {}),
+                    "analysis": result.get("analysis", {})
+                }
+            else:
+                logger.warning(f"Failed to parse optimization response: {response_text[:200]}")
+                return {"optimized_prompt": current_prompt or "", "optimized_context": {}, "analysis": {}}
+        except Exception as e:
+            logger.error(f"Error optimizing prompt and context: {e}")
+            return {"optimized_prompt": current_prompt or "", "optimized_context": {}, "analysis": {}}
 
