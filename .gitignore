@@ -104,6 +104,7 @@ ENV/
 ***REMOVED*** custom
 data/
 src/data/
+src/docs/
 src/llm/result/
-src/memory/docs/
+src/unimem/qdrant_storage/
 frontend/node_modules/
