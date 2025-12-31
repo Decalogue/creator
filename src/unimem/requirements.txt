@@ -1,0 +1,28 @@
+# UniMem 依赖
+
+# 核心依赖
+numpy>=1.24.0
+pydantic>=2.0.0
+
+# 存储后端
+redis>=5.0.0
+psycopg2-binary>=2.9.0  # PostgreSQL
+
+# 向量数据库
+qdrant-client==1.6.0
+# faiss-cpu>=1.7.4  # 可选
+# pymilvus>=2.3.0  # 可选
+
+# 图数据库
+neo4j>=5.0.0
+# networkx>=3.1  # 可选，用于开发/测试
+
+# LLM 和嵌入
+openai>=1.0.0
+sentence-transformers>=2.2.0
+
+# 工具库
+python-dateutil>=2.8.0
+
+# 日志
+structlog>=23.0.0
