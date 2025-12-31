@@ -12,7 +12,7 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from unimem.adapters.atom_link_adapter import AtomLinkAdapter
+from unimem.adapters.novel_adapter import NovelAdapter
 from unimem.types import Memory, Entity
 import logging
 
@@ -26,7 +26,7 @@ def load_creative_idea(idea_file: Path):
         return json.load(f)
 
 
-def generate_outline_from_synopsis(idea: dict, adapter: AtomLinkAdapter):
+def generate_outline_from_synopsis(idea: dict, adapter: NovelAdapter):
     """从简介生成大纲"""
     logger.info("="*50)
     logger.info("步骤1: 从简介生成故事大纲")
@@ -44,7 +44,7 @@ def generate_outline_from_synopsis(idea: dict, adapter: AtomLinkAdapter):
     return outline
 
 
-def generate_summaries_from_outline(outline: str, adapter: AtomLinkAdapter, num_chapters: int = 5):
+def generate_summaries_from_outline(outline: str, adapter: NovelAdapter, num_chapters: int = 5):
     """从大纲生成章节摘要"""
     logger.info("\n" + "="*50)
     logger.info(f"步骤2: 从大纲生成前{num_chapters}章摘要")
@@ -123,7 +123,7 @@ def build_enhanced_prompt_with_feedback(original_prompt: str, validation_result:
     return original_prompt + feedback_section
 
 
-def validate_generated_chapter(chapter_content: str, expected_summary: str, idea: dict, adapter: AtomLinkAdapter) -> dict:
+def validate_generated_chapter(chapter_content: str, expected_summary: str, idea: dict, adapter: NovelAdapter) -> dict:
     """
     反向结构化校验：对生成的章节进行结构化分析，并与预期摘要对比
     
@@ -224,7 +224,7 @@ def validate_generated_chapter(chapter_content: str, expected_summary: str, idea
         return {'accuracy_score': 0.5, 'validation_result': {}, 'issues': [], 'suggestions': []}
 
 
-def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, adapter: AtomLinkAdapter, context_memories: list, enable_validation: bool = True, validation_threshold: float = 0.7, max_retries: int = 2):
+def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, adapter: NovelAdapter, context_memories: list, enable_validation: bool = True, validation_threshold: float = 0.7, max_retries: int = 2):
     """
     从摘要生成完整章节（带反向结构化校验）
     
@@ -341,7 +341,7 @@ def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, ad
     return "", None
 
 
-def generate_chapters(idea: dict, adapter: AtomLinkAdapter, num_chapters: int = 5, enable_validation: bool = True, validation_threshold: float = 0.7, validate_first_n: int = 3):
+def generate_chapters(idea: dict, adapter: NovelAdapter, num_chapters: int = 5, enable_validation: bool = True, validation_threshold: float = 0.7, validate_first_n: int = 3):
     """
     生成前N章内容（支持反向结构化校验）
     
@@ -381,7 +381,14 @@ def generate_chapters(idea: dict, adapter: AtomLinkAdapter, num_chapters: int = 
         json.dump({"summaries": summaries}, f, ensure_ascii=False, indent=2)
     logger.info(f"章节摘要已保存到: {summaries_file}")
     
-    ***REMOVED*** 3. 生成各章节内容
+    ***REMOVED*** 3. 生成各章节内容（逐章生成，每章单独保存）
+    data_dir = Path(__file__).parent.parent.parent / 'data'
+    
+    ***REMOVED*** 创建保存目录
+    novel_dir = data_dir / 'novel'
+    novel_dir.mkdir(exist_ok=True)
+    logger.info(f"章节保存目录: {novel_dir}")
+    
     chapters = []
     context_memories = []  ***REMOVED*** 用于累积上下文
     
@@ -419,6 +426,20 @@ def generate_chapters(idea: dict, adapter: AtomLinkAdapter, num_chapters: int = 
             
             chapters.append(chapter_data)
             
+            ***REMOVED*** 立即保存单章到文件
+            chapter_file = novel_dir / f"chapter_{i:02d}.json"
+            with open(chapter_file, 'w', encoding='utf-8') as f:
+                json.dump(chapter_data, f, ensure_ascii=False, indent=2)
+            
+            ***REMOVED*** 同时保存纯文本版本
+            chapter_txt_file = novel_dir / f"chapter_{i:02d}.txt"
+            with open(chapter_txt_file, 'w', encoding='utf-8') as f:
+                f.write(f"第{i}章：{chapter_data['title']}\n")
+                f.write("="*60 + "\n\n")
+                f.write(chapter_content)
+            
+            logger.info(f"  ✅ 第 {i} 章完成 ({len(chapter_content)} 字) - 已保存到 {chapter_file.name}")
+            
             ***REMOVED*** 将生成的章节内容存储为记忆，用于后续章节的上下文
             if adapter.is_available():
                 memory = adapter.construct_atomic_note(
@@ -440,13 +461,19 @@ def generate_chapters(idea: dict, adapter: AtomLinkAdapter, num_chapters: int = 
 
 
 def save_chapters(chapters: list, idea: dict, output_file: Path):
-    """保存章节到文件"""
+    """
+    保存章节汇总到文件
+    
+    注意：各章节已单独保存到 data/novel/ 目录，此函数用于保存汇总文件。
+    """
     output_data = {
         'novel_info': {
             'title': idea.get('title', ''),
             'genre': idea.get('genre', ''),
             'background': idea.get('background', ''),
             'core_conflict': idea.get('core_conflict', ''),
+            'total_chapters': len(chapters),
+            'generated_chapters': len(chapters)
         },
         'chapters': chapters,
         'generation_time': datetime.now().isoformat()
@@ -455,7 +482,7 @@ def save_chapters(chapters: list, idea: dict, output_file: Path):
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, ensure_ascii=False, indent=2)
     
-    logger.info(f"\n✅ 所有章节已保存到: {output_file}")
+    logger.info(f"\n✅ 章节汇总已保存到: {output_file}")
     
     ***REMOVED*** 同时生成纯文本版本
     txt_file = output_file.with_suffix('.txt')
@@ -468,7 +495,7 @@ def save_chapters(chapters: list, idea: dict, output_file: Path):
             f.write(ch['content'])
             f.write("\n\n" + "="*60 + "\n\n")
     
-    logger.info(f"✅ 纯文本版本已保存到: {txt_file}")
+    logger.info(f"✅ 纯文本汇总版本已保存到: {txt_file}")
 
 
 def main():
@@ -480,7 +507,7 @@ def main():
         'collection_name': 'xuemolu_creation'
     }
     
-    adapter = AtomLinkAdapter(config)
+    adapter = NovelAdapter(config)
     adapter.initialize()
     
     ***REMOVED*** 加载创作 idea
@@ -501,8 +528,9 @@ def main():
         validate_first_n=3  ***REMOVED*** 前3章强制校验
     )
     
-    ***REMOVED*** 保存章节
-    output_file = Path(__file__).parent.parent.parent / 'data' / 'xuemolu_chapters.json'
+    ***REMOVED*** 保存章节汇总（所有章节已单独保存，这里保存汇总）
+    data_dir = Path(__file__).parent.parent.parent / 'data'
+    output_file = data_dir / 'xuemolu_chapters.json'
     save_chapters(chapters, idea, output_file)
     
     ***REMOVED*** 打印统计信息
@@ -513,6 +541,7 @@ def main():
     total_words = sum(ch.get('word_count', 0) for ch in chapters)
     logger.info(f"总字数: {total_words:,} 字")
     logger.info(f"平均每章: {total_words // len(chapters) if chapters else 0} 字")
+    logger.info(f"单章文件已保存到: {data_dir / 'novel'}/")
     
     ***REMOVED*** 打印校验统计
     validated_chapters = [ch for ch in chapters if 'validation' in ch]
