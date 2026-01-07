@@ -12,14 +12,23 @@ UniMem 核心实现
 - 并发安全：支持多线程环境
 - 批量操作：支持批量处理
 - 幂等性：确保操作可重复执行
+
+工业级特性：
+- 统一异常处理（使用适配器异常体系）
+- 完善的线程安全机制
+- 健康检查机制
+- 性能监控和指标收集
+- 优雅降级支持
 """
 
 import logging
-from typing import List, Optional, Dict, Any, Set
+import time
+from typing import List, Optional, Dict, Any, Set, Tuple
 from datetime import datetime
 from contextlib import contextmanager
 import threading
 import concurrent.futures
+from dataclasses import dataclass, field
 
 from .types import Experience, Memory, Task, Context, MemoryType, MemoryLayer, RetrievalResult
 from .adapters import (
@@ -31,6 +40,11 @@ from .adapters import (
     RetrievalAdapter,
     UpdateAdapter,
 )
+from .adapters.base import (
+    AdapterError,
+    AdapterConfigurationError,
+    AdapterNotAvailableError,
+)
 from .storage import StorageManager
 from .retrieval import RetrievalEngine
 from .update import UpdateManager
@@ -39,7 +53,8 @@ from .config import UniMemConfig
 logger = logging.getLogger(__name__)
 
 
-class OperationError(Exception):
+***REMOVED*** 操作特定异常（继承自适配器异常体系）
+class OperationError(AdapterError):
     """操作错误基类"""
     pass
 
@@ -57,6 +72,41 @@ class RecallError(OperationError):
 class ReflectError(OperationError):
     """REFLECT 操作错误"""
     pass
+
+
+@dataclass
+class OperationMetrics:
+    """操作性能指标"""
+    count: int = 0
+    errors: int = 0
+    total_time: float = 0.0
+    min_time: float = float('inf')
+    max_time: float = 0.0
+    
+    @property
+    def average_time(self) -> float:
+        """平均耗时（秒）"""
+        if self.count == 0:
+            return 0.0
+        return self.total_time / self.count
+    
+    @property
+    def error_rate(self) -> float:
+        """错误率"""
+        total = self.count + self.errors
+        if total == 0:
+            return 0.0
+        return self.errors / total
+    
+    def record(self, duration: float, success: bool = True) -> None:
+        """记录操作指标"""
+        if success:
+            self.count += 1
+        else:
+            self.errors += 1
+        self.total_time += duration
+        self.min_time = min(self.min_time, duration)
+        self.max_time = max(self.max_time, duration)
 
 
 class UniMem:
@@ -126,6 +176,9 @@ class UniMem:
         ***REMOVED*** 限流：信号量控制并发操作数
         self._operation_semaphore = threading.Semaphore(max_concurrent_operations)
         
+        ***REMOVED*** 操作超时配置（秒）
+        self.operation_timeout = float(self.config.get("operation_timeout", 300.0))
+        
         ***REMOVED*** 初始化适配器层（各架构解耦，通过适配器交互）
         logger.info("Initializing UniMem adapters...")
         self._init_adapters()
@@ -148,30 +201,35 @@ class UniMem:
             update_adapter=self.update_adapter,
         )
         
-        ***REMOVED*** 性能指标（线程安全）
+        ***REMOVED*** 性能指标（使用数据类，线程安全）
         self.metrics = {
-            "retain_count": 0,
-            "recall_count": 0,
-            "reflect_count": 0,
-            "retain_errors": 0,
-            "recall_errors": 0,
-            "reflect_errors": 0,
-            "retain_total_time": 0.0,
-            "recall_total_time": 0.0,
-            "reflect_total_time": 0.0,
+            "retain": OperationMetrics(),
+            "recall": OperationMetrics(),
+            "reflect": OperationMetrics(),
             "adapter_calls": {},  ***REMOVED*** 适配器调用统计
         }
         self._metrics_lock = threading.Lock()
         
+        ***REMOVED*** 系统启动时间
+        self._start_time = datetime.now()
+        
         logger.info("UniMem initialized successfully")
     
-    def _validate_config(self):
-        """验证配置"""
+    def _validate_config(self) -> None:
+        """
+        验证配置
+        
+        Raises:
+            AdapterConfigurationError: 如果配置无效
+        """
         ***REMOVED*** 验证必需配置
         required_keys = ["graph", "vector"]
         for key in required_keys:
             if key not in self.config:
-                raise ValueError(f"Missing required config key: {key}")
+                raise AdapterConfigurationError(
+                    f"Missing required config key: {key}",
+                    adapter_name="UniMem"
+                )
         
         ***REMOVED*** 验证后端配置
         valid_storage_backends = ["redis", "mongodb", "postgresql"]
@@ -185,10 +243,17 @@ class UniMem:
         valid_vector_backends = ["qdrant", "faiss", "milvus"]
         if self.vector_backend not in valid_vector_backends:
             logger.warning(f"Unknown vector backend: {self.vector_backend}")
+        
+        ***REMOVED*** 验证超时配置
+        if self.operation_timeout <= 0:
+            raise AdapterConfigurationError(
+                f"operation_timeout must be positive, got {self.operation_timeout}",
+                adapter_name="UniMem"
+            )
     
-    def _init_adapters(self):
+    def _init_adapters(self) -> None:
         """
-        初始化功能适配器
+        初始化功能适配器（带优雅降级）
         
         按照 UniMem 的功能需求初始化适配器，从各大架构吸收精华思路：
         - 操作接口：参考 HindSight
@@ -198,44 +263,65 @@ class UniMem:
         - 网络链接：参考 A-Mem
         - 检索融合：参考各架构
         - 更新机制：参考 LightMem + A-Mem
+        
+        注意：适配器初始化失败不会导致整个系统失败，系统会以降级模式运行
         """
-        try:
-            ***REMOVED*** 操作接口适配器（参考 HindSight）
-            self.operation_adapter = OperationAdapter(config=self.config.get("operation", {}))
-            self.operation_adapter.initialize()
-            
-            ***REMOVED*** 分层存储适配器（参考 CogMem）
-            self.storage_adapter = LayeredStorageAdapter(config=self.config.get("layered_storage", {}))
-            self.storage_adapter.initialize()
-            
-            ***REMOVED*** 记忆分类适配器（参考 MemMachine）
-            self.memory_type_adapter = MemoryTypeAdapter(config=self.config.get("memory_type", {}))
-            self.memory_type_adapter.initialize()
-            
-            ***REMOVED*** 图结构适配器（参考 LightRAG）
-            graph_config = self.config.get("graph", {})
-            graph_config["backend"] = self.graph_backend
-            self.graph_adapter = GraphAdapter(config=graph_config)
-            self.graph_adapter.initialize()
-            
-            ***REMOVED*** 原子链接适配器（参考 A-Mem）
-            network_config = self.config.get("network", {})
-            self.network_adapter = AtomLinkAdapter(config=network_config)
-            self.network_adapter.initialize()
-            
-            ***REMOVED*** 检索引擎适配器（参考各架构）
-            self.retrieval_adapter = RetrievalAdapter(config=self.config.get("retrieval", {}))
-            self.retrieval_adapter.initialize()
-            
-            ***REMOVED*** 更新机制适配器（参考 LightMem + A-Mem）
-            self.update_adapter = UpdateAdapter(config=self.config.get("update", {}))
-            self.update_adapter.initialize()
-            
-            ***REMOVED*** 记录适配器状态
-            self._log_adapter_status()
-        except Exception as e:
-            logger.error(f"Failed to initialize adapters: {e}", exc_info=True)
-            raise
+        adapters_config = [
+            ("operation", OperationAdapter, self.config.get("operation", {}), True),  ***REMOVED*** 必需
+            ("layered_storage", LayeredStorageAdapter, self.config.get("layered_storage", {}), True),  ***REMOVED*** 必需
+            ("memory_type", MemoryTypeAdapter, self.config.get("memory_type", {}), False),  ***REMOVED*** 可选
+            ("graph", GraphAdapter, {**self.config.get("graph", {}), "backend": self.graph_backend}, False),  ***REMOVED*** 可选
+            ("network", AtomLinkAdapter, self.config.get("network", {}), False),  ***REMOVED*** 可选
+            ("retrieval", RetrievalAdapter, self.config.get("retrieval", {}), False),  ***REMOVED*** 可选
+            ("update", UpdateAdapter, self.config.get("update", {}), False),  ***REMOVED*** 可选
+        ]
+        
+        failed_adapters = []
+        
+        for name, adapter_class, config, required in adapters_config:
+            try:
+                adapter = adapter_class(config=config)
+                adapter.initialize()
+                
+                ***REMOVED*** 设置属性
+                if name == "operation":
+                    self.operation_adapter = adapter
+                elif name == "layered_storage":
+                    self.storage_adapter = adapter
+                elif name == "memory_type":
+                    self.memory_type_adapter = adapter
+                elif name == "graph":
+                    self.graph_adapter = adapter
+                elif name == "network":
+                    self.network_adapter = adapter
+                elif name == "retrieval":
+                    self.retrieval_adapter = adapter
+                elif name == "update":
+                    self.update_adapter = adapter
+                
+                if not adapter.is_available() and required:
+                    logger.warning(f"Required adapter '{name}' is not available, system will be limited")
+                    failed_adapters.append(name)
+                elif not adapter.is_available():
+                    logger.warning(f"Optional adapter '{name}' is not available, some features will be limited")
+                    failed_adapters.append(name)
+                    
+            except AdapterConfigurationError as e:
+                logger.error(f"Adapter '{name}' configuration error: {e}", exc_info=True)
+                if required:
+                    raise  ***REMOVED*** 必需适配器的配置错误需要重新抛出
+                failed_adapters.append(name)
+            except Exception as e:
+                logger.error(f"Failed to initialize adapter '{name}': {e}", exc_info=True)
+                if required:
+                    raise  ***REMOVED*** 必需适配器的初始化失败需要重新抛出
+                failed_adapters.append(name)
+        
+        ***REMOVED*** 记录适配器状态
+        self._log_adapter_status()
+        
+        if failed_adapters:
+            logger.warning(f"Some adapters failed to initialize: {', '.join(failed_adapters)}. System running in degraded mode.")
     
     def _log_adapter_status(self):
         """记录适配器状态"""
@@ -295,21 +381,40 @@ class UniMem:
     
     @contextmanager
     def _operation_context(self, operation_name: str):
-        """操作上下文管理器，用于性能监控和错误处理"""
+        """
+        操作上下文管理器，用于性能监控和错误处理（线程安全）
+        
+        提供：
+        - 限流控制（信号量）
+        - 性能监控（耗时统计）
+        - 错误统计
+        - 超时控制（可选）
+        """
         ***REMOVED*** 限流：获取信号量
         self._operation_semaphore.acquire()
+        start_time = time.time()
         try:
-            start_time = datetime.now()
             try:
                 yield
-                duration = (datetime.now() - start_time).total_seconds()
+                duration = time.time() - start_time
+                ***REMOVED*** 记录成功指标
                 with self._metrics_lock:
-                    self.metrics[f"{operation_name}_count"] += 1
-                    self.metrics[f"{operation_name}_total_time"] += duration
+                    if operation_name in self.metrics and isinstance(self.metrics[operation_name], OperationMetrics):
+                        self.metrics[operation_name].record(duration, success=True)
+                    else:
+                        ***REMOVED*** 向后兼容：如果指标不存在，初始化它
+                        self.metrics[operation_name] = OperationMetrics()
+                        self.metrics[operation_name].record(duration, success=True)
                 logger.debug(f"{operation_name} completed in {duration:.3f}s")
             except Exception as e:
+                duration = time.time() - start_time
+                ***REMOVED*** 记录错误指标
                 with self._metrics_lock:
-                    self.metrics[f"{operation_name}_errors"] += 1
+                    if operation_name in self.metrics and isinstance(self.metrics[operation_name], OperationMetrics):
+                        self.metrics[operation_name].record(duration, success=False)
+                    else:
+                        self.metrics[operation_name] = OperationMetrics()
+                        self.metrics[operation_name].record(duration, success=False)
                 logger.error(f"{operation_name} failed: {e}", exc_info=True)
                 raise
         finally:
@@ -430,7 +535,10 @@ class UniMem:
                     ***REMOVED*** 5. 存储管理器：存储到相应层级（自动判断 FoA/DA/LTM）
                     self._record_adapter_call("LayeredStorageAdapter", "add_to_foa")
                     if not self.storage.add_memory(memory, context):
-                        raise RetainError("Failed to add memory to storage")
+                        raise RetainError(
+                            "Failed to add memory to storage",
+                            adapter_name="UniMem"
+                        )
                     
                     ***REMOVED*** 记录回滚操作
                     rollback_actions.append(lambda: self._rollback_storage(memory.id))
@@ -478,9 +586,16 @@ class UniMem:
                 logger.info(f"RETAIN completed: Memory {memory.id} stored")
                 return memory
                 
+            except (RetainError, AdapterError, AdapterNotAvailableError):
+                ***REMOVED*** 重新抛出已知的适配器异常
+                raise
             except Exception as e:
                 logger.error(f"RETAIN failed: {e}", exc_info=True)
-                raise RetainError(f"Failed to retain memory: {e}") from e
+                raise RetainError(
+                    f"Failed to retain memory: {e}",
+                    adapter_name="UniMem",
+                    cause=e
+                ) from e
     
     def retain_batch(self, experiences: List[Experience], context: Context) -> List[Memory]:
         """
@@ -654,9 +769,16 @@ class UniMem:
                 logger.info(f"RECALL completed: {len(ranked_results)} results")
                 return ranked_results[:top_k]
                 
+            except (RecallError, AdapterError, AdapterNotAvailableError):
+                ***REMOVED*** 重新抛出已知的适配器异常
+                raise
             except Exception as e:
                 logger.error(f"RECALL failed: {e}", exc_info=True)
-                raise RecallError(f"Failed to recall memories: {e}") from e
+                raise RecallError(
+                    f"Failed to recall memories: {e}",
+                    adapter_name="UniMem",
+                    cause=e
+                ) from e
     
     def recall_batch(self, queries: List[str], context: Optional[Context] = None, top_k: int = 10) -> List[List[RetrievalResult]]:
         """
@@ -779,9 +901,16 @@ class UniMem:
                 logger.info(f"REFLECT completed: {len(evolved_memories)} memories evolved (including {len(new_opinions)} new opinions)")
                 return evolved_memories
                 
+            except (ReflectError, AdapterError, AdapterNotAvailableError):
+                ***REMOVED*** 重新抛出已知的适配器异常
+                raise
             except Exception as e:
                 logger.error(f"REFLECT failed: {e}", exc_info=True)
-                raise ReflectError(f"Failed to reflect memories: {e}") from e
+                raise ReflectError(
+                    f"Failed to reflect memories: {e}",
+                    adapter_name="UniMem",
+                    cause=e
+                ) from e
     
     def reflect_batch(self, memories_list: List[List[Memory]], tasks: List[Task]) -> List[List[Memory]]:
         """
@@ -795,7 +924,11 @@ class UniMem:
             每个任务演化后的记忆列表
         """
         if len(memories_list) != len(tasks):
-            raise ValueError("memories_list and tasks must have the same length")
+            raise AdapterError(
+                f"memories_list and tasks must have the same length, "
+                f"got {len(memories_list)} and {len(tasks)}",
+                adapter_name="UniMem"
+            )
         
         logger.info(f"REFLECT BATCH: Processing {len(tasks)} tasks")
         
@@ -838,40 +971,83 @@ class UniMem:
     
     def get_adapter_status(self) -> Dict[str, Any]:
         """
-        获取所有适配器的状态
+        获取所有适配器的状态（线程安全）
         
         Returns:
-            适配器状态字典
+            适配器状态字典，包含每个适配器的健康检查信息
         """
-        return {
-            "operation": self.operation_adapter.health_check(),
-            "layered_storage": self.storage_adapter.health_check(),
-            "memory_type": self.memory_type_adapter.health_check(),
-            "graph": self.graph_adapter.health_check(),
-            "atom_link": self.network_adapter.health_check(),
-            "retrieval": self.retrieval_adapter.health_check(),
-            "update": self.update_adapter.health_check(),
+        adapters = {
+            "operation": self.operation_adapter,
+            "layered_storage": self.storage_adapter,
+            "memory_type": self.memory_type_adapter,
+            "graph": self.graph_adapter,
+            "atom_link": self.network_adapter,
+            "retrieval": self.retrieval_adapter,
+            "update": self.update_adapter,
         }
+        
+        status = {}
+        for name, adapter in adapters.items():
+            try:
+                health_status = adapter.health_check()
+                ***REMOVED*** 如果返回的是数据类，转换为字典
+                if hasattr(health_status, '__dict__') and not isinstance(health_status, dict):
+                    status[name] = {
+                        "adapter": health_status.adapter,
+                        "initialized": health_status.initialized,
+                        "available": health_status.available,
+                        "capabilities": health_status.capabilities,
+                        **({"details": health_status.details} if health_status.details else {})
+                    }
+                else:
+                    status[name] = health_status if isinstance(health_status, dict) else adapter.get_health_dict() if hasattr(adapter, 'get_health_dict') else {}
+            except Exception as e:
+                logger.error(f"Error checking health of adapter {name}: {e}", exc_info=True)
+                status[name] = {
+                    "adapter": name,
+                    "initialized": True,
+                    "available": False,
+                    "error": str(e)
+                }
+        
+        return status
     
     def get_metrics(self) -> Dict[str, Any]:
         """
-        获取性能指标
+        获取性能指标（线程安全）
         
         Returns:
-            指标字典
+            指标字典，包含操作统计和适配器调用统计
         """
         with self._metrics_lock:
-            metrics = self.metrics.copy()
+            result = {
+                "retain": self._metrics_to_dict(self.metrics.get("retain")),
+                "recall": self._metrics_to_dict(self.metrics.get("recall")),
+                "reflect": self._metrics_to_dict(self.metrics.get("reflect")),
+                "adapter_calls": self.metrics.get("adapter_calls", {}).copy(),
+            }
         
-        ***REMOVED*** 计算平均值
-        if metrics["retain_count"] > 0:
-            metrics["retain_avg_time"] = metrics["retain_total_time"] / metrics["retain_count"]
-        if metrics["recall_count"] > 0:
-            metrics["recall_avg_time"] = metrics["recall_total_time"] / metrics["recall_count"]
-        if metrics["reflect_count"] > 0:
-            metrics["reflect_avg_time"] = metrics["reflect_total_time"] / metrics["reflect_count"]
-        
-        return metrics
+        return result
+    
+    def _metrics_to_dict(self, metrics: Optional[OperationMetrics]) -> Dict[str, Any]:
+        """将 OperationMetrics 转换为字典"""
+        if metrics is None:
+            return {
+                "count": 0,
+                "errors": 0,
+                "average_time": 0.0,
+                "min_time": 0.0,
+                "max_time": 0.0,
+                "error_rate": 0.0,
+            }
+        return {
+            "count": metrics.count,
+            "errors": metrics.errors,
+            "average_time": metrics.average_time,
+            "min_time": metrics.min_time if metrics.min_time != float('inf') else 0.0,
+            "max_time": metrics.max_time,
+            "error_rate": metrics.error_rate,
+        }
     
     def get_operation_history(self, limit: int = 100) -> List[Dict[str, Any]]:
         """
@@ -891,10 +1067,23 @@ class UniMem:
     
     def health_check(self) -> Dict[str, Any]:
         """
-        健康检查
+        系统健康检查（线程安全）
+        
+        检查所有组件的健康状态，包括：
+        - 适配器可用性
+        - 操作错误率
+        - 系统运行时间
+        - 性能指标
         
         Returns:
-            健康状态字典
+            健康状态字典，包含：
+            - status: "healthy" | "degraded" | "unhealthy"
+            - all_adapters_available: bool
+            - critical_adapters_available: bool
+            - error_rate: float
+            - adapter_status: Dict
+            - metrics: Dict
+            - uptime_seconds: float
         """
         adapter_status = self.get_adapter_status()
         metrics = self.get_metrics()
@@ -905,26 +1094,52 @@ class UniMem:
             for status in adapter_status.values()
         )
         
-        ***REMOVED*** 检查错误率
+        ***REMOVED*** 检查关键适配器可用性（操作、存储、检索）
+        critical_adapters = ["operation", "layered_storage", "retrieval"]
+        critical_available = all(
+            adapter_status.get(name, {}).get("available", False)
+            for name in critical_adapters
+        )
+        
+        ***REMOVED*** 计算总体错误率
         total_operations = (
-            metrics["retain_count"] + metrics["recall_count"] + metrics["reflect_count"]
+            metrics["retain"]["count"] + 
+            metrics["recall"]["count"] + 
+            metrics["reflect"]["count"]
         )
         total_errors = (
-            metrics["retain_errors"] + metrics["recall_errors"] + metrics["reflect_errors"]
+            metrics["retain"]["errors"] + 
+            metrics["recall"]["errors"] + 
+            metrics["reflect"]["errors"]
         )
-        error_rate = total_errors / total_operations if total_operations > 0 else 0.0
+        error_rate = total_errors / (total_operations + total_errors) if (total_operations + total_errors) > 0 else 0.0
+        
+        ***REMOVED*** 计算系统运行时间
+        uptime_seconds = (datetime.now() - self._start_time).total_seconds()
+        
+        ***REMOVED*** 判断整体状态
+        if not critical_available:
+            status = "unhealthy"
+        elif error_rate > 0.2 or not all_available:
+            status = "degraded"
+        else:
+            status = "healthy"
         
         return {
-            "status": "healthy" if all_available and error_rate < 0.1 else "degraded",
+            "status": status,
+            "timestamp": datetime.now().isoformat(),
+            "uptime_seconds": uptime_seconds,
             "all_adapters_available": all_available,
+            "critical_adapters_available": critical_available,
             "error_rate": error_rate,
             "adapter_status": adapter_status,
             "metrics": {
+                "retain": metrics["retain"],
+                "recall": metrics["recall"],
+                "reflect": metrics["reflect"],
                 "total_operations": total_operations,
                 "total_errors": total_errors,
-                "retain_avg_time": metrics.get("retain_avg_time", 0.0),
-                "recall_avg_time": metrics.get("recall_avg_time", 0.0),
-                "reflect_avg_time": metrics.get("reflect_avg_time", 0.0),
+                "adapter_calls": metrics["adapter_calls"],
             },
         }
     
