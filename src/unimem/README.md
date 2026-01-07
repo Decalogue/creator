@@ -515,9 +515,6 @@ unimem/
 ├── storage/                  # 存储管理模块
 │   ├── __init__.py
 │   └── storage_manager.py    # 存储管理器
-├── network/                  # 网络管理模块
-│   ├── __init__.py
-│   └── network_manager.py    # 网络管理器
 ├── retrieval/               # 检索引擎模块
 │   ├── __init__.py
 │   └── retrieval_engine.py  # 检索引擎

@@ -1,0 +1,116 @@
+{
+    "answer": [
+        "When you find an answer, use as few words as possible, like a single number or a single word. And finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]. ",
+        "YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.",
+        "If you are asked for a number, don't use comma to write your number neither use units such as $ or percent sign unless specified otherwise. Do not include any units or punctuation.",
+        "If you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.",
+        "If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "MMLU_answer": [
+        "Choose the most common one and then format it.",
+        "Format it using the fewest words possible, it should be a single letter, but do not alter the original answer.",
+        "Do not include any other units or punctuation. ",
+        "And finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]",
+        "Return your answer with only the single letter."
+    ],
+    "gsm_answer": [
+        "Calculate carefully and provide only the final numerical answer.",
+        "The answer must be a pure number - either an integer or decimal number.",
+        "Do not include any units, symbols, or text in your answer.",
+        "Do not use commas in numbers.",
+        "Do not use scientific notation (e.g. 1e6).",
+        "Do not round the number unless specifically requested.",
+        "Use plain decimal format with decimal point if needed.",
+        "For large numbers write all digits without abbreviation.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "code_answer": [
+        "Provide the code in its most complete and executable form.",
+        "Ensure the code includes necessary libraries, imports, and setup.",
+        "Ensure the code is modular and follows good software design practices.",
+        "Avoid hardcoding values unless explicitly required.",
+        "Include proper error handling and edge case considerations.",
+        "If applicable, make sure the code is optimized for performance.",
+        "Do not add unnecessary comments unless required for clarification.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "text_answer": [
+        "Provide a clear and concise answer.",
+        "Ensure your answer is well-structured and logically organized.",
+        "Include all relevant information and avoid unnecessary details.",
+        "Use proper grammar, spelling, and punctuation.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "novel_answer": [
+        "提供清晰、完整的小说大纲，符合网络小说的创作特点。",
+        "确保你的大纲结构良好、逻辑清晰，包含所有必要的章节和情节要点。",
+        "大纲应该包括：各章节的标题和主要内容描述，主要情节发展脉络，人物关系变化，冲突设置和解决方式。",
+        "确保大纲充分体现小说简介中的核心要素（主角、世界观、主要冲突、成长轨迹等）。",
+        "网络小说大纲优化要点：",
+        "1. 节奏把控：每章都要有明确的剧情推进和爽点，避免拖沓，保持快节奏；",
+        "2. 升级体系：明确的力量等级划分和突破节点，让读者感受到主角的成长；",
+        "3. 冲突设置：包含打脸、装逼、反转等爽点，设置多层次的冲突（个人、势力、世界观层面）；",
+        "4. 悬念钩子：每章结尾设置悬念或转折，吸引读者继续阅读；",
+        "5. 人物关系：明确主角的伙伴、敌人、情感线，构建丰富的人物关系网络；",
+        "6. 世界观设定：清晰的力量体系、背景设定和规则，让读者容易理解；",
+        "7. 情节密度：每章都要推进主线剧情，避免无意义的日常描写；",
+        "8. 起承转合：合理安排低谷、转折、高潮，形成完整的故事弧线。",
+        "使用清晰的格式，如\"第一章：章节标题。章节内容描述（包含主要冲突、爽点、悬念）。\"，确保各章节之间衔接自然。",
+        "避免不必要的细节，但必须包含关键情节节点、转折点、爽点和悬念设置。",
+        "使用正确的语法、拼写和标点符号。",
+        "使用以下模板完成你的答案：FINAL ANSWER: [你的最终答案]"
+    ],
+    "novel_aggregation": [
+        "你收到了以下几个小说大纲候选方案：\n{}",
+        "请仔细评估这些大纲，考虑每个方案的优点和不足，特别关注网络小说的特点。",
+        "整合每个大纲的优点，包括：",
+        "1. 最合理的情节设计（符合逻辑，节奏紧凑）；",
+        "2. 最完整的人物塑造（主角立体，配角有特色，反派有层次）；",
+        "3. 最吸引人的冲突设置（爽点密集，反转巧妙，悬念设置到位）；",
+        "4. 最清晰的结构安排（起承转合完整，章节划分合理）；",
+        "5. 最符合小说简介的要素体现（充分展开简介中的核心要素）；",
+        "6. 最佳的节奏把控（快节奏，每章有推进，避免拖沓）；",
+        "7. 最完善的升级体系（等级划分清晰，突破节点明确）。",
+        "生成一个综合的、更好的小说大纲，确保：",
+        "1. 结构完整，逻辑清晰，符合网络小说的创作规律；",
+        "2. 情节连贯，节奏合理，爽点密集，每章都有推进；",
+        "3. 人物立体，关系明确，主角成长轨迹清晰；",
+        "4. 冲突引人入胜，转折出人意料，悬念设置巧妙；",
+        "5. 充分体现小说简介的核心要素，世界观设定清晰；",
+        "6. 升级体系明确，力量等级划分合理；",
+        "7. 起承转合完整，高潮迭起，结尾有力。",
+        "只需要输出最终整合后的小说大纲，输出："
+    ],
+    "answer_aggregation": [
+        "You have several answer candidates. They are:\n{}",
+        "Critically evaluate these responses, considering potential biases or inaccuracies.",
+        "Choose the most reliable answer based on logical reasoning and factual accuracy.",
+        "If responses conflict, prioritize answers that provide clear reasoning or align with verifiable facts.",
+        "Format the chosen answer using the fewest words possible, but do not alter its core meaning.",
+        "YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.",
+        "If you are asked for a number, don't use comma to write your number neither use units such as $ or percent sign unless specified otherwise.",
+        "If you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.",
+        "If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string."
+    ],
+    "MMLU_aggregation": [
+        "You have several answer candidates. They are:\n{}",
+        "Choose the most common answer among the candidates.",
+        "If responses conflict, prioritize answers that provide clear reasoning or appear later",
+        "Format the answer as a single letter.",
+        "Do not include any other units or punctuation.",
+        "Return your answer with only the single letter."
+    ],
+    "gsm_aggregation": [
+        "You have several answer candidates. They are:\n{}",
+        "Choose the most reliable answer.",
+        "If responses conflict, prioritize answers that provide clear reasoning or appear later",
+        "The answer must be a pure number - either an integer or decimal number.",
+        "Do not include any units, symbols, or text in your answer.",
+        "Do not use commas in numbers.",
+        "Do not use scientific notation.",
+        "Do not round the number unless specifically requested.",
+        "Use plain decimal format with decimal point if needed.",
+        "For large numbers write all digits without abbreviation."
+    ]
+}

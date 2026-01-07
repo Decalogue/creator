@@ -2,8 +2,14 @@
 编排使用示例
 
 展示如何使用编排器创建工作流
+
+示例包括：
+- 基本的串行执行流程（RETAIN -> RECALL -> REFLECT）
+- 并行执行多个检索任务
+- 条件执行（根据上下文决定是否执行步骤）
 """
 
+from typing import Dict
 from datetime import datetime
 from .orchestrator import Orchestrator
 from .workflow import Workflow, StepType
