@@ -1,6 +1,16 @@
 """
 拆分小说章节并结构化前5章
 然后基于分析结果提出新的武侠创作 idea
+
+功能：
+1. 拆分小说章节
+2. 结构化前N章（使用 AtomLinkAdapter）
+3. 基于分析结果生成新的武侠创作 idea
+
+运行前确保：
+1. 已激活 myswift 环境：conda activate myswift
+2. Qdrant 服务已启动（localhost:6333）
+3. 小说文件存在：data/金庸-笑傲江湖.txt
 """
 
 import sys
@@ -8,6 +18,7 @@ import re
 import json
 from pathlib import Path
 from datetime import datetime
+from typing import List, Dict, Any, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -19,8 +30,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def split_chapters(novel_file: Path):
-    """拆分章节"""
+def split_chapters(novel_file: Path) -> List[Dict[str, Any]]:
+    """
+    拆分章节
+    
+    Args:
+        novel_file: 小说文件路径
+        
+    Returns:
+        章节列表，每个章节包含 title, content, start_line
+    """
     content = novel_file.read_text(encoding='utf-8')
     lines = content.split('\n')
     
@@ -62,8 +81,22 @@ def split_chapters(novel_file: Path):
     return chapters
 
 
-def structure_chapters(chapters: list, adapter: AtomLinkAdapter, num_chapters: int = 5):
-    """结构化前N章"""
+def structure_chapters(
+    chapters: List[Dict[str, Any]], 
+    adapter: AtomLinkAdapter, 
+    num_chapters: int = 5
+) -> List[Dict[str, Any]]:
+    """
+    结构化前N章
+    
+    Args:
+        chapters: 章节列表
+        adapter: AtomLinkAdapter 实例
+        num_chapters: 要结构化的章节数量
+        
+    Returns:
+        结构化后的章节列表
+    """
     logger.info(f"开始结构化前 {num_chapters} 章...")
     
     structured_chapters = []
@@ -108,8 +141,20 @@ def structure_chapters(chapters: list, adapter: AtomLinkAdapter, num_chapters: i
     return structured_chapters
 
 
-def generate_creative_idea(structured_chapters: list, adapter: AtomLinkAdapter):
-    """基于结构化结果生成新的武侠创作 idea"""
+def generate_creative_idea(
+    structured_chapters: List[Dict[str, Any]], 
+    adapter: AtomLinkAdapter
+) -> Dict[str, Any]:
+    """
+    基于结构化结果生成新的武侠创作 idea
+    
+    Args:
+        structured_chapters: 结构化后的章节列表
+        adapter: AtomLinkAdapter 实例
+        
+    Returns:
+        创作 idea 字典
+    """
     logger.info("\n" + "="*50)
     logger.info("基于分析结果生成新的武侠创作 idea...")
     logger.info("="*50)
@@ -187,7 +232,12 @@ def generate_creative_idea(structured_chapters: list, adapter: AtomLinkAdapter):
         return {}
 
 
-def main():
+def main() -> None:
+    """
+    主函数
+    
+    执行完整的流程：拆分章节 -> 结构化 -> 生成创作 idea
+    """
     ***REMOVED*** 初始化适配器
     config = {
         'local_model_path': '/root/data/AI/pretrain/multilingual-e5-small',
@@ -196,15 +246,31 @@ def main():
         'collection_name': 'xiaoaohujiang_analysis'
     }
     
-    adapter = AtomLinkAdapter(config)
-    adapter.initialize()
+    try:
+        adapter = AtomLinkAdapter(config)
+        adapter.initialize()
+        
+        if not adapter.is_available():
+            logger.error("适配器初始化失败，请检查配置和服务")
+            return
+    except Exception as e:
+        logger.error(f"初始化适配器失败: {e}")
+        return
     
     ***REMOVED*** 1. 拆分章节
     novel_file = Path(__file__).parent.parent.parent / 'data' / '金庸-笑傲江湖.txt'
     logger.info(f"读取小说文件: {novel_file}")
     
-    chapters = split_chapters(novel_file)
-    logger.info(f"✅ 成功拆分 {len(chapters)} 个章节")
+    if not novel_file.exists():
+        logger.error(f"小说文件不存在: {novel_file}")
+        return
+    
+    try:
+        chapters = split_chapters(novel_file)
+        logger.info(f"✅ 成功拆分 {len(chapters)} 个章节")
+    except Exception as e:
+        logger.error(f"拆分章节失败: {e}")
+        return
     
     ***REMOVED*** 显示前10章标题
     logger.info("\n前10章标题:")

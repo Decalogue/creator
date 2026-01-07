@@ -3,8 +3,8 @@
 
 测试 AtomLinkAdapter 的核心功能
 
-注意：运行测试前需要激活 seeme 环境：
-    conda activate seeme
+注意：运行测试前需要激活 myswift 环境：
+    conda activate myswift
 """
 
 import unittest
@@ -16,11 +16,11 @@ from datetime import datetime
 from typing import List
 
 ***REMOVED*** 检查环境
-if os.environ.get("CONDA_DEFAULT_ENV") != "seeme":
+if os.environ.get("CONDA_DEFAULT_ENV") != "myswift":
     print("\n" + "="*60)
-    print("警告：当前未激活 seeme 环境，某些测试可能会失败")
+    print("警告：当前未激活 myswift 环境，某些测试可能会失败")
     print(f"当前环境: {os.environ.get('CONDA_DEFAULT_ENV', '未设置')}")
-    print("请先运行: conda activate seeme")
+    print("请先运行: conda activate myswift")
     print("或使用自动测试脚本: python tests/run_tests.py")
     print("="*60 + "\n")
 
@@ -202,7 +202,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
             self.adapter.add_memory_to_vector_store(memory1)
             self.adapter.add_memory_to_vector_store(memory2)
         else:
-        ***REMOVED*** Mock Qdrant 搜索结果
+            ***REMOVED*** Mock Qdrant 搜索结果
             import uuid
             from qdrant_client.http.models.models import QueryResponse, ScoredPoint
             ***REMOVED*** 确保 ID 映射存在
@@ -240,9 +240,9 @@ class TestAtomLinkAdapter(unittest.TestCase):
             ***REMOVED*** 真实 Qdrant 测试：至少应该能搜索
             self.assertIsInstance(results, list)
         else:
-        self.assertEqual(len(results), 2)
-        self.assertIn(memory1, results)
-        self.assertIn(memory2, results)
+            self.assertEqual(len(results), 2)
+            self.assertIn(memory1, results)
+            self.assertIn(memory2, results)
     
     def test_search_similar_memories_empty(self):
         """测试搜索空结果"""

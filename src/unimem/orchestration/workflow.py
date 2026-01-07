@@ -2,10 +2,18 @@
 工作流定义
 
 定义工作流步骤和流程
+
+设计特点：
+- 步骤定义：支持多种步骤类型（RETAIN, RECALL, REFLECT, CUSTOM）
+- 依赖管理：支持步骤之间的依赖关系
+- 条件执行：支持根据上下文条件决定是否执行步骤
+- 状态跟踪：跟踪每个步骤的执行状态和结果
+- 循环检测：自动检测循环依赖
+- 验证机制：验证工作流定义的合法性
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List, Callable
+from typing import Dict, Any, Optional, List, Callable, Set
 from enum import Enum
 from datetime import datetime
 
@@ -83,9 +91,11 @@ class Workflow:
                 return step
         return None
     
-    def get_ready_steps(self, completed_steps: set[str]) -> List[Step]:
+    def get_ready_steps(self, completed_steps: Set[str]) -> List[Step]:
         """
         获取可以执行的步骤
+        
+        返回所有依赖都已满足的步骤，这些步骤可以并行执行。
         
         Args:
             completed_steps: 已完成的步骤ID集合
@@ -93,6 +103,9 @@ class Workflow:
         Returns:
             可以执行的步骤列表（所有依赖都已满足）
         """
+        if not completed_steps:
+            completed_steps = set()
+        
         ready = []
         for step in self.steps:
             ***REMOVED*** 检查所有依赖是否都已完成
@@ -104,20 +117,24 @@ class Workflow:
         """
         检测循环依赖
         
-        使用 DFS 检测图中的循环
+        使用 DFS（深度优先搜索）检测依赖图中的循环。
         
         Returns:
             如果存在循环，返回循环路径；否则返回 None
         """
         ***REMOVED*** 构建依赖图
-        graph = {step.id: step.dependencies for step in self.steps}
+        graph: Dict[str, List[str]] = {step.id: step.dependencies for step in self.steps}
         
         ***REMOVED*** DFS 检测循环
-        visited = set()
-        rec_stack = set()
-        path = []
+        visited: Set[str] = set()
+        rec_stack: Set[str] = set()
+        path: List[str] = []
+        cycle_path: Optional[List[str]] = None
         
         def dfs(node: str) -> bool:
+            """深度优先搜索检测循环"""
+            nonlocal cycle_path
+            
             visited.add(node)
             rec_stack.add(node)
             path.append(node)
@@ -127,8 +144,9 @@ class Workflow:
                     if dfs(dep):
                         return True
                 elif dep in rec_stack:
-                    ***REMOVED*** 找到循环
+                    ***REMOVED*** 找到循环：从循环起点到当前节点
                     cycle_start = path.index(dep)
+                    cycle_path = path[cycle_start:] + [dep]
                     return True
             
             rec_stack.remove(node)
@@ -138,7 +156,7 @@ class Workflow:
         for step_id in graph:
             if step_id not in visited:
                 if dfs(step_id):
-                    return path
+                    return cycle_path
         
         return None
     
@@ -146,18 +164,34 @@ class Workflow:
         """
         验证工作流定义
         
+        检查工作流的合法性，包括：
+        - 步骤ID唯一性
+        - 依赖是否存在
+        - 循环依赖检测
+        
         Returns:
             (是否有效, 错误信息)
+            
+        Examples:
+            >>> workflow = Workflow(...)
+            >>> is_valid, error = workflow.validate()
+            >>> if not is_valid:
+            ...     print(f"Validation failed: {error}")
         """
+        if not self.steps:
+            return False, "工作流必须包含至少一个步骤"
+        
         ***REMOVED*** 检查步骤ID唯一性
         step_ids = [step.id for step in self.steps]
         if len(step_ids) != len(set(step_ids)):
-            return False, "步骤ID必须唯一"
+            duplicates = [sid for sid in step_ids if step_ids.count(sid) > 1]
+            return False, f"步骤ID必须唯一，发现重复: {set(duplicates)}"
         
         ***REMOVED*** 检查依赖是否存在
+        step_ids_set = set(step_ids)
         for step in self.steps:
             for dep_id in step.dependencies:
-                if dep_id not in step_ids:
+                if dep_id not in step_ids_set:
                     return False, f"步骤 {step.id} 的依赖 {dep_id} 不存在"
         
         ***REMOVED*** 检查循环依赖

@@ -32,7 +32,6 @@ from .adapters import (
     UpdateAdapter,
 )
 from .storage import StorageManager
-from .network import NetworkManager
 from .retrieval import RetrievalEngine
 from .update import UpdateManager
 from .config import UniMemConfig
@@ -136,10 +135,6 @@ class UniMem:
         self.storage = StorageManager(
             storage_adapter=self.storage_adapter,
             memory_type_adapter=self.memory_type_adapter,
-        )
-        self.network = NetworkManager(
-            graph_adapter=self.graph_adapter,
-            atom_link_adapter=self.network_adapter,
         )
         self.retrieval = RetrievalEngine(
             graph_adapter=self.graph_adapter,
@@ -392,9 +387,9 @@ class UniMem:
                 ***REMOVED*** 步骤1-3并行执行（提取实体、构建笔记、分类类型）
                 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
                     ***REMOVED*** 提交并行任务
-                    future_entities = executor.submit(self.network.extract_entities_relations, experience.content)
+                    future_entities = executor.submit(self.graph_adapter.extract_entities_relations, experience.content)
                     future_note = executor.submit(
-                        lambda: self.network.construct_atomic_note(
+                        lambda: self._construct_atomic_note_with_storage(
                             content=experience.content,
                             timestamp=experience.timestamp,
                             entities=[],  ***REMOVED*** 先不传实体，后续更新
@@ -440,24 +435,24 @@ class UniMem:
                     ***REMOVED*** 记录回滚操作
                     rollback_actions.append(lambda: self._rollback_storage(memory.id))
                     
-                    ***REMOVED*** 6. 网络管理器：更新网络结构
+                    ***REMOVED*** 6. 图结构适配器：更新网络结构
                     if entities:
                         self._record_adapter_call("GraphAdapter", "add_entities")
-                        if not self.network.add_entities(entities):
+                        if not self.graph_adapter.add_entities(entities):
                             logger.warning("Failed to add some entities to graph")
                         else:
                             rollback_actions.append(lambda: self._rollback_entities(entities))
                     
                     if relations:
                         self._record_adapter_call("GraphAdapter", "add_relations")
-                        if not self.network.add_relations(relations):
+                        if not self.graph_adapter.add_relations(relations):
                             logger.warning("Failed to add some relations to graph")
                         else:
                             rollback_actions.append(lambda: self._rollback_relations(relations))
                     
-                ***REMOVED*** 7. 网络管理器：生成链接
+                ***REMOVED*** 7. 原子链接适配器：生成链接
                 self._record_adapter_call("AtomLinkAdapter", "generate_links")
-                links = self.network.generate_links(memory, top_k=10)
+                links = self.network_adapter.generate_links(memory, top_k=10)
                 memory.links = links
                 
                 ***REMOVED*** 更新向量存储中的链接信息
@@ -541,6 +536,53 @@ class UniMem:
         """回滚关系添加操作"""
         ***REMOVED*** TODO: 实现关系回滚逻辑（需要适配器支持）
         logger.debug(f"Rolling back {len(relations)} relations")
+    
+    def _construct_atomic_note_with_storage(
+        self,
+        content: str,
+        timestamp,
+        entities: List,
+    ) -> Memory:
+        """
+        构建原子笔记并添加到向量存储
+        
+        替代 NetworkManager.construct_atomic_note 的功能
+        """
+        memory = self.network_adapter.construct_atomic_note(
+            content=content,
+            timestamp=timestamp,
+            entities=entities,
+        )
+        
+        ***REMOVED*** 将记忆添加到向量存储
+        if hasattr(self.network_adapter, 'add_memory_to_vector_store'):
+            self.network_adapter.add_memory_to_vector_store(memory)
+        
+        return memory
+    
+    def _update_graph_from_memory(self, memory: Memory) -> bool:
+        """
+        根据记忆更新图结构
+        
+        替代 NetworkManager.update_graph_from_memory 的功能
+        
+        Args:
+            memory: 记忆对象
+            
+        Returns:
+            是否成功
+        """
+        try:
+            entities = self.graph_adapter.get_entities_for_memory(memory.id)
+            for entity in entities:
+                self.graph_adapter.update_entity_description(
+                    entity_id=entity.id,
+                    description=memory.context or "",
+                )
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to update graph from memory {memory.id}: {e}")
+            return False
     
     def recall(
         self,
@@ -700,17 +742,17 @@ class UniMem:
                 
                 ***REMOVED*** 2. 对每个记忆进行网络演化（A-Mem 风格）
                 for memory in updated_memories:
-                    ***REMOVED*** 网络管理器：查找相关记忆并演化
-                    related = self.network.find_related_memories(memory)
-                    evolved = self.network.evolve_memory(
+                    ***REMOVED*** 原子链接适配器：查找相关记忆并演化
+                    related = self.network_adapter.find_related_memories(memory)
+                    evolved = self.network_adapter.evolve_memory(
                         memory=memory,
                         related=related,
                         new_context=current_task.context,
                     )
                     evolved_memories.append(evolved)
                     
-                    ***REMOVED*** 网络管理器：更新图结构
-                    self.network.update_graph_from_memory(evolved)
+                    ***REMOVED*** 图结构适配器：更新图结构
+                    self._update_graph_from_memory(evolved)
                     
                     ***REMOVED*** 存储管理器：更新存储层
                     self.storage.update_memory(evolved)

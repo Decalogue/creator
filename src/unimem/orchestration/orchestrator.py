@@ -2,6 +2,15 @@
 编排器
 
 管理工作流的执行、调度和协调
+
+设计特点：
+- 支持串行和并行执行：根据依赖关系自动决定执行顺序
+- 支持依赖管理：确保步骤按正确顺序执行
+- 支持条件执行：根据上下文条件决定是否执行步骤
+- 支持错误处理和重试：自动重试失败的步骤
+- 支持超时控制：可以设置步骤超时时间
+- 真正的并行执行：使用线程池实现真正的并行执行
+- 线程安全：使用锁确保线程安全
 """
 
 from typing import Dict, Any, Optional, List, Callable
@@ -31,14 +40,22 @@ class Orchestrator:
     - 真正的并行执行支持
     """
     
-    def __init__(self, unimem_instance, max_workers: int = 4):
+    def __init__(self, unimem_instance: Any, max_workers: int = 4):
         """
         初始化编排器
         
         Args:
             unimem_instance: UniMem 实例
-            max_workers: 最大并行工作线程数
+            max_workers: 最大并行工作线程数（默认 4）
+            
+        Raises:
+            ValueError: 如果 unimem_instance 为 None 或 max_workers < 1
         """
+        if unimem_instance is None:
+            raise ValueError("unimem_instance cannot be None")
+        if max_workers < 1:
+            raise ValueError("max_workers must be >= 1")
+        
         self.unimem = unimem_instance
         self.workflows: Dict[str, Workflow] = {}
         self.executions: Dict[str, Dict[str, WorkflowStep]] = {}  ***REMOVED*** execution_id -> step_id -> WorkflowStep
@@ -56,7 +73,13 @@ class Orchestrator:
             
         Returns:
             是否注册成功
+            
+        Raises:
+            ValueError: 如果 workflow 为 None
         """
+        if not workflow:
+            raise ValueError("workflow cannot be None")
+        
         ***REMOVED*** 验证工作流
         is_valid, error = workflow.validate()
         if not is_valid:
@@ -68,22 +91,33 @@ class Orchestrator:
         logger.info(f"Workflow {workflow.id} registered: {workflow.name}")
         return True
     
-    def _execute_step(self, step: Step, workflow_step: WorkflowStep, context: Dict) -> Any:
+    def _execute_step(self, step: Step, workflow_step: WorkflowStep, context: Dict[str, Any]) -> Any:
         """
         执行单个步骤
         
         Args:
             step: 步骤定义
             workflow_step: 步骤实例
-            context: 上下文
+            context: 上下文（步骤之间共享的数据）
             
         Returns:
             步骤执行结果
+            
+        Raises:
+            Exception: 如果步骤执行失败且重试次数已用完
         """
+        if not step:
+            raise ValueError("step cannot be None")
+        if not workflow_step:
+            raise ValueError("workflow_step cannot be None")
+        if context is None:
+            raise ValueError("context cannot be None")
+        
         ***REMOVED*** 检查执行条件
         if step.condition and not step.condition(context):
             logger.debug(f"Step {step.id} skipped due to condition")
             workflow_step.status = StepStatus.SKIPPED
+            workflow_step.end_time = datetime.now()
             return None
         
         ***REMOVED*** 执行步骤
@@ -115,12 +149,12 @@ class Orchestrator:
             if workflow_step.retry_count < step.retry_count:
                 workflow_step.retry_count += 1
                 workflow_step.status = StepStatus.PENDING
-                logger.warning(f"Step {step.id} failed, retrying ({workflow_step.retry_count}/{step.retry_count})")
+                logger.warning(f"Step {step.id} failed, retrying ({workflow_step.retry_count}/{step.retry_count}): {e}")
                 ***REMOVED*** 递归重试
                 return self._execute_step(step, workflow_step, context)
             else:
                 workflow_step.status = StepStatus.FAILED
-                logger.error(f"Step {step.id} failed: {e}")
+                logger.error(f"Step {step.id} failed after {workflow_step.retry_count} retries: {e}", exc_info=True)
                 raise
     
     def execute_workflow(
@@ -131,13 +165,26 @@ class Orchestrator:
         """
         执行工作流（支持真正的并行执行）
         
+        根据步骤的依赖关系，自动决定执行顺序。没有依赖的步骤可以并行执行。
+        
         Args:
             workflow_id: 工作流ID
             initial_context: 初始上下文（步骤之间共享的数据）
             
         Returns:
-            执行结果字典
+            执行结果字典，包含：
+            - execution_id: 执行ID
+            - workflow_id: 工作流ID
+            - status: 执行状态（completed/failed）
+            - context: 最终上下文
+            - steps: 每个步骤的执行结果
+            
+        Raises:
+            ValueError: 如果 workflow_id 不存在或为空
         """
+        if not workflow_id or not workflow_id.strip():
+            raise ValueError("workflow_id cannot be empty")
+        
         if workflow_id not in self.workflows:
             raise ValueError(f"Workflow {workflow_id} not found")
         

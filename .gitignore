@@ -103,6 +103,7 @@ ENV/
 
 ***REMOVED*** custom
 data/
+todo/
 src/data/
 src/docs/
 src/llm/result/

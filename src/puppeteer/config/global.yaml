@@ -1,0 +1,30 @@
+logging:
+  level: INFO
+  logpath: ./logs
+
+file_path:
+  root_file_path: ./data
+
+***REMOVED*** Reward Model
+model_weight_path: /root/data/AI/pretrain/Skywork-Reward-V2-Qwen3-4B
+
+***REMOVED*** API Keys
+api_keys:
+  openai_api_key: "EMPTY"
+  openai_base_url: http://localhost:6002/v1
+  bing_api_key: ""
+
+max_retry_times: 5
+max_json_reformat_turns: 5
+external_tools_enabled: True
+
+graph:
+  max_parallel_paths: 1  ***REMOVED*** 降低并行路径数以减少显存使用（从 4 降到 1）
+  max_step_num: 5
+
+***REMOVED*** Model configuration
+model:
+  batch_size: 1  ***REMOVED*** 降低批次大小以减少显存使用
+  max_new_tokens: 1  ***REMOVED*** Reward model 生成的 token 数
+  max_length: 2048  ***REMOVED*** 最大输入长度（从 4096 降到 2048 以减少显存）
+  truncate_length: 8000  ***REMOVED*** 截断长度（从 12000 降到 8000 以减少显存）

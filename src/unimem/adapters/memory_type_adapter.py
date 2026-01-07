@@ -3,24 +3,14 @@
 
 实现 UniMem 的记忆类型分类功能
 参考架构：MemMachine（多类型记忆）+ Hindsight（四大逻辑网络）
+
+核心功能：
+- 智能分类记忆类型（Hindsight 四大类型：WORLD, EXPERIENCE, OPINION, OBSERVATION）
+- 辅助维度识别（MemMachine 抽象层级：episodic, semantic, user_profile）
+- 主分类 + 辅助维度设计，两个维度正交存在
 """
 
-import sys
-from pathlib import Path
-from typing import Dict, Any, Optional
-from abc import abstractmethod
-
-***REMOVED*** 添加 MemMachine 到路径（用于参考实现）
-memmachine_path = Path(__file__).parent.parent.parent.parent / "MemMachine"
-if str(memmachine_path) not in sys.path:
-    sys.path.insert(0, str(memmachine_path))
-
-try:
-    ***REMOVED*** 参考 MemMachine 的实现思路
-    pass
-except ImportError:
-    pass
-
+from typing import Optional
 from .base import BaseAdapter
 from ..types import Memory, MemoryType
 from ..chat import ark_deepseek_v3_2
@@ -33,22 +23,17 @@ class MemoryTypeAdapter(BaseAdapter):
     """
     记忆分类适配器
     
-    功能需求：对记忆进行类型分类（情景/语义/用户画像等）
-    参考架构：MemMachine（多类型记忆）
+    功能需求：对记忆进行类型分类
+    参考架构：MemMachine（多类型记忆）+ Hindsight（四大逻辑网络）
+    
+    核心功能：
+    - 主分类：Hindsight 的四大逻辑网络（WORLD, EXPERIENCE, OPINION, OBSERVATION）
+    - 辅助维度：MemMachine 的抽象层级（episodic, semantic, user_profile）
+    - 两个维度正交存在，互不冲突
     """
     
-    @abstractmethod
-    def classify(self, memory: Memory) -> MemoryType:
-        """
-        分类记忆类型
-        
-        参考 MemMachine 的分类思路
-        """
-        pass
-    
-    def _do_initialize(self):
+    def _do_initialize(self) -> None:
         """初始化记忆分类适配器"""
-        ***REMOVED*** 参考 MemMachine 和 Hindsight 的分类思路
         logger.info("Memory type adapter initialized (using MemMachine + Hindsight principles)")
     
     def classify(self, memory: Memory, use_hindsight: bool = True) -> MemoryType:

@@ -1,6 +1,6 @@
 ***REMOVED***!/bin/bash
 ***REMOVED*** UniMem 测试运行脚本
-***REMOVED*** 自动激活 seeme 环境并运行测试
+***REMOVED*** 自动激活 myswift 环境并运行测试
 
 set -e
 
@@ -8,25 +8,25 @@ echo "=========================================="
 echo "UniMem 测试运行脚本"
 echo "=========================================="
 
-***REMOVED*** 检查是否在 seeme 环境中
-if [ "$CONDA_DEFAULT_ENV" != "seeme" ]; then
-    echo "正在激活 seeme 环境..."
+***REMOVED*** 检查是否在 myswift 环境中
+if [ "$CONDA_DEFAULT_ENV" != "myswift" ]; then
+    echo "正在激活 myswift 环境..."
     
-    ***REMOVED*** 尝试激活 seeme 环境
+    ***REMOVED*** 尝试激活 myswift 环境
     ***REMOVED*** 注意：这需要在 conda 已初始化的 shell 中运行
     if command -v conda &> /dev/null; then
         ***REMOVED*** 初始化 conda（如果还没有）
         eval "$(conda shell.bash hook)"
-        conda activate seeme
+        conda activate myswift
         
-        if [ "$CONDA_DEFAULT_ENV" != "seeme" ]; then
-            echo "错误：无法激活 seeme 环境"
-            echo "请手动运行: conda activate seeme"
+        if [ "$CONDA_DEFAULT_ENV" != "myswift" ]; then
+            echo "错误：无法激活 myswift 环境"
+            echo "请手动运行: conda activate myswift"
             exit 1
         fi
     else
         echo "错误：未找到 conda 命令"
-        echo "请手动激活 seeme 环境后运行测试"
+        echo "请手动激活 myswift 环境后运行测试"
         exit 1
     fi
 fi

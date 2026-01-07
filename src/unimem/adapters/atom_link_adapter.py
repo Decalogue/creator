@@ -3,20 +3,73 @@
 
 实现 UniMem 的原子笔记网络和动态链接生成
 参考架构：A-Mem（原子笔记网络 + 记忆演化）
+
+工业级特性：
+- 嵌入向量缓存（减少重复计算）
+- 批量操作支持（提高性能）
+- 配置验证和错误处理
+- 类型安全
 """
+
 import os
 import json
 import uuid
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Set
-from qdrant_client.models import PointIdsList
+from dataclasses import dataclass, field
 
-from .base import BaseAdapter
+try:
+    from qdrant_client.models import PointIdsList
+    QDRANT_AVAILABLE = True
+except ImportError:
+    QDRANT_AVAILABLE = False
+    PointIdsList = None
+
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
+    SentenceTransformer = None
+
+from .base import (
+    BaseAdapter,
+    AdapterConfigurationError,
+    AdapterNotAvailableError,
+    AdapterError
+)
 from ..types import Entity, Memory
 from ..chat import ark_deepseek_v3_2
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class EmbeddingCache:
+    """嵌入向量缓存"""
+    cache: Dict[str, List[float]] = field(default_factory=dict)
+    max_size: int = 1000
+    
+    def get(self, key: str) -> Optional[List[float]]:
+        """获取缓存的嵌入向量"""
+        return self.cache.get(key)
+    
+    def set(self, key: str, value: List[float]) -> None:
+        """设置缓存的嵌入向量"""
+        if len(self.cache) >= self.max_size:
+            ***REMOVED*** 简单策略：删除最早的条目（FIFO）
+            oldest_key = next(iter(self.cache))
+            del self.cache[oldest_key]
+        self.cache[key] = value
+    
+    def clear(self) -> None:
+        """清空缓存"""
+        self.cache.clear()
+    
+    def size(self) -> int:
+        """获取缓存大小"""
+        return len(self.cache)
 
 
 class AtomLinkAdapter(BaseAdapter):
@@ -40,70 +93,126 @@ class AtomLinkAdapter(BaseAdapter):
         
         初始化向量存储（Qdrant）、嵌入模型（sentence-transformers）和内存存储。
         如果初始化失败，会记录警告但不会抛出异常，适配器会以降级模式运行。
+        
+        Raises:
+            AdapterConfigurationError: 如果配置无效
         """
         ***REMOVED*** 初始化记忆存储
         self.memory_store: Dict[str, Memory] = {}
         ***REMOVED*** ID 映射：memory.id -> qdrant_point_id (用于处理非 UUID 格式的 ID)
         self.id_mapping: Dict[str, Any] = {}
         
+        ***REMOVED*** 初始化嵌入缓存
+        cache_size = int(self.config.get("embedding_cache_size", 1000))
+        self.embedding_cache = EmbeddingCache(max_size=cache_size)
+        
+        ***REMOVED*** 批量操作配置
+        self.batch_size = int(self.config.get("batch_size", 100))
+        self.embedding_batch_size = int(self.config.get("embedding_batch_size", 32))
+        
         ***REMOVED*** 初始化属性（确保即使失败也有默认值）
         self.qdrant_client = None
         self.embedding_model = None
         self.collection_name = None
+        self.embedding_dimension = None
         
-        ***REMOVED*** 向量存储：使用 Qdrant（已在配置中指定）
-        qdrant_host = self.config.get("qdrant_host", "localhost")
-        qdrant_port = self.config.get("qdrant_port", 6333)
-        collection_name = self.config.get("collection_name", "unimem_memories")
+        ***REMOVED*** 向量存储：使用 Qdrant
+        qdrant_host = str(self.config.get("qdrant_host", "localhost"))
+        qdrant_port = int(self.config.get("qdrant_port", 6333))
+        collection_name = str(self.config.get("collection_name", "unimem_memories"))
         
-        try:
-            from qdrant_client import QdrantClient
-            from qdrant_client.models import Distance, VectorParams
-            
-            self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
-            
-            ***REMOVED*** 创建集合（如果不存在）
+        ***REMOVED*** 配置验证
+        if not qdrant_host:
+            raise AdapterConfigurationError(
+                "qdrant_host cannot be empty",
+                adapter_name=self.__class__.__name__
+            )
+        if not (1 <= qdrant_port <= 65535):
+            raise AdapterConfigurationError(
+                f"Invalid qdrant_port: {qdrant_port} (must be 1-65535)",
+                adapter_name=self.__class__.__name__
+            )
+        
+        ***REMOVED*** 初始化 Qdrant 客户端
+        if QDRANT_AVAILABLE:
             try:
-                self.qdrant_client.get_collection(collection_name)
-            except Exception:
-                ***REMOVED*** 集合不存在，创建它
-                self.qdrant_client.create_collection(
-                    collection_name=collection_name,
-                    vectors_config=VectorParams(
-                        size=384,  ***REMOVED*** multilingual-e5-small 的维度
-                        distance=Distance.COSINE,
-                    ),
-                )
-            
-            self.collection_name = collection_name
-            logger.info(f"Qdrant client connected: {qdrant_host}:{qdrant_port}")
-        except Exception as e:
-            logger.warning(f"Failed to connect to Qdrant: {e}. Vector operations will be limited.")
+                from qdrant_client import QdrantClient
+                from qdrant_client.models import Distance, VectorParams
+                
+                self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
+                
+                ***REMOVED*** 创建集合（如果不存在）
+                try:
+                    collection_info = self.qdrant_client.get_collection(collection_name)
+                    self.embedding_dimension = collection_info.config.params.vectors.size
+                    logger.info(f"Using existing Qdrant collection: {collection_name} (dim={self.embedding_dimension})")
+                except Exception:
+                    ***REMOVED*** 集合不存在，创建它
+                    default_dim = int(self.config.get("embedding_dimension", 384))
+                    self.qdrant_client.create_collection(
+                        collection_name=collection_name,
+                        vectors_config=VectorParams(
+                            size=default_dim,
+                            distance=Distance.COSINE,
+                        ),
+                    )
+                    self.embedding_dimension = default_dim
+                    logger.info(f"Created Qdrant collection: {collection_name} (dim={default_dim})")
+                
+                self.collection_name = collection_name
+                logger.info(f"Qdrant client connected: {qdrant_host}:{qdrant_port}")
+            except Exception as e:
+                logger.warning(f"Failed to connect to Qdrant: {e}. Vector operations will be limited.")
+                self.qdrant_client = None
+                self.collection_name = collection_name
+        else:
+            logger.warning("qdrant_client not available, vector operations will be limited")
             self.qdrant_client = None
-            self.collection_name = collection_name
         
         ***REMOVED*** 嵌入模型：使用 sentence-transformers（独立于 Qdrant）
-        try:
-            from sentence_transformers import SentenceTransformer
-            
-            ***REMOVED*** 优先使用本地模型路径（如果配置了）
-            ***REMOVED*** 默认使用 multilingual-e5-small（支持中文）
-            local_model_path = self.config.get("local_model_path", "/root/data/AI/pretrain/multilingual-e5-small")
-            
-            if os.path.exists(local_model_path):
-                logger.info(f"Loading embedding model from local path: {local_model_path}")
-                self.embedding_model = SentenceTransformer(local_model_path)
-            else:
-                logger.info("Local model not found, loading from HuggingFace: multilingual-e5-small")
-                self.embedding_model = SentenceTransformer('intfloat/multilingual-e5-small')
-            
-            logger.info(f"Embedding model loaded successfully (dimension: {self.embedding_model.get_sentence_embedding_dimension()})")
-        except ImportError:
+        if SENTENCE_TRANSFORMERS_AVAILABLE:
+            try:
+                local_model_path = self.config.get("local_model_path")
+                model_name = self.config.get("model_name", "intfloat/multilingual-e5-small")
+                
+                if local_model_path and os.path.exists(local_model_path):
+                    logger.info(f"Loading embedding model from local path: {local_model_path}")
+                    self.embedding_model = SentenceTransformer(local_model_path)
+                else:
+                    logger.info(f"Loading embedding model from HuggingFace: {model_name}")
+                    self.embedding_model = SentenceTransformer(model_name)
+                
+                self.embedding_dimension = self.embedding_model.get_sentence_embedding_dimension()
+                logger.info(f"Embedding model loaded successfully (dimension: {self.embedding_dimension})")
+                
+                ***REMOVED*** 如果 Qdrant 集合维度不匹配，警告
+                if self.qdrant_client and self.embedding_dimension:
+                    try:
+                        collection_info = self.qdrant_client.get_collection(collection_name)
+                        collection_dim = collection_info.config.params.vectors.size
+                        if collection_dim != self.embedding_dimension:
+                            logger.warning(
+                                f"Embedding dimension mismatch: model={self.embedding_dimension}, "
+                                f"collection={collection_dim}"
+                            )
+                    except Exception:
+                        pass
+            except ImportError:
+                logger.warning("sentence-transformers not available, semantic retrieval will be limited")
+                self.embedding_model = None
+            except Exception as e:
+                logger.error(f"Failed to load embedding model: {e}", exc_info=True)
+                self.embedding_model = None
+        else:
             logger.warning("sentence-transformers not available, semantic retrieval will be limited")
             self.embedding_model = None
-        except Exception as e:
-            logger.error(f"Failed to load embedding model: {e}")
-            self.embedding_model = None
+        
+        ***REMOVED*** 检查是否有可用的组件
+        if not self.qdrant_client and not self.embedding_model:
+            logger.warning("Both Qdrant and embedding model unavailable, adapter will be limited")
+            self._available = False
+        else:
+            self._available = True
         
         logger.info("Atom link adapter initialized (using A-Mem principles)")
     
@@ -121,10 +230,71 @@ class AtomLinkAdapter(BaseAdapter):
         Returns:
             相似记忆列表，按相似度从高到低排序
         """
+        if not self.is_available():
+            logger.warning("AtomLinkAdapter not available for semantic_retrieval")
+            return []
+        
         if not query or not query.strip():
             logger.warning("Empty query provided for semantic_retrieval")
             return []
-        return self._search_similar_memories(query, top_k=top_k)
+        
+        try:
+            return self._search_similar_memories(query, top_k=top_k)
+        except Exception as e:
+            logger.error(f"Error in semantic_retrieval: {e}", exc_info=True)
+            return []
+    
+    def batch_semantic_retrieval(self, queries: List[str], top_k: int = 10) -> List[List[Memory]]:
+        """
+        批量语义检索
+        
+        批量执行多个查询的语义检索，使用批处理优化性能。
+        
+        Args:
+            queries: 查询文本列表
+            top_k: 每个查询返回结果数量，默认 10
+            
+        Returns:
+            每个查询的结果列表，按输入顺序排列
+        """
+        if not self.is_available():
+            return [[] for _ in queries]
+        
+        if not queries:
+            return []
+        
+        results = []
+        for query in queries:
+            try:
+                memories = self.semantic_retrieval(query, top_k=top_k)
+                results.append(memories)
+            except Exception as e:
+                logger.error(f"Error in batch semantic retrieval for query '{query[:50]}...': {e}")
+                results.append([])
+        
+        return results
+    
+    def get_capabilities(self) -> Dict[str, bool]:
+        """
+        获取适配器支持的能力
+        
+        Returns:
+            Dict[str, bool]: 能力字典
+        """
+        return {
+            "available": self.is_available(),
+            "semantic_retrieval": self.embedding_model is not None,
+            "vector_storage": self.qdrant_client is not None,
+            "batch_operations": True,
+            "embedding_cache": True,
+            "memory_evolution": True,
+        }
+    
+    def clear_embedding_cache(self) -> None:
+        """清空嵌入向量缓存"""
+        if hasattr(self, 'embedding_cache'):
+            self.embedding_cache.clear()
+            logger.info("Embedding cache cleared")
     
     def subgraph_link_retrieval(self, query: str, top_k: int = 10) -> List[Memory]:
         """
@@ -358,15 +528,92 @@ class AtomLinkAdapter(BaseAdapter):
             logger.error(f"Error analyzing content: {e}")
             return {"keywords": [], "context": "General", "tags": []}
     
-    def _get_embedding(self, text: str) -> Optional[List[float]]:
-        """获取文本的向量嵌入"""
+    def _get_embedding(self, text: str, use_cache: bool = True) -> Optional[List[float]]:
+        """
+        获取文本的向量嵌入（带缓存）
+        
+        Args:
+            text: 输入文本
+            use_cache: 是否使用缓存，默认 True
+        
+        Returns:
+            向量嵌入列表，如果失败返回 None
+        """
         if self.embedding_model is None:
             return None
+        
+        ***REMOVED*** 检查缓存
+        if use_cache:
+            cached_embedding = self.embedding_cache.get(text)
+            if cached_embedding is not None:
+                logger.debug(f"Using cached embedding for text: {text[:50]}...")
+                return cached_embedding
+        
         try:
-            return self.embedding_model.encode(text).tolist()
+            embedding = self.embedding_model.encode(text, show_progress_bar=False).tolist()
+            ***REMOVED*** 保存到缓存
+            if use_cache:
+                self.embedding_cache.set(text, embedding)
+            return embedding
         except Exception as e:
-            logger.error(f"Error generating embedding: {e}")
+            logger.error(f"Error generating embedding: {e}", exc_info=True)
             return None
+    
+    def _get_embeddings_batch(self, texts: List[str], use_cache: bool = True) -> List[Optional[List[float]]]:
+        """
+        批量获取文本的向量嵌入（带缓存和批处理优化）
+        
+        Args:
+            texts: 输入文本列表
+            use_cache: 是否使用缓存，默认 True
+        
+        Returns:
+            向量嵌入列表，对应输入的每个文本（失败时为 None）
+        """
+        if self.embedding_model is None:
+            return [None] * len(texts)
+        
+        if not texts:
+            return []
+        
+        results = []
+        texts_to_encode = []
+        indices_to_encode = []
+        
+        ***REMOVED*** 检查缓存
+        for idx, text in enumerate(texts):
+            if use_cache:
+                cached_embedding = self.embedding_cache.get(text)
+                if cached_embedding is not None:
+                    results.append((idx, cached_embedding))
+                    continue
+            
+            texts_to_encode.append(text)
+            indices_to_encode.append(idx)
+        
+        ***REMOVED*** 批量编码未缓存的文本
+        if texts_to_encode:
+            try:
+                embeddings = self.embedding_model.encode(
+                    texts_to_encode,
+                    batch_size=self.embedding_batch_size,
+                    show_progress_bar=False
+                ).tolist()
+                
+                ***REMOVED*** 保存到缓存并添加到结果
+                for i, (idx, embedding) in enumerate(zip(indices_to_encode, embeddings)):
+                    if use_cache:
+                        self.embedding_cache.set(texts_to_encode[i], embedding)
+                    results.append((idx, embedding))
+            except Exception as e:
+                logger.error(f"Error generating embeddings batch: {e}", exc_info=True)
+                ***REMOVED*** 为失败的索引添加 None
+                for idx in indices_to_encode:
+                    results.append((idx, None))
+        
+        ***REMOVED*** 按原始索引排序并返回
+        results.sort(key=lambda x: x[0])
+        return [embedding for _, embedding in results]
     
     def _enhance_content_for_embedding(self, memory: Memory) -> str:
         """
