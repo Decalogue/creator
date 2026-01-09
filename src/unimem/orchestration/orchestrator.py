@@ -11,16 +11,22 @@
 - 支持超时控制：可以设置步骤超时时间
 - 真正的并行执行：使用线程池实现真正的并行执行
 - 线程安全：使用锁确保线程安全
+
+工业级特性：
+- 统一异常处理（使用适配器异常体系）
+- 参数验证和输入检查
+- 性能监控（执行时间统计）
 """
 
+import logging
+import threading
+import concurrent.futures
 from typing import Dict, Any, Optional, List, Callable
 from datetime import datetime
-import logging
-import concurrent.futures
-import threading
 
 from .workflow import Workflow, Step, WorkflowStep, StepStatus, StepType
-from ..types import Experience, Memory, Task, Context
+from ..memory_types import Experience, Memory, Task, Context
+from ..adapters.base import AdapterError, AdapterConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +55,15 @@ class Orchestrator:
             max_workers: 最大并行工作线程数（默认 4）
             
         Raises:
-            ValueError: 如果 unimem_instance 为 None 或 max_workers < 1
+            AdapterError: 如果参数无效
         """
         if unimem_instance is None:
-            raise ValueError("unimem_instance cannot be None")
+            raise AdapterError("unimem_instance cannot be None", adapter_name="Orchestrator")
         if max_workers < 1:
-            raise ValueError("max_workers must be >= 1")
+            raise AdapterConfigurationError(
+                f"max_workers must be >= 1, got {max_workers}",
+                adapter_name="Orchestrator"
+            )
         
         self.unimem = unimem_instance
         self.workflows: Dict[str, Workflow] = {}
@@ -75,10 +84,10 @@ class Orchestrator:
             是否注册成功
             
         Raises:
-            ValueError: 如果 workflow 为 None
+            AdapterError: 如果 workflow 无效
         """
         if not workflow:
-            raise ValueError("workflow cannot be None")
+            raise AdapterError("workflow cannot be None", adapter_name="Orchestrator")
         
         ***REMOVED*** 验证工作流
         is_valid, error = workflow.validate()
@@ -104,14 +113,14 @@ class Orchestrator:
             步骤执行结果
             
         Raises:
-            Exception: 如果步骤执行失败且重试次数已用完
+            AdapterError: 如果参数无效或步骤执行失败
         """
         if not step:
-            raise ValueError("step cannot be None")
+            raise AdapterError("step cannot be None", adapter_name="Orchestrator")
         if not workflow_step:
-            raise ValueError("workflow_step cannot be None")
+            raise AdapterError("workflow_step cannot be None", adapter_name="Orchestrator")
         if context is None:
-            raise ValueError("context cannot be None")
+            raise AdapterError("context cannot be None", adapter_name="Orchestrator")
         
         ***REMOVED*** 检查执行条件
         if step.condition and not step.condition(context):
@@ -180,13 +189,13 @@ class Orchestrator:
             - steps: 每个步骤的执行结果
             
         Raises:
-            ValueError: 如果 workflow_id 不存在或为空
+            AdapterError: 如果 workflow_id 无效或不存在
         """
         if not workflow_id or not workflow_id.strip():
-            raise ValueError("workflow_id cannot be empty")
+            raise AdapterError("workflow_id cannot be empty", adapter_name="Orchestrator")
         
         if workflow_id not in self.workflows:
-            raise ValueError(f"Workflow {workflow_id} not found")
+            raise AdapterError(f"Workflow {workflow_id} not found", adapter_name="Orchestrator")
         
         workflow = self.workflows[workflow_id]
         execution_id = f"{workflow_id}_{datetime.now().timestamp()}"

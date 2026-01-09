@@ -2,6 +2,8 @@
 清空 Qdrant collection 的脚本
 """
 
+***REMOVED*** 注意：types.py 已重命名为 memory_types.py，不再与标准库冲突
+
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 import logging
@@ -53,7 +55,7 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="清空 Qdrant collection")
-    parser.add_argument("--collection", "-c", default="novel_analysis", help="Collection 名称")
+    parser.add_argument("--collection", "-c", default="unimem_memories", help="Collection 名称")
     parser.add_argument("--host", default="localhost", help="Qdrant 主机地址")
     parser.add_argument("--port", type=int, default=6333, help="Qdrant 端口")
     

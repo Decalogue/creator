@@ -13,13 +13,20 @@
 设计参考：
 - LightMem: 涟漪效应更新机制
 - A-Mem: 记忆演化机制
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
+- 关键参数保护
 """
 
-from typing import List, Set, Optional
-from ..types import Memory, Entity, Relation
-from ..adapters import GraphAdapter, AtomLinkAdapter, UpdateAdapter
-
 import logging
+from typing import List, Set, Optional
+
+from ..memory_types import Memory, Entity, Relation
+from ..adapters import GraphAdapter, AtomLinkAdapter, UpdateAdapter
+from ..adapters.base import AdapterError, AdapterConfigurationError
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,12 +57,18 @@ class RippleEffectUpdater:
             decay_factor: 衰减因子（默认 0.5，控制传播强度）
             
         Raises:
-            ValueError: 如果 max_depth < 1 或 decay_factor < 0
+            AdapterConfigurationError: 如果参数无效
         """
         if max_depth < 1:
-            raise ValueError("max_depth must be >= 1")
-        if decay_factor < 0:
-            raise ValueError("decay_factor must be >= 0")
+            raise AdapterConfigurationError(
+                f"max_depth must be >= 1, got {max_depth}",
+                adapter_name="RippleEffectUpdater"
+            )
+        if not (0.0 <= decay_factor <= 1.0):
+            raise AdapterConfigurationError(
+                f"decay_factor must be between 0.0 and 1.0, got {decay_factor}",
+                adapter_name="RippleEffectUpdater"
+            )
         
         self.graph_adapter = graph_adapter
         self.atom_link_adapter = atom_link_adapter
@@ -85,10 +98,10 @@ class RippleEffectUpdater:
             links: 链接的记忆ID集合
             
         Raises:
-            ValueError: 如果 center 为 None
+            AdapterError: 如果参数无效
         """
         if not center:
-            raise ValueError("center cannot be None")
+            raise AdapterError("center cannot be None", adapter_name="RippleEffectUpdater")
         
         logger.info(f"Triggering ripple effect for memory {center.id}")
         

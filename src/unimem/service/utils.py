@@ -2,15 +2,23 @@
 UniMem Service 工具函数
 
 处理数据类型转换（dataclass <-> dict）
+
+工业级特性：
+- 统一异常处理
+- 输入验证
+- 类型安全转换
 """
 
+import json
+import logging
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from enum import Enum
-import json
 
-from ..types import Experience, Context, Task, Memory, RetrievalResult, MemoryType, MemoryLayer
+from ..memory_types import Experience, Context, Task, Memory, RetrievalResult, MemoryType, MemoryLayer
+
+logger = logging.getLogger(__name__)
 
 
 def dataclass_to_dict(obj: Any) -> Dict[str, Any]:
@@ -56,14 +64,24 @@ def _serialize_value(value: Any) -> Any:
 
 
 def dict_to_experience(data: Dict[str, Any]) -> Experience:
-    """将字典转换为 Experience 对象"""
+    """将字典转换为 Experience 对象（带验证）"""
+    if not data or not isinstance(data, dict):
+        raise ValueError("data must be a non-empty dict")
+    
     ***REMOVED*** 处理 timestamp
     if "timestamp" in data and isinstance(data["timestamp"], str):
-        data["timestamp"] = datetime.fromisoformat(data["timestamp"])
+        try:
+            data["timestamp"] = datetime.fromisoformat(data["timestamp"])
+        except ValueError as e:
+            logger.warning(f"Invalid timestamp format: {data['timestamp']}, using current time")
+            data["timestamp"] = datetime.now()
     elif "timestamp" not in data:
         data["timestamp"] = datetime.now()
     
-    return Experience(**data)
+    try:
+        return Experience(**data)
+    except Exception as e:
+        raise ValueError(f"Failed to create Experience: {e}") from e
 
 
 def dict_to_context(data: Optional[Dict[str, Any]]) -> Context:
@@ -79,20 +97,32 @@ def dict_to_task(data: Dict[str, Any]) -> Task:
 
 
 def dict_to_memory(data: Dict[str, Any]) -> Memory:
-    """将字典转换为 Memory 对象"""
+    """将字典转换为 Memory 对象（带验证）"""
+    if not data or not isinstance(data, dict):
+        raise ValueError("data must be a non-empty dict")
+    
     ***REMOVED*** 处理 timestamp
     if "timestamp" in data and isinstance(data["timestamp"], str):
-        data["timestamp"] = datetime.fromisoformat(data["timestamp"])
+        try:
+            data["timestamp"] = datetime.fromisoformat(data["timestamp"])
+        except ValueError:
+            logger.warning(f"Invalid timestamp format: {data.get('timestamp')}, using current time")
+            data["timestamp"] = datetime.now()
     
     ***REMOVED*** 处理 last_accessed
     if "last_accessed" in data and isinstance(data["last_accessed"], str):
-        data["last_accessed"] = datetime.fromisoformat(data["last_accessed"])
+        try:
+            data["last_accessed"] = datetime.fromisoformat(data["last_accessed"])
+        except ValueError:
+            logger.warning(f"Invalid last_accessed format: {data.get('last_accessed')}")
+            data["last_accessed"] = None
     
     ***REMOVED*** 处理 memory_type
     if "memory_type" in data and isinstance(data["memory_type"], str):
         try:
             data["memory_type"] = MemoryType(data["memory_type"])
         except ValueError:
+            logger.warning(f"Invalid memory_type: {data['memory_type']}")
             data["memory_type"] = None
     
     ***REMOVED*** 处理 layer
@@ -100,13 +130,17 @@ def dict_to_memory(data: Dict[str, Any]) -> Memory:
         try:
             data["layer"] = MemoryLayer(data["layer"])
         except ValueError:
+            logger.warning(f"Invalid layer: {data.get('layer')}, using LTM")
             data["layer"] = MemoryLayer.LTM
     
     ***REMOVED*** 处理 links (set)
     if "links" in data and isinstance(data["links"], list):
         data["links"] = set(data["links"])
     
-    return Memory(**data)
+    try:
+        return Memory(**data)
+    except Exception as e:
+        raise ValueError(f"Failed to create Memory: {e}") from e
 
 
 def serialize_retrieval_result(result: RetrievalResult) -> Dict[str, Any]:

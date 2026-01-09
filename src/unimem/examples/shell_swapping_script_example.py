@@ -7,7 +7,7 @@
 from typing import Dict, Any
 from unimem.character import CharacterGrowthArcManager
 from unimem.storage.hierarchical.hierarchical_storage import HierarchicalStorage, ContentLevel
-from unimem.types import Memory
+from unimem.memory_types import Memory
 from workflow import ShellSwappingOrchestrator, SeasoningManager, SeasoningType
 
 

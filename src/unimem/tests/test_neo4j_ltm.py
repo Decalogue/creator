@@ -33,7 +33,7 @@ from unimem.neo4j import (
     create_entity,
     get_entity,
 )
-from unimem.types import Memory, MemoryType, MemoryLayer, Entity
+from unimem.memory_types import Memory, MemoryType, MemoryLayer, Entity
 
 
 def test_create_memory():

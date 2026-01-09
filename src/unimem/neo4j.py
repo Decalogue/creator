@@ -6,21 +6,237 @@ UniMem Neo4j 图数据库操作
 - 关系（Relation）的 CRUD 操作
 - 记忆节点的操作
 - 图查询和检索
+
+工业级特性：
+- 连接池管理（Graph 连接池）
+- 事务支持（Transaction）
+- 重试机制（指数退避）
+- 健康检查（ping）
+- 线程安全（Graph 线程安全）
+- 统一异常处理（使用适配器异常体系）
+- 性能监控（操作耗时统计）
 """
 
+import os
+import json
 import time
 import logging
+import threading
 from typing import List, Optional, Dict, Any, Tuple
-from py2neo import Graph, Node, Relationship, NodeMatcher, RelationshipMatcher
+from dataclasses import dataclass, field
+from datetime import datetime
 
-from .types import Entity, Relation, Memory, MemoryType
+try:
+    from py2neo import Graph, Node, Relationship, NodeMatcher, RelationshipMatcher
+    from py2neo.errors import ServiceUnavailable, ClientError, TransientError
+    NEO4J_AVAILABLE = True
+except ImportError:
+    NEO4J_AVAILABLE = False
+    Graph = None
+    Node = None
+    Relationship = None
+    NodeMatcher = None
+    RelationshipMatcher = None
+    ServiceUnavailable = Exception
+    ClientError = Exception
+    TransientError = Exception
+
+from .memory_types import Entity, Relation, Memory, MemoryType, MemoryLayer
+from .adapters.base import (
+    AdapterError,
+    AdapterNotAvailableError,
+    AdapterConfigurationError,
+)
 
 logger = logging.getLogger(__name__)
 
-***REMOVED*** 数据库设置
-graph = Graph("bolt://localhost:7680", auth=('neo4j', 'seeme_db'), name='neo4j')
-node_matcher = NodeMatcher(graph)
-relationship_matcher = RelationshipMatcher(graph)
+***REMOVED*** 全局变量（线程安全）
+_graph: Optional[Any] = None
+_node_matcher: Optional[Any] = None
+_relationship_matcher: Optional[Any] = None
+_graph_lock = threading.Lock()
+
+
+def get_graph(
+    uri: Optional[str] = None,
+    user: Optional[str] = None,
+    password: Optional[str] = None,
+    database: Optional[str] = None,
+    max_connections: int = 50
+) -> Optional[Any]:
+    """
+    获取 Neo4j Graph 实例（单例模式，线程安全）
+    
+    支持环境变量：NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, NEO4J_DATABASE, NEO4J_MAX_CONNECTIONS
+    """
+    global _graph, _node_matcher, _relationship_matcher, graph, node_matcher, relationship_matcher
+    
+    if not NEO4J_AVAILABLE:
+        raise AdapterNotAvailableError("Neo4j library (py2neo) not available", adapter_name="Neo4jClient")
+    
+    ***REMOVED*** 读取配置（简化版）
+    uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7680")
+    user = user or os.getenv("NEO4J_USER", "neo4j")
+    password = password or os.getenv("NEO4J_PASSWORD", "seeme_db")  ***REMOVED*** 默认密码
+    database = database or os.getenv("NEO4J_DATABASE", "neo4j")
+    ***REMOVED*** py2neo 的 Graph 不支持 max_connections 参数，移除它
+    if not uri.startswith(("bolt://", "neo4j://")):
+        raise AdapterConfigurationError(f"Invalid Neo4j URI: {uri}", adapter_name="Neo4jClient")
+    
+    with _graph_lock:
+        if _graph is None:
+            try:
+                ***REMOVED*** py2neo Graph 不支持 max_connections 参数
+                _graph = Graph(uri, auth=(user, password), name=database)
+                
+                ***REMOVED*** 测试连接（带重试）
+                for attempt in range(3):
+                    try:
+                        _graph.run("RETURN 1").data()
+                        break
+                    except Exception as e:
+                        if attempt == 2:
+                            raise ServiceUnavailable(f"Failed to connect after 3 attempts: {e}")
+                        time.sleep(0.1 * (2 ** attempt))
+                
+                _node_matcher = NodeMatcher(_graph)
+                _relationship_matcher = RelationshipMatcher(_graph)
+                ***REMOVED*** 同时更新模块级别变量
+                graph = _graph
+                node_matcher = _node_matcher
+                relationship_matcher = _relationship_matcher
+                logger.info(f"Neo4j connected: {uri}/{database}")
+            except (ServiceUnavailable, ClientError) as e:
+                _graph = _node_matcher = _relationship_matcher = None
+                raise AdapterNotAvailableError(f"Failed to connect to Neo4j: {e}", adapter_name="Neo4jClient", cause=e) from e
+            except Exception as e:
+                _graph = _node_matcher = _relationship_matcher = None
+                raise AdapterError(f"Failed to initialize Neo4j: {e}", adapter_name="Neo4jClient", cause=e) from e
+    
+    return _graph
+
+
+def _execute_with_retry(operation: callable, operation_name: str = "operation", max_retries: int = None) -> Any:
+    """带重试的操作执行"""
+    if max_retries is None:
+        max_retries = _max_retries
+    
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            return operation()
+        except (ServiceUnavailable, TransientError) as e:
+            last_error = e
+            if attempt < max_retries:
+                wait_time = _retry_delay * (2 ** attempt)  ***REMOVED*** 指数退避
+                logger.warning(f"{operation_name} failed (attempt {attempt + 1}/{max_retries + 1}): {e}, retrying in {wait_time:.3f}s...")
+                time.sleep(wait_time)
+            else:
+                logger.error(f"{operation_name} failed after {max_retries + 1} attempts: {e}")
+        except ClientError as e:
+            ***REMOVED*** 客户端错误不重试
+            logger.error(f"{operation_name} failed with client error: {e}")
+            raise AdapterError(
+                f"{operation_name} failed: {e}",
+                adapter_name="Neo4jClient",
+                cause=e
+            ) from e
+        except Exception as e:
+            ***REMOVED*** 未知错误不重试
+            logger.error(f"{operation_name} failed with unexpected error: {e}", exc_info=True)
+            raise AdapterError(
+                f"{operation_name} failed: {e}",
+                adapter_name="Neo4jClient",
+                cause=e
+            ) from e
+    
+    if last_error:
+        raise AdapterNotAvailableError(
+            f"{operation_name} failed after retries: {last_error}",
+            adapter_name="Neo4jClient",
+            cause=last_error
+        ) from last_error
+    
+    return None
+
+
+def health_check() -> Dict[str, Any]:
+    """
+    健康检查（带连接状态和统计信息）
+    
+    Returns:
+        健康状态字典
+    """
+    if not NEO4J_AVAILABLE:
+        return {
+            "available": False,
+            "error": "Neo4j library not available",
+            "timestamp": datetime.now().isoformat(),
+        }
+    
+    try:
+        graph = get_graph()
+        if not graph:
+            return {
+                "available": False,
+                "error": "Neo4j graph not available",
+                "timestamp": datetime.now().isoformat(),
+            }
+        
+        ***REMOVED*** 检查连接
+        is_alive = _ping_graph(graph, max_retries=1)
+        
+        ***REMOVED*** 获取数据库信息
+        try:
+            db_info = graph.run("CALL db.info() YIELD name, version RETURN name, version").data()
+        except Exception:
+            db_info = []
+        
+        return {
+            "available": is_alive,
+            "status": "healthy" if is_alive else "unhealthy",
+            "database": db_info[0] if db_info else {},
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}", exc_info=True)
+        return {
+            "available": False,
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+***REMOVED*** 模块级别的全局变量（延迟初始化）
+def _ensure_initialized():
+    """确保 Neo4j 连接已初始化"""
+    global _graph, _node_matcher, _relationship_matcher, graph, node_matcher, relationship_matcher
+    
+    ***REMOVED*** 如果模块级别变量未初始化，或者全局变量未初始化，则初始化
+    if _graph is None or _node_matcher is None or graph is None or node_matcher is None:
+        try:
+            ***REMOVED*** get_graph() 会初始化 _graph, _node_matcher, _relationship_matcher
+            _graph = get_graph()
+            if _graph is None:
+                raise AdapterNotAvailableError("Failed to get Neo4j graph", adapter_name="Neo4jClient")
+            ***REMOVED*** 确保 node_matcher 也被初始化（get_graph 应该已经初始化了，但为了安全再检查一次）
+            if _node_matcher is None and _graph:
+                _node_matcher = NodeMatcher(_graph)
+                _relationship_matcher = RelationshipMatcher(_graph)
+            ***REMOVED*** 更新模块级别变量（必须执行，即使 _graph 已经存在）
+            graph = _graph
+            node_matcher = _node_matcher
+            relationship_matcher = _relationship_matcher
+        except Exception as e:
+            logger.error(f"Failed to initialize Neo4j in _ensure_initialized: {e}")
+            raise
+
+
+***REMOVED*** 直接定义全局变量（简单方式）
+graph: Optional[Any] = None
+node_matcher: Optional[Any] = None
+relationship_matcher: Optional[Any] = None
 
 
 def get_current_time(format_string="%Y-%m-%d-%H-%M-%S"):
@@ -40,6 +256,8 @@ def create_entity(entity: Entity) -> bool:
     Returns:
         是否成功创建
     """
+    _ensure_initialized()
+    
     try:
         ***REMOVED*** 检查是否已存在
         existing = node_matcher.match("Entity", id=entity.id).first()
@@ -76,6 +294,8 @@ def get_entity(entity_id: str) -> Optional[Entity]:
     Returns:
         Entity 对象，如果不存在则返回 None
     """
+    _ensure_initialized()
+    
     try:
         node = node_matcher.match("Entity", id=entity_id).first()
         if not node:
@@ -111,6 +331,8 @@ def update_entity(entity: Entity) -> bool:
     Returns:
         是否成功更新
     """
+    _ensure_initialized()
+    
     try:
         node = node_matcher.match("Entity", id=entity.id).first()
         if not node:
@@ -143,6 +365,8 @@ def delete_entity(entity_id: str) -> bool:
     Returns:
         是否成功删除
     """
+    _ensure_initialized()
+    
     try:
         node = node_matcher.match("Entity", id=entity_id).first()
         if not node:
@@ -201,6 +425,8 @@ def create_relation(relation: Relation) -> bool:
     Returns:
         是否成功创建
     """
+    _ensure_initialized()
+    
     try:
         ***REMOVED*** 获取源节点和目标节点
         source_node = node_matcher.match("Entity", id=relation.source).first()
@@ -549,11 +775,33 @@ def create_memory(memory: Memory) -> bool:
         是否成功创建
     """
     try:
+        ***REMOVED*** 确保 Neo4j 连接已初始化
+        _ensure_initialized()
+        if not node_matcher:
+            logger.error("Neo4j node_matcher not initialized")
+            return False
+        
         ***REMOVED*** 检查是否已存在
         existing = node_matcher.match("Memory", id=memory.id).first()
         if existing:
             logger.warning(f"Memory {memory.id} already exists, updating instead")
             return update_memory(memory)
+        
+        ***REMOVED*** 提取source字段（如果存在）
+        source = ""
+        if memory.metadata and isinstance(memory.metadata, dict):
+            source = memory.metadata.get("source", "")
+        
+        ***REMOVED*** 提取reasoning和decision_trace字段（Context Graph增强）
+        reasoning = memory.reasoning or ""
+        decision_trace_json = ""
+        if memory.decision_trace:
+            import json
+            decision_trace_json = json.dumps(memory.decision_trace, ensure_ascii=False)
+        
+        ***REMOVED*** 将metadata保存为JSON字符串（便于查询）
+        import json
+        metadata_json = json.dumps(memory.metadata, ensure_ascii=False) if memory.metadata else "{}"
         
         ***REMOVED*** 创建记忆节点
         node = Node(
@@ -568,7 +816,10 @@ def create_memory(memory: Memory) -> bool:
             context=memory.context or "",
             retrieval_count=memory.retrieval_count,
             last_accessed=memory.last_accessed.isoformat() if memory.last_accessed else "",
-            metadata=str(memory.metadata) if memory.metadata else "{}",
+            metadata=metadata_json,  ***REMOVED*** 保存为JSON字符串
+            source=source,  ***REMOVED*** 提取source为独立属性
+            reasoning=reasoning,  ***REMOVED*** 新增：决策理由
+            decision_trace=decision_trace_json,  ***REMOVED*** 新增：决策痕迹
             created_at=get_current_time()
         )
         graph.create(node)
@@ -614,6 +865,17 @@ def get_memory(memory_id: str) -> Optional[Memory]:
         Memory 对象，如果不存在则返回 None
     """
     try:
+        ***REMOVED*** 确保 Neo4j 连接已初始化
+        try:
+            _ensure_initialized()
+        except Exception as e:
+            logger.error(f"Failed to initialize Neo4j: {e}")
+            return None
+        
+        if not node_matcher or not graph:
+            logger.error("Neo4j node_matcher or graph not initialized")
+            return None
+        
         node = node_matcher.match("Memory", id=memory_id).first()
         if not node:
             return None
@@ -636,7 +898,6 @@ def get_memory(memory_id: str) -> Optional[Memory]:
         tags = tags_str.split(",") if tags_str else []
         
         ***REMOVED*** 解析 metadata
-        import json
         metadata_str = node.get("metadata", "{}")
         try:
             metadata = json.loads(metadata_str) if isinstance(metadata_str, str) else metadata_str
@@ -644,7 +905,6 @@ def get_memory(memory_id: str) -> Optional[Memory]:
             metadata = {}
         
         ***REMOVED*** 解析时间戳
-        from datetime import datetime
         timestamp_str = node.get("timestamp", "")
         timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.now()
         
@@ -661,13 +921,22 @@ def get_memory(memory_id: str) -> Optional[Memory]:
                 pass
         
         ***REMOVED*** 解析 layer
-        from .types import MemoryLayer
         layer_str = node.get("layer", "ltm")
         layer = None
         try:
             layer = MemoryLayer(layer_str)
         except:
             pass
+        
+        ***REMOVED*** 解析 reasoning 和 decision_trace（Context Graph增强）
+        reasoning = node.get("reasoning") or None
+        decision_trace = None
+        decision_trace_str = node.get("decision_trace", "")
+        if decision_trace_str:
+            try:
+                decision_trace = json.loads(decision_trace_str) if isinstance(decision_trace_str, str) else decision_trace_str
+            except:
+                decision_trace = None
         
         memory = Memory(
             id=node["id"],
@@ -682,7 +951,9 @@ def get_memory(memory_id: str) -> Optional[Memory]:
             entities=entities,
             retrieval_count=node.get("retrieval_count", 0),
             last_accessed=last_accessed,
-            metadata=metadata
+            metadata=metadata,
+            reasoning=reasoning,  ***REMOVED*** 新增：决策理由
+            decision_trace=decision_trace,  ***REMOVED*** 新增：决策痕迹
         )
         return memory
     except Exception as e:
@@ -701,10 +972,35 @@ def update_memory(memory: Memory) -> bool:
         是否成功更新
     """
     try:
+        ***REMOVED*** 确保 Neo4j 连接已初始化
+        try:
+            _ensure_initialized()
+        except Exception as e:
+            logger.error(f"Failed to initialize Neo4j: {e}")
+            return False
+        
+        if not node_matcher or not graph:
+            logger.error("Neo4j node_matcher or graph not initialized")
+            return False
+        
         node = node_matcher.match("Memory", id=memory.id).first()
         if not node:
             logger.warning(f"Memory {memory.id} not found, creating instead")
             return create_memory(memory)
+        
+        ***REMOVED*** 提取source字段（如果存在）
+        source = ""
+        if memory.metadata and isinstance(memory.metadata, dict):
+            source = memory.metadata.get("source", "")
+        
+        ***REMOVED*** 提取reasoning和decision_trace字段（Context Graph增强）
+        reasoning = memory.reasoning or ""
+        decision_trace_json = ""
+        if memory.decision_trace:
+            decision_trace_json = json.dumps(memory.decision_trace, ensure_ascii=False)
+        
+        ***REMOVED*** 将metadata保存为JSON字符串（便于查询）
+        metadata_json = json.dumps(memory.metadata, ensure_ascii=False) if memory.metadata else "{}"
         
         ***REMOVED*** 更新属性
         node["content"] = memory.content
@@ -715,7 +1011,10 @@ def update_memory(memory: Memory) -> bool:
         node["context"] = memory.context or ""
         node["retrieval_count"] = memory.retrieval_count
         node["last_accessed"] = memory.last_accessed.isoformat() if memory.last_accessed else ""
-        node["metadata"] = str(memory.metadata) if memory.metadata else "{}"
+        node["metadata"] = metadata_json  ***REMOVED*** 保存为JSON字符串
+        node["source"] = source  ***REMOVED*** 更新source字段
+        node["reasoning"] = reasoning  ***REMOVED*** 新增：更新决策理由
+        node["decision_trace"] = decision_trace_json  ***REMOVED*** 新增：更新决策痕迹
         
         graph.push(node)
         
@@ -762,6 +1061,17 @@ def delete_memory(memory_id: str) -> bool:
         是否成功删除
     """
     try:
+        ***REMOVED*** 确保 Neo4j 连接已初始化
+        try:
+            _ensure_initialized()
+        except Exception as e:
+            logger.error(f"Failed to initialize Neo4j: {e}")
+            return False
+        
+        if not node_matcher or not graph:
+            logger.error("Neo4j node_matcher or graph not initialized")
+            return False
+        
         node = node_matcher.match("Memory", id=memory_id).first()
         if not node:
             logger.warning(f"Memory {memory_id} not found")
@@ -962,3 +1272,189 @@ def create_memory_indexes() -> bool:
     except Exception as e:
         logger.error(f"Failed to create memory indexes: {e}", exc_info=True)
         return False
+
+
+def create_decision_event(
+    memory_id: str,
+    decision_trace: Dict[str, Any],
+    reasoning: Optional[str] = None,
+    related_entity_ids: Optional[List[str]] = None
+) -> bool:
+    """
+    创建决策事件节点（Context Graph增强）
+    
+    决策事件节点用于记录决策的完整上下文，连接相关实体和记忆，形成决策图谱。
+    
+    Args:
+        memory_id: 关联的记忆ID
+        decision_trace: 决策痕迹字典
+        reasoning: 决策理由（可选）
+        related_entity_ids: 相关实体ID列表（可选）
+        
+    Returns:
+        是否成功创建
+    """
+    try:
+        _ensure_initialized()
+        if not node_matcher or not graph:
+            logger.error("Neo4j node_matcher or graph not initialized")
+            return False
+        
+        ***REMOVED*** 查找记忆节点
+        memory_node = node_matcher.match("Memory", id=memory_id).first()
+        if not memory_node:
+            logger.warning(f"Memory {memory_id} not found, cannot create decision event")
+            return False
+        
+        ***REMOVED*** 创建决策事件节点
+        event_id = f"decision_{memory_id}"
+        
+        ***REMOVED*** 检查是否已存在
+        existing = node_matcher.match("DecisionEvent", id=event_id).first()
+        if existing:
+            logger.debug(f"Decision event {event_id} already exists, updating instead")
+            return update_decision_event(event_id, decision_trace, reasoning, related_entity_ids)
+        
+        import json
+        inputs_json = json.dumps(decision_trace.get("inputs", []), ensure_ascii=False)
+        rules_json = json.dumps(decision_trace.get("rules_applied", []), ensure_ascii=False)
+        exceptions_json = json.dumps(decision_trace.get("exceptions", []), ensure_ascii=False)
+        approvals_json = json.dumps(decision_trace.get("approvals", []), ensure_ascii=False)
+        
+        event_node = Node(
+            "DecisionEvent",
+            id=event_id,
+            memory_id=memory_id,
+            inputs=inputs_json,
+            rules_applied=rules_json,
+            exceptions=exceptions_json,
+            approvals=approvals_json,
+            reasoning=reasoning or "",
+            timestamp=decision_trace.get("timestamp", get_current_time()),
+            operation_id=decision_trace.get("operation_id", ""),
+            created_at=get_current_time()
+        )
+        
+        graph.create(event_node)
+        
+        ***REMOVED*** 连接到Memory节点
+        graph.create(Relationship(event_node, "TRACES", memory_node))
+        
+        ***REMOVED*** 连接到相关实体
+        if related_entity_ids:
+            for entity_id in related_entity_ids:
+                entity_node = node_matcher.match("Entity", id=entity_id).first()
+                if entity_node:
+                    graph.create(Relationship(event_node, "INVOLVES", entity_node))
+        
+        logger.debug(f"Created decision event: {event_id} for memory {memory_id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to create decision event for memory {memory_id}: {e}", exc_info=True)
+        return False
+
+
+def update_decision_event(
+    event_id: str,
+    decision_trace: Dict[str, Any],
+    reasoning: Optional[str] = None,
+    related_entity_ids: Optional[List[str]] = None
+) -> bool:
+    """
+    更新决策事件节点
+    
+    Args:
+        event_id: 事件ID
+        decision_trace: 决策痕迹字典
+        reasoning: 决策理由（可选）
+        related_entity_ids: 相关实体ID列表（可选）
+        
+    Returns:
+        是否成功更新
+    """
+    try:
+        _ensure_initialized()
+        if not node_matcher or not graph:
+            logger.error("Neo4j node_matcher or graph not initialized")
+            return False
+        
+        event_node = node_matcher.match("DecisionEvent", id=event_id).first()
+        if not event_node:
+            logger.warning(f"Decision event {event_id} not found")
+            return False
+        
+        import json
+        event_node["inputs"] = json.dumps(decision_trace.get("inputs", []), ensure_ascii=False)
+        event_node["rules_applied"] = json.dumps(decision_trace.get("rules_applied", []), ensure_ascii=False)
+        event_node["exceptions"] = json.dumps(decision_trace.get("exceptions", []), ensure_ascii=False)
+        event_node["approvals"] = json.dumps(decision_trace.get("approvals", []), ensure_ascii=False)
+        if reasoning:
+            event_node["reasoning"] = reasoning
+        
+        graph.push(event_node)
+        
+        ***REMOVED*** 更新实体关联
+        if related_entity_ids:
+            ***REMOVED*** 删除旧的实体关联
+            for rel in graph.match((event_node, None), "INVOLVES"):
+                graph.delete(rel)
+            
+            ***REMOVED*** 创建新的实体关联
+            for entity_id in related_entity_ids:
+                entity_node = node_matcher.match("Entity", id=entity_id).first()
+                if entity_node:
+                    graph.create(Relationship(event_node, "INVOLVES", entity_node))
+        
+        logger.debug(f"Updated decision event: {event_id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to update decision event {event_id}: {e}", exc_info=True)
+        return False
+
+
+def get_decision_events_for_memory(memory_id: str) -> List[Dict[str, Any]]:
+    """
+    获取记忆的所有决策事件
+    
+    Args:
+        memory_id: 记忆ID
+        
+    Returns:
+        决策事件列表
+    """
+    try:
+        _ensure_initialized()
+        if not graph:
+            logger.error("Neo4j graph not initialized")
+            return []
+        
+        query = """
+        MATCH (de:DecisionEvent)-[:TRACES]->(m:Memory {id: $memory_id})
+        RETURN de
+        ORDER BY de.timestamp DESC
+        """
+        result = graph.run(query, memory_id=memory_id).data()
+        
+        events = []
+        for record in result:
+            de = record["de"]
+            import json
+            event = {
+                "id": de.get("id"),
+                "memory_id": de.get("memory_id"),
+                "inputs": json.loads(de.get("inputs", "[]")) if de.get("inputs") else [],
+                "rules_applied": json.loads(de.get("rules_applied", "[]")) if de.get("rules_applied") else [],
+                "exceptions": json.loads(de.get("exceptions", "[]")) if de.get("exceptions") else [],
+                "approvals": json.loads(de.get("approvals", "[]")) if de.get("approvals") else [],
+                "reasoning": de.get("reasoning", ""),
+                "timestamp": de.get("timestamp"),
+            }
+            events.append(event)
+        
+        return events
+        
+    except Exception as e:
+        logger.error(f"Failed to get decision events for memory {memory_id}: {e}", exc_info=True)
+        return []

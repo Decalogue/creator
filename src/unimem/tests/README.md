@@ -123,15 +123,110 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
 
 ***REMOVED******REMOVED*** 测试覆盖
 
-- ✅ 原子笔记构建
-- ✅ 内容分析和元数据提取
-- ✅ 向量存储操作（添加、更新、删除）
-- ✅ 语义检索
-- ✅ 子图链接检索
-- ✅ 记忆链接生成
-- ✅ 记忆演化
-- ✅ 错误处理和边界情况
-- ✅ JSON 解析（支持 markdown 代码块）
+***REMOVED******REMOVED******REMOVED*** 核心模块测试
+- ✅ **test_types.py**: 类型系统测试
+  - Experience、Memory、Task、Context 数据类
+  - 数据验证（空值、范围检查）
+  - 序列化/反序列化
+  - Entity、Relation 验证
+
+- ✅ **test_config.py**: 配置管理测试
+  - 默认配置加载
+  - 文件配置加载
+  - 环境变量支持
+  - 配置验证（后端类型、范围检查）
+  - Neo4j、Redis 配置
+
+- ✅ **test_core.py**: 核心功能测试
+  - UniMem 初始化
+  - RETAIN 操作（存储记忆）
+  - RECALL 操作（检索记忆）
+  - REFLECT 操作（优化记忆）
+  - 健康检查和指标
+  - 线程安全测试
+
+***REMOVED******REMOVED******REMOVED*** 适配器测试
+- ✅ **test_atom_link_adapter.py**: 原子链接适配器
+  - ✅ 原子笔记构建
+  - ✅ 内容分析和元数据提取
+  - ✅ 向量存储操作（添加、更新、删除）
+  - ✅ 语义检索
+  - ✅ 子图链接检索
+  - ✅ 记忆链接生成
+  - ✅ 记忆演化
+  - ✅ 错误处理和边界情况
+  - ✅ JSON 解析（支持 markdown 代码块）
+
+- ✅ **test_graph_adapter.py**: 图结构适配器测试
+  - RequestMetrics 指标测试
+  - 实体搜索测试
+  - 实体添加测试
+  - 关系添加测试
+  - API 错误处理
+  - 健康检查测试
+
+- ✅ **test_operation_adapter.py**: 操作适配器测试
+  - RETAIN 操作测试
+  - RECALL 操作测试
+  - REFLECT 操作测试
+  - 参数验证测试
+  - Budget 枚举测试
+  - 错误处理测试
+
+***REMOVED******REMOVED******REMOVED*** 集成测试
+- ✅ **test_integration.py**: 端到端集成测试
+  - UniMem 完整工作流（RETAIN -> RECALL -> REFLECT）
+  - 存储和检索集成测试
+  - 适配器协同工作测试
+  - 健康检查和指标收集测试
+
+***REMOVED******REMOVED******REMOVED*** 存储层测试
+- ✅ **test_storage_manager.py**: 存储管理器测试
+  - OperationStats 统计功能
+  - 三层存储操作（FoA/DA/LTM）
+  - 记忆添加、更新、搜索
+  - 健康检查和指标获取
+  - 适配器不可用处理
+
+- ✅ **test_hierarchical_storage.py**: 分层存储测试
+  - 多层级存储（work/outline/chapter/scene）
+  - 层级检索
+  - 跨层级检索
+  - 一致性检查
+  - 记忆删除
+  - ConsistencyReport 验证
+
+- ✅ **test_neo4j_ltm.py**: Neo4j LTM 测试
+
+***REMOVED******REMOVED******REMOVED*** 检索层测试
+- ✅ **test_retrieval_engine.py**: 检索引擎测试
+  - 多维检索（实体、抽象、语义、子图）
+  - RRF 融合测试
+  - 错误处理和降级
+  - 参数验证
+  - 并行检索测试
+
+- ✅ **test_retrieval_cache.py**: 检索缓存测试
+  - CacheEntry 缓存条目测试
+  - LRU 淘汰策略测试
+  - TTL 过期策略测试
+  - 缓存统计和监控
+  - 线程安全测试
+
+***REMOVED******REMOVED******REMOVED*** 更新层测试
+- ✅ **test_update_manager.py**: 更新管理器测试
+  - 涟漪效应触发
+  - 睡眠更新队列
+  - 参数验证
+  - 错误处理
+
+***REMOVED******REMOVED******REMOVED*** 上下文管理测试
+- ✅ **test_context_manager.py**: 上下文管理器测试
+  - 上下文压缩
+  - 上下文融合
+  - 上下文检索
+  - 缓存管理
+  - 参数验证
 
 ***REMOVED******REMOVED*** Qdrant 使用说明
 

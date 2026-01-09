@@ -124,6 +124,10 @@ class Memory:
     ***REMOVED*** 元数据
     metadata: Dict[str, Any] = field(default_factory=dict)
     
+    ***REMOVED*** 决策痕迹和推理（Context Graph 增强）
+    reasoning: Optional[str] = None  ***REMOVED*** 决策理由（"为什么这么做"）
+    decision_trace: Optional[Dict[str, Any]] = None  ***REMOVED*** 决策痕迹（输入-规则-异常-审批-输出）
+    
     def __post_init__(self):
         """数据验证"""
         if not self.id or not isinstance(self.id, str) or not self.id.strip():
@@ -151,6 +155,10 @@ class Memory:
             raise ValueError(f"retrieval_count must be non-negative int, got {self.retrieval_count}")
         if not isinstance(self.metadata, dict):
             raise TypeError(f"metadata must be dict, got {type(self.metadata)}")
+        if self.reasoning is not None and not isinstance(self.reasoning, str):
+            raise TypeError(f"reasoning must be str or None, got {type(self.reasoning)}")
+        if self.decision_trace is not None and not isinstance(self.decision_trace, dict):
+            raise TypeError(f"decision_trace must be dict or None, got {type(self.decision_trace)}")
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典（用于序列化）"""
@@ -168,6 +176,8 @@ class Memory:
             "retrieval_count": self.retrieval_count,
             "last_accessed": self.last_accessed.isoformat() if self.last_accessed else None,
             "metadata": self.metadata,
+            "reasoning": self.reasoning,
+            "decision_trace": self.decision_trace,
         }
     
     @classmethod
@@ -209,6 +219,8 @@ class Memory:
             retrieval_count=data.get("retrieval_count", 0),
             last_accessed=last_accessed,
             metadata=data.get("metadata", {}),
+            reasoning=data.get("reasoning"),
+            decision_trace=data.get("decision_trace"),
         )
 
 

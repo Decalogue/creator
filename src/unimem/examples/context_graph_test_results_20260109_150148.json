@@ -1,0 +1,417 @@
+{
+  "start_time": "2026-01-09T14:09:20.138402",
+  "scenarios": [
+    {
+      "scenario_id": "scenario_1",
+      "scenario_name": "电商-美妆-小红书-简单",
+      "complexity": "simple",
+      "timestamp": "2026-01-09T14:09:20.138424",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_scenario_scenario_1.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 4,
+            "video_type": "ecommerce",
+            "platform": "xiaohongshu"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        },
+        {
+          "step": "generate_script",
+          "status": "success",
+          "script_memory_id": "b435684a-9acb-407c-9a0d-f330526d14f2"
+        },
+        {
+          "step": "multi_round_optimization",
+          "status": "success",
+          "feedback_rounds": 3
+        }
+      ],
+      "memory_ids": [
+        "b435684a-9acb-407c-9a0d-f330526d14f2",
+        "21d635c5-a5b5-43bd-b542-303be41ee049",
+        "64cea431-b880-42b1-ab45-5b850ebc21f2",
+        "d04fdf04-bed8-4106-ac3f-bbe4f37cb084"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "b435684a-9acb-407c-9a0d-f330526d14f2",
+          "has_reasoning": false,
+          "reasoning_preview": null,
+          "has_decision_trace": false,
+          "decision_trace_keys": []
+        }
+      ],
+      "errors": [
+        "REFLECT失败: 'NoneType' object has no attribute 'value'"
+      ],
+      "verifications": [
+        {
+          "check": "reasoning字段覆盖率",
+          "result": "0.0% (0/4)",
+          "status": "⚠"
+        },
+        {
+          "check": "decision_trace字段覆盖率",
+          "result": "0.0% (0/4)",
+          "status": "⚠"
+        },
+        {
+          "check": "DecisionEvent节点创建",
+          "result": "0个事件节点",
+          "status": "⚠"
+        },
+        {
+          "check": "先例搜索功能",
+          "result": "未找到先例（可能是新场景）",
+          "status": "✓"
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario_2",
+      "scenario_name": "教育-编程-抖音-中等",
+      "complexity": "medium",
+      "timestamp": "2026-01-09T14:17:04.410656",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_scenario_scenario_2.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 4,
+            "video_type": "knowledge",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        },
+        {
+          "step": "generate_script",
+          "status": "success",
+          "script_memory_id": "f7fb9b77-a975-4028-8ed5-dbdb5b0e91d3"
+        },
+        {
+          "step": "multi_round_optimization",
+          "status": "success",
+          "feedback_rounds": 3
+        }
+      ],
+      "memory_ids": [
+        "f7fb9b77-a975-4028-8ed5-dbdb5b0e91d3",
+        "4e847d03-abf3-4fba-8cfb-b63f99fdbb81",
+        "9ca47de8-92a6-4bd8-9f64-c8f4a57f98c0",
+        "30b6b7ed-13e7-4d23-a85c-9cddd4a5d398"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "f7fb9b77-a975-4028-8ed5-dbdb5b0e91d3",
+          "has_reasoning": false,
+          "reasoning_preview": null,
+          "has_decision_trace": false,
+          "decision_trace_keys": []
+        }
+      ],
+      "errors": [
+        "REFLECT失败: 'NoneType' object has no attribute 'value'"
+      ],
+      "verifications": [
+        {
+          "check": "reasoning字段覆盖率",
+          "result": "0.0% (0/4)",
+          "status": "⚠"
+        },
+        {
+          "check": "decision_trace字段覆盖率",
+          "result": "0.0% (0/4)",
+          "status": "⚠"
+        },
+        {
+          "check": "DecisionEvent节点创建",
+          "result": "0个事件节点",
+          "status": "⚠"
+        },
+        {
+          "check": "先例搜索功能",
+          "result": "未找到先例（可能是新场景）",
+          "status": "✓"
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario_3",
+      "scenario_name": "娱乐-搞笑-抖音-简单",
+      "complexity": "simple",
+      "timestamp": "2026-01-09T14:26:37.032909",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_scenario_scenario_3.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 4,
+            "video_type": "ecommerce",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        },
+        {
+          "step": "generate_script",
+          "status": "success",
+          "script_memory_id": "92f83098-90fa-4f42-8cfe-d3dc92e7af02"
+        },
+        {
+          "step": "multi_round_optimization",
+          "status": "success",
+          "feedback_rounds": 3
+        }
+      ],
+      "memory_ids": [
+        "92f83098-90fa-4f42-8cfe-d3dc92e7af02",
+        "9293a9c5-0b12-4abf-88a1-57a7a65b758a",
+        "7fa55158-fdaf-40ed-9370-9e703241fb80",
+        "1981c238-9c9a-4402-8957-e58fe0d01a34"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "92f83098-90fa-4f42-8cfe-d3dc92e7af02",
+          "has_reasoning": false,
+          "reasoning_preview": null,
+          "has_decision_trace": false,
+          "decision_trace_keys": []
+        }
+      ],
+      "errors": [
+        "REFLECT失败: 'NoneType' object has no attribute 'value'"
+      ],
+      "verifications": [
+        {
+          "check": "reasoning字段覆盖率",
+          "result": "0.0% (0/4)",
+          "status": "⚠"
+        },
+        {
+          "check": "decision_trace字段覆盖率",
+          "result": "0.0% (0/4)",
+          "status": "⚠"
+        },
+        {
+          "check": "DecisionEvent节点创建",
+          "result": "0个事件节点",
+          "status": "⚠"
+        },
+        {
+          "check": "先例搜索功能",
+          "result": "未找到先例（可能是新场景）",
+          "status": "✓"
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario_4",
+      "scenario_name": "电商-服装-淘宝-复杂",
+      "complexity": "complex",
+      "timestamp": "2026-01-09T14:36:17.049650",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_scenario_scenario_4.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 6,
+            "video_type": "ecommerce",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        },
+        {
+          "step": "generate_script",
+          "status": "success",
+          "script_memory_id": "fc8708b9-9c5d-491f-8b88-51202c2a06d4"
+        },
+        {
+          "step": "multi_round_optimization",
+          "status": "success",
+          "feedback_rounds": 4
+        }
+      ],
+      "memory_ids": [
+        "fc8708b9-9c5d-491f-8b88-51202c2a06d4",
+        "284de01e-8513-4e22-9fd1-252af01a284b",
+        "0cd62056-e6f5-412b-9170-cda31022ef4c",
+        "e8444b94-647a-4459-83f9-d9daa7a9669a",
+        "7e13ba91-ca12-4534-885e-765e4869b881"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "fc8708b9-9c5d-491f-8b88-51202c2a06d4",
+          "has_reasoning": false,
+          "reasoning_preview": null,
+          "has_decision_trace": false,
+          "decision_trace_keys": []
+        }
+      ],
+      "errors": [
+        "REFLECT失败: 'NoneType' object has no attribute 'value'"
+      ],
+      "verifications": [
+        {
+          "check": "reasoning字段覆盖率",
+          "result": "0.0% (0/5)",
+          "status": "⚠"
+        },
+        {
+          "check": "decision_trace字段覆盖率",
+          "result": "0.0% (0/5)",
+          "status": "⚠"
+        },
+        {
+          "check": "DecisionEvent节点创建",
+          "result": "0个事件节点",
+          "status": "⚠"
+        },
+        {
+          "check": "先例搜索功能",
+          "result": "未找到先例（可能是新场景）",
+          "status": "✓"
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario_5",
+      "scenario_name": "知识-科技-抖音-复杂",
+      "complexity": "complex",
+      "timestamp": "2026-01-09T14:47:41.989367",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_scenario_scenario_5.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 6,
+            "video_type": "knowledge",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        },
+        {
+          "step": "generate_script",
+          "status": "success",
+          "script_memory_id": "experience_1767941170.910906"
+        },
+        {
+          "step": "multi_round_optimization",
+          "status": "success",
+          "feedback_rounds": 4
+        }
+      ],
+      "memory_ids": [
+        "experience_1767941170.910906",
+        "fa76e9f0-4d70-4e8b-99e3-59cb06d89791",
+        "3cb23e44-7242-4113-93f7-5b6f82cb2f40",
+        "44701df4-e05a-4bb8-b693-eb3e81e231a9",
+        "bb8722ea-ae89-4b51-9289-11103404c59f"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "experience_1767941170.910906",
+          "has_reasoning": true,
+          "reasoning_preview": "基于4轮用户反馈，总结出的优化模式",
+          "has_decision_trace": false,
+          "decision_trace_keys": []
+        }
+      ],
+      "errors": [
+        "REFLECT失败: 'NoneType' object has no attribute 'value'"
+      ],
+      "verifications": [
+        {
+          "check": "reasoning字段覆盖率",
+          "result": "0.0% (0/5)",
+          "status": "⚠"
+        },
+        {
+          "check": "decision_trace字段覆盖率",
+          "result": "0.0% (0/5)",
+          "status": "⚠"
+        },
+        {
+          "check": "DecisionEvent节点创建",
+          "result": "0个事件节点",
+          "status": "⚠"
+        },
+        {
+          "check": "先例搜索功能",
+          "result": "未找到先例（可能是新场景）",
+          "status": "✓"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_scenarios": 5,
+    "successful_scenarios": 0,
+    "total_memories": 22,
+    "total_decision_events": 0,
+    "reasoning_coverage": 0.0,
+    "precedents_found": 0,
+    "common_patterns": [],
+    "improvements": [
+      "增强REFLECT提示词，提升reasoning提取率",
+      "检查decision_trace捕获逻辑",
+      "优化先例搜索阈值和算法"
+    ]
+  },
+  "end_time": "2026-01-09T15:01:48.626731"
+}

@@ -2,14 +2,20 @@
 检索性能优化器
 
 优化向量检索和图检索的性能，包括批量检索、索引优化等。
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
+- 线程安全（并发控制）
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .retrieval_cache import RetrievalCache, RetrievalPrefetcher
-from ..types import Memory, RetrievalResult
+from ..memory_types import RetrievalResult
+from ..adapters.base import AdapterError
 
 logger = logging.getLogger(__name__)
 
@@ -75,14 +81,22 @@ class RetrievalOptimizer:
         优化后的检索方法
         
         Args:
-            query: 查询文本
-            top_k: Top-K 参数
-            use_cache: 是否使用缓存
-            enable_prefetch: 是否启用预取
+            query: 查询文本（不能为空）
+            top_k: Top-K 参数（必须 > 0，默认 10）
+            use_cache: 是否使用缓存（默认 True）
+            enable_prefetch: 是否启用预取（默认 True）
             
         Returns:
             检索结果列表
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
+        if not query or not query.strip():
+            raise AdapterError("query must be a non-empty string", adapter_name="RetrievalOptimizer")
+        if top_k <= 0:
+            raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="RetrievalOptimizer")
+        
         ***REMOVED*** 1. 检查缓存
         if use_cache and self.cache:
             cached_results = self.cache.get(query, top_k=top_k)
@@ -123,15 +137,25 @@ class RetrievalOptimizer:
         批量检索
         
         Args:
-            queries: 查询列表
-            top_k: Top-K 参数
-            use_cache: 是否使用缓存
-            parallel: 是否并行执行
-            max_workers: 最大并发数
+            queries: 查询列表（不能为空）
+            top_k: Top-K 参数（必须 > 0，默认 10）
+            use_cache: 是否使用缓存（默认 True）
+            parallel: 是否并行执行（默认 True）
+            max_workers: 最大并发数（必须 > 0，默认 5）
             
         Returns:
             检索结果字典，key 为查询文本，value 为检索结果列表
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
+        if not queries or not isinstance(queries, list):
+            raise AdapterError("queries must be a non-empty list", adapter_name="RetrievalOptimizer")
+        if top_k <= 0:
+            raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="RetrievalOptimizer")
+        if max_workers <= 0:
+            raise AdapterError(f"max_workers must be positive, got {max_workers}", adapter_name="RetrievalOptimizer")
+        
         results = {}
         
         if parallel and len(queries) > 1:

@@ -10,14 +10,22 @@
 - 状态跟踪：跟踪每个步骤的执行状态和结果
 - 循环检测：自动检测循环依赖
 - 验证机制：验证工作流定义的合法性
+
+工业级特性：
+- 数据验证（步骤定义验证）
+- 依赖关系验证（循环检测）
 """
 
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List, Callable, Set
 from enum import Enum
 from datetime import datetime
 
-from ..types import Experience, Memory, Task, Context
+from ..memory_types import Experience, Memory, Task, Context
+from ..adapters.base import AdapterError, AdapterConfigurationError
+
+logger = logging.getLogger(__name__)
 
 
 class StepStatus(Enum):
@@ -53,6 +61,25 @@ class Step:
     retry_count: int = 0  ***REMOVED*** 重试次数
     timeout: Optional[float] = None  ***REMOVED*** 超时时间（秒）
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        """数据验证"""
+        if not self.id or not isinstance(self.id, str) or not self.id.strip():
+            raise AdapterConfigurationError("Step id cannot be empty", adapter_name="Workflow")
+        if not self.name or not isinstance(self.name, str):
+            raise AdapterConfigurationError("Step name cannot be empty", adapter_name="Workflow")
+        if not callable(self.func):
+            raise AdapterConfigurationError("Step func must be callable", adapter_name="Workflow")
+        if self.retry_count < 0:
+            raise AdapterConfigurationError(
+                f"retry_count must be >= 0, got {self.retry_count}",
+                adapter_name="Workflow"
+            )
+        if self.timeout is not None and self.timeout <= 0:
+            raise AdapterConfigurationError(
+                f"timeout must be positive, got {self.timeout}",
+                adapter_name="Workflow"
+            )
 
 
 @dataclass
@@ -83,6 +110,15 @@ class Workflow:
     description: str
     steps: List[Step]
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        """数据验证"""
+        if not self.id or not isinstance(self.id, str) or not self.id.strip():
+            raise AdapterConfigurationError("Workflow id cannot be empty", adapter_name="Workflow")
+        if not self.name or not isinstance(self.name, str):
+            raise AdapterConfigurationError("Workflow name cannot be empty", adapter_name="Workflow")
+        if not isinstance(self.steps, list):
+            raise AdapterConfigurationError("Workflow steps must be a list", adapter_name="Workflow")
     
     def get_step(self, step_id: str) -> Optional[Step]:
         """获取步骤"""

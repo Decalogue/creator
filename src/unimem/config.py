@@ -51,13 +51,14 @@ class UniMemConfig:
             "storage": {
                 "foa_backend": "redis",
                 "da_backend": "redis",
-                "ltm_backend": "postgresql",
+                "ltm_backend": "neo4j",
             },
             ***REMOVED*** 图数据库配置
             "graph": {
                 "backend": "neo4j",
                 "workspace": "./lightrag_workspace",
-                "llm_model": "gpt-4o-mini",
+                "llm_provider": "ark_deepseek",
+                "llm_model": "deepseek-v3-2",
                 "embedding_model": "text-embedding-3-small",
             },
             ***REMOVED*** 向量数据库配置
@@ -66,8 +67,9 @@ class UniMemConfig:
             },
             ***REMOVED*** 功能适配器配置（按照功能模块组织）
             "operation": {
-                "llm_provider": "openai",
-                "llm_model": "gpt-4o-mini",
+                "llm_provider": "ark_deepseek",
+                "llm_model": "deepseek-v3-2",
+                "llm_func": "ark_deepseek_v3_2",  ***REMOVED*** 使用 chat.py 中的函数
             },
             "layered_storage": {
                 ***REMOVED*** CogMem 相关配置
@@ -79,8 +81,9 @@ class UniMemConfig:
                 ***REMOVED*** A-Mem 相关配置
                 "model_name": "all-MiniLM-L6-v2",
                 "local_model_path": "/root/data/AI/pretrain/all-MiniLM-L6-v2",  ***REMOVED*** 本地模型路径
-                "llm_backend": "openai",
-                "llm_model": "gpt-4o-mini",
+                "llm_provider": "ark_deepseek",
+                "llm_model": "deepseek-v3-2",
+                "llm_func": "ark_deepseek_v3_2",  ***REMOVED*** 使用 chat.py 中的函数
                 "qdrant_host": "localhost",
                 "qdrant_port": 6333,
                 "collection_name": "unimem_memories",
@@ -111,23 +114,41 @@ class UniMemConfig:
     
     def _load_from_env(self):
         """从环境变量加载配置"""
-        ***REMOVED*** LLM 配置
-        if os.getenv("OPENAI_API_KEY"):
+        ***REMOVED*** LLM 配置 - 使用 ARK API（deepseek）
+        if os.getenv("ARK_API_KEY"):
+            self.config["operation"]["api_key"] = os.getenv("ARK_API_KEY")
+            self.config["network"]["api_key"] = os.getenv("ARK_API_KEY")
+            self.config["graph"]["api_key"] = os.getenv("ARK_API_KEY")
+        elif os.getenv("OPENAI_API_KEY"):
+            ***REMOVED*** 向后兼容，但建议使用 ARK_API_KEY
             self.config["operation"]["api_key"] = os.getenv("OPENAI_API_KEY")
             self.config["network"]["api_key"] = os.getenv("OPENAI_API_KEY")
             self.config["graph"]["api_key"] = os.getenv("OPENAI_API_KEY")
         
-        ***REMOVED*** Neo4j 配置（自定义端口）
+        ***REMOVED*** Neo4j 配置
         if os.getenv("NEO4J_URI"):
             self.config["graph"]["neo4j_uri"] = os.getenv("NEO4J_URI")
         else:
-            ***REMOVED*** 默认使用自定义端口
+            ***REMOVED*** 默认配置
             self.config["graph"]["neo4j_uri"] = "bolt://localhost:7680"
         
         if os.getenv("NEO4J_USER"):
             self.config["graph"]["neo4j_user"] = os.getenv("NEO4J_USER")
+        else:
+            ***REMOVED*** 默认用户
+            self.config["graph"]["neo4j_user"] = "neo4j"
+        
         if os.getenv("NEO4J_PASSWORD"):
             self.config["graph"]["neo4j_password"] = os.getenv("NEO4J_PASSWORD")
+        else:
+            ***REMOVED*** 默认密码
+            self.config["graph"]["neo4j_password"] = "seeme_db"
+        
+        ***REMOVED*** Neo4j 数据库名称
+        if os.getenv("NEO4J_DATABASE"):
+            self.config["graph"]["neo4j_database"] = os.getenv("NEO4J_DATABASE")
+        else:
+            self.config["graph"]["neo4j_database"] = "neo4j"
         
         ***REMOVED*** 存储后端
         if os.getenv("UNIMEM_STORAGE_BACKEND"):

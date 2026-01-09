@@ -20,6 +20,11 @@
 3. 剧本格式生成：生成标准剧本格式（场景、人物、对话、动作）
 4. 节奏控制：控制每集的时长和节奏
 5. 自动优化：根据执行结果优化 prompt 和上下文结构
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
+- 错误处理和降级
 """
 
 import json
@@ -29,7 +34,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 
 from .atom_link_adapter import AtomLinkAdapter
-from ..types import Entity, Memory
+from .base import AdapterError
+from ..memory_types import Entity, Memory
 from ..chat import ark_deepseek_v3_2
 
 logger = logging.getLogger(__name__)
@@ -186,9 +192,14 @@ class ScriptAdapter(AtomLinkAdapter):
             logger.warning("ScriptAdapter not available, cannot perform structure_script_hierarchy")
             return {}
         
-        if not episodes:
-            logger.warning("Empty episodes list provided for structure_script_hierarchy")
-            return {}
+        if not episodes or not isinstance(episodes, list):
+            raise AdapterError("episodes must be a non-empty list", adapter_name="ScriptAdapter")
+        
+        if level not in ["episode_outline", "shot_script", "full_script"]:
+            raise AdapterError(
+                f"Invalid level '{level}', must be one of: episode_outline, shot_script, full_script",
+                adapter_name="ScriptAdapter"
+            )
         
         try:
             ***REMOVED*** 根据层级选择不同的 prompt
@@ -377,9 +388,14 @@ class ScriptAdapter(AtomLinkAdapter):
             logger.warning("ScriptAdapter not available, cannot perform generate_script_from_outline")
             return ""
         
-        if not outline or not outline.strip():
-            logger.warning("Empty outline provided for script generation")
-            return ""
+        if not outline or not isinstance(outline, str) or not outline.strip():
+            raise AdapterError("outline cannot be empty", adapter_name="ScriptAdapter")
+        
+        if target_level not in ["episode_outline", "shot_script", "full_script"]:
+            raise AdapterError(
+                f"Invalid target_level '{target_level}', must be one of: episode_outline, shot_script, full_script",
+                adapter_name="ScriptAdapter"
+            )
         
         try:
             ***REMOVED*** 构建上下文信息
@@ -757,13 +773,14 @@ class ScriptAdapter(AtomLinkAdapter):
             logger.warning("ScriptAdapter not available, cannot perform retrieve_script_with_reward")
             return []
         
-        if not query or not query.strip():
-            logger.warning("Empty query provided for retrieve_script_with_reward")
-            return []
+        if not query or not isinstance(query, str) or not query.strip():
+            raise AdapterError("query cannot be empty", adapter_name="ScriptAdapter")
         
-        if not original_scripts:
-            logger.warning("Empty original_scripts list provided for retrieve_script_with_reward")
-            return []
+        if not original_scripts or not isinstance(original_scripts, list):
+            raise AdapterError("original_scripts must be a non-empty list", adapter_name="ScriptAdapter")
+        
+        if top_k <= 0:
+            raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="ScriptAdapter")
         
         try:
             ***REMOVED*** 1. 使用结构化查询检索相似记忆（检索更多以增加匹配机会）

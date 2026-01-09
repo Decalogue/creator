@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from unimem.character import CharacterGrowthArcManager
 from unimem.storage.hierarchical.hierarchical_storage import HierarchicalStorage, ContentLevel
-from unimem.types import Memory
+from unimem.memory_types import Memory
 from workflow.shell_swapping_orchestrator import ShellSwappingOrchestrator
 from workflow.seasoning_manager import SeasoningManager, SeasoningType
 from unimem.adapters.script_adapter import ScriptAdapter

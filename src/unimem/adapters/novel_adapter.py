@@ -13,6 +13,11 @@
 1. 多层级结构化：章节->摘要->大纲->简介
 2. 带奖励的检索：根据结构化结果检索原内容并计算奖励
 3. 层级生成：简介->大纲->摘要->章节
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
+- 错误处理和降级
 """
 
 import json
@@ -20,7 +25,8 @@ import logging
 from typing import Dict, Any, Optional, List
 
 from .atom_link_adapter import AtomLinkAdapter
-from ..types import Memory
+from .base import AdapterError
+from ..memory_types import Memory
 from ..chat import ark_deepseek_v3_2
 
 logger = logging.getLogger(__name__)
@@ -78,8 +84,16 @@ class NovelAdapter(AtomLinkAdapter):
             return {}
         
         if not chapters:
-            logger.warning("Empty chapters list provided for structure_content_hierarchy")
-            return {}
+            raise AdapterError("chapters cannot be empty", adapter_name="NovelAdapter")
+        
+        if not isinstance(chapters, list):
+            raise AdapterError("chapters must be a list", adapter_name="NovelAdapter")
+        
+        if level not in ["summary", "outline", "synopsis"]:
+            raise AdapterError(
+                f"Invalid level '{level}', must be one of: summary, outline, synopsis",
+                adapter_name="NovelAdapter"
+            )
         
         try:
             ***REMOVED*** 根据层级选择不同的 prompt
@@ -250,13 +264,14 @@ class NovelAdapter(AtomLinkAdapter):
             logger.warning("NovelAdapter not available, cannot perform retrieve_with_reward")
             return []
         
-        if not query or not query.strip():
-            logger.warning("Empty query provided for retrieve_with_reward")
-            return []
+        if not query or not isinstance(query, str) or not query.strip():
+            raise AdapterError("query cannot be empty", adapter_name="NovelAdapter")
         
-        if not original_contents:
-            logger.warning("Empty original_contents list provided for retrieve_with_reward")
-            return []
+        if not original_contents or not isinstance(original_contents, list):
+            raise AdapterError("original_contents must be a non-empty list", adapter_name="NovelAdapter")
+        
+        if top_k <= 0:
+            raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="NovelAdapter")
         
         try:
             ***REMOVED*** 1. 使用结构化查询检索相似记忆（检索更多以增加匹配机会）
@@ -346,9 +361,14 @@ class NovelAdapter(AtomLinkAdapter):
             logger.warning("NovelAdapter not available, cannot perform generate_from_hierarchy")
             return ""
         
-        if not synopsis or not synopsis.strip():
-            logger.warning("Empty synopsis provided for generate_from_hierarchy")
-            return ""
+        if not synopsis or not isinstance(synopsis, str) or not synopsis.strip():
+            raise AdapterError("synopsis cannot be empty", adapter_name="NovelAdapter")
+        
+        if target_level not in ["outline", "summary", "chapter"]:
+            raise AdapterError(
+                f"Invalid target_level '{target_level}', must be one of: outline, summary, chapter",
+                adapter_name="NovelAdapter"
+            )
         
         try:
             ***REMOVED*** 构建上下文信息

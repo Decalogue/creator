@@ -13,7 +13,7 @@ from typing import Dict
 from datetime import datetime
 from .orchestrator import Orchestrator
 from .workflow import Workflow, StepType
-from ..types import Experience, Context, Task
+from ..memory_types import Experience, Context, Task
 
 
 def create_retain_recall_reflect_workflow(orchestrator: Orchestrator) -> Workflow:

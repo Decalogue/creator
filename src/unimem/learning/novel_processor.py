@@ -338,7 +338,7 @@ class NovelProcessor:
             logger.warning("UniMem 实例未提供，无法存储模式")
             return
         
-        from ..types import Experience, Context, MemoryType, MemoryLayer
+        from ..memory_types import Experience, Context, MemoryType, MemoryLayer
         
         metadata = processed_novel.get("metadata", {})
         title = metadata.get("title", "未知")

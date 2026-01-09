@@ -2,12 +2,17 @@
 上下文压缩
 
 使用 LLM 对长文本进行智能压缩，保留关键信息。
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
 """
 
 import logging
 from typing import Optional
 
 from ..chat import ark_deepseek_v3_2
+from ..adapters.base import AdapterError
 
 logger = logging.getLogger(__name__)
 
@@ -38,15 +43,20 @@ class ContextCompressor:
         压缩内容到目标长度
         
         Args:
-            content: 要压缩的内容
-            target_length: 目标长度（字符数）
-            preserve_key_info: 是否保留关键信息
+            content: 要压缩的内容（不能为空）
+            target_length: 目标长度（字符数，必须 > 0）
+            preserve_key_info: 是否保留关键信息（默认 True）
             
         Returns:
             压缩后的内容
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
-        if not content:
-            return ""
+        if not content or not isinstance(content, str):
+            raise AdapterError("content must be a non-empty string", adapter_name="ContextCompressor")
+        if target_length <= 0:
+            raise AdapterError(f"target_length must be positive, got {target_length}", adapter_name="ContextCompressor")
         
         if len(content) <= target_length:
             return content

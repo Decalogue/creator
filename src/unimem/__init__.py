@@ -13,7 +13,7 @@ UniMem: 统一记忆系统
 """
 
 from .core import UniMem
-from .types import Experience, Memory, Task, Context
+from .memory_types import Experience, Memory, Task, Context
 from .orchestration import Orchestrator, Workflow, Step, WorkflowStep
 
 __version__ = "1.0.0"

@@ -3,15 +3,22 @@
 
 基于"换壳理论"：人物成长线是故事的"骨头"，是所有题材的引擎。
 管理人物成长线的创建、检索、更新和跨题材适配。
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
+- 线程安全（缓存保护）
 """
 
 import logging
+import threading
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
-from ..types import Memory, MemoryType
+from ..memory_types import Memory, MemoryType
+from ..adapters.base import AdapterError
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +51,19 @@ class GrowthArc:
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        """数据验证"""
+        if not self.character_id or not isinstance(self.character_id, str) or not self.character_id.strip():
+            raise AdapterError("character_id cannot be empty", adapter_name="GrowthArc")
+        if not self.character_name or not isinstance(self.character_name, str) or not self.character_name.strip():
+            raise AdapterError("character_name cannot be empty", adapter_name="GrowthArc")
+        if not self.early_state or not isinstance(self.early_state, str) or not self.early_state.strip():
+            raise AdapterError("early_state cannot be empty", adapter_name="GrowthArc")
+        if not self.mid_conflict or not isinstance(self.mid_conflict, str) or not self.mid_conflict.strip():
+            raise AdapterError("mid_conflict cannot be empty", adapter_name="GrowthArc")
+        if not self.late_outcome or not isinstance(self.late_outcome, str) or not self.late_outcome.strip():
+            raise AdapterError("late_outcome cannot be empty", adapter_name="GrowthArc")
     
     def to_three_sentences(self) -> str:
         """转换为三句话描述"""
@@ -91,7 +111,10 @@ class CharacterGrowthArcManager:
         """
         self.storage_manager = storage_manager
         
-        ***REMOVED*** 成长线缓存（character_id -> GrowthArc）
+        ***REMOVED*** 线程安全锁
+        self._lock = threading.RLock()
+        
+        ***REMOVED*** 成长线缓存（character_id -> GrowthArc）- 线程安全
         self._growth_arcs: Dict[str, GrowthArc] = {}
         
         logger.info("CharacterGrowthArcManager initialized")
@@ -123,12 +146,20 @@ class CharacterGrowthArcManager:
             
         Returns:
             成长线对象
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
-        if not character_id or not character_name:
-            raise ValueError("character_id and character_name cannot be empty")
-        
-        if not early_state or not mid_conflict or not late_outcome:
-            raise ValueError("early_state, mid_conflict, and late_outcome cannot be empty")
+        if not character_id or not isinstance(character_id, str) or not character_id.strip():
+            raise AdapterError("character_id cannot be empty", adapter_name="CharacterGrowthArcManager")
+        if not character_name or not isinstance(character_name, str) or not character_name.strip():
+            raise AdapterError("character_name cannot be empty", adapter_name="CharacterGrowthArcManager")
+        if not early_state or not isinstance(early_state, str) or not early_state.strip():
+            raise AdapterError("early_state cannot be empty", adapter_name="CharacterGrowthArcManager")
+        if not mid_conflict or not isinstance(mid_conflict, str) or not mid_conflict.strip():
+            raise AdapterError("mid_conflict cannot be empty", adapter_name="CharacterGrowthArcManager")
+        if not late_outcome or not isinstance(late_outcome, str) or not late_outcome.strip():
+            raise AdapterError("late_outcome cannot be empty", adapter_name="CharacterGrowthArcManager")
         
         growth_arc = GrowthArc(
             character_id=character_id,
@@ -139,8 +170,9 @@ class CharacterGrowthArcManager:
             metadata=metadata or {}
         )
         
-        ***REMOVED*** 缓存
-        self._growth_arcs[character_id] = growth_arc
+        ***REMOVED*** 缓存（线程安全）
+        with self._lock:
+            self._growth_arcs[character_id] = growth_arc
         
         ***REMOVED*** 存储到存储管理器（作为核心记忆）
         if self.storage_manager:
@@ -167,17 +199,24 @@ class CharacterGrowthArcManager:
     
     def get_growth_arc(self, character_id: str) -> Optional[GrowthArc]:
         """
-        获取人物成长线
+        获取人物成长线（线程安全）
         
         Args:
-            character_id: 人物ID
+            character_id: 人物ID（不能为空）
             
         Returns:
             成长线对象，如果不存在则返回 None
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
-        ***REMOVED*** 先从缓存获取
-        if character_id in self._growth_arcs:
-            return self._growth_arcs[character_id]
+        if not character_id or not isinstance(character_id, str) or not character_id.strip():
+            raise AdapterError("character_id cannot be empty", adapter_name="CharacterGrowthArcManager")
+        
+        ***REMOVED*** 先从缓存获取（线程安全）
+        with self._lock:
+            if character_id in self._growth_arcs:
+                return self._growth_arcs[character_id]
         
         ***REMOVED*** 从存储管理器检索
         if self.storage_manager:
@@ -281,21 +320,23 @@ class CharacterGrowthArcManager:
         return adapted_arc
     
     def list_growth_arcs(self) -> List[GrowthArc]:
-        """列出所有成长线"""
-        return list(self._growth_arcs.values())
+        """列出所有成长线（线程安全）"""
+        with self._lock:
+            return list(self._growth_arcs.values())
     
     def get_statistics(self) -> Dict[str, Any]:
-        """获取统计信息"""
-        return {
-            "total_growth_arcs": len(self._growth_arcs),
-            "characters": [
-                {
-                    "character_id": arc.character_id,
-                    "character_name": arc.character_name,
-                    "created_at": arc.created_at.isoformat(),
-                    "updated_at": arc.updated_at.isoformat()
-                }
-                for arc in self._growth_arcs.values()
-            ]
-        }
+        """获取统计信息（线程安全）"""
+        with self._lock:
+            return {
+                "total_growth_arcs": len(self._growth_arcs),
+                "characters": [
+                    {
+                        "character_id": arc.character_id,
+                        "character_name": arc.character_name,
+                        "created_at": arc.created_at.isoformat(),
+                        "updated_at": arc.updated_at.isoformat()
+                    }
+                    for arc in self._growth_arcs.values()
+                ]
+            }
 

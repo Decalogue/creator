@@ -11,7 +11,7 @@
 
 from typing import Dict, Any, List
 from .base import BaseAdapter
-from ..types import Memory
+from ..memory_types import Memory
 import logging
 
 logger = logging.getLogger(__name__)

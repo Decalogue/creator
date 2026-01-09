@@ -10,7 +10,7 @@ from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from ...types import Memory
+from ...memory_types import Memory
 
 logger = logging.getLogger(__name__)
 

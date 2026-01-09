@@ -7,29 +7,77 @@ UniMem Redis 数据库操作
 - 会话管理
 - 记忆的 CRUD 操作
 - 过期时间管理（TTL）
+
+工业级特性：
+- 连接池管理（ConnectionPool）
+- 重试机制（指数退避）
+- 健康检查（ping）
+- 线程安全（连接池线程安全）
+- 统一异常处理（使用适配器异常体系）
+- 性能监控（操作耗时统计）
 """
 
+import os
 import json
 import time
 import logging
+import threading
 from typing import List, Optional, Dict, Any, Set
 from datetime import datetime
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, is_dataclass, dataclass, field
 from enum import Enum
 
 try:
     import redis
+    from redis.connection import ConnectionPool
+    from redis.exceptions import RedisError, ConnectionError, TimeoutError
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
     redis = None
+    ConnectionPool = None
+    RedisError = Exception
+    ConnectionError = Exception
+    TimeoutError = Exception
 
-from .types import Memory, MemoryType, MemoryLayer, Context
+from .memory_types import Memory, MemoryType, MemoryLayer, Context
+from .adapters.base import (
+    AdapterError,
+    AdapterNotAvailableError,
+    AdapterConfigurationError,
+)
 
 logger = logging.getLogger(__name__)
 
 ***REMOVED*** Redis 连接配置
 _redis_client: Optional[Any] = None
+_connection_pool: Optional[Any] = None
+_client_lock = threading.Lock()
+_max_retries = 3
+_retry_delay = 0.1
+
+
+@dataclass
+class RedisStats:
+    """Redis 操作统计"""
+    operations: int = 0
+    successes: int = 0
+    failures: int = 0
+    total_time: float = 0.0
+    
+    @property
+    def success_rate(self) -> float:
+        """成功率"""
+        if self.operations == 0:
+            return 0.0
+        return self.successes / self.operations
+    
+    @property
+    def average_time(self) -> float:
+        """平均耗时"""
+        if self.operations == 0:
+            return 0.0
+        return self.total_time / self.operations
 
 
 def get_redis_client(
@@ -37,16 +85,19 @@ def get_redis_client(
     port: Optional[int] = None,
     db: Optional[int] = None,
     password: Optional[str] = None,
-    decode_responses: bool = True
+    decode_responses: bool = True,
+    max_connections: int = 50,
+    connection_pool: Optional[Any] = None
 ) -> Optional[Any]:
     """
-    获取 Redis 客户端（单例模式）
+    获取 Redis 客户端（使用连接池，线程安全）
     
     支持环境变量配置：
     - REDIS_HOST: Redis 主机地址（默认: localhost）
     - REDIS_PORT: Redis 端口（默认: 6379）
     - REDIS_DB: 数据库编号（默认: 0）
     - REDIS_PASSWORD: 密码（可选）
+    - REDIS_MAX_CONNECTIONS: 最大连接数（默认: 50）
     
     Args:
         host: Redis 主机地址（可选，从环境变量读取）
@@ -54,50 +105,120 @@ def get_redis_client(
         db: 数据库编号（可选，从环境变量读取）
         password: 密码（可选，从环境变量读取）
         decode_responses: 是否自动解码响应为字符串
+        max_connections: 连接池最大连接数
+        connection_pool: 已有的连接池（可选）
         
     Returns:
         Redis 客户端实例，如果连接失败则返回 None
+        
+    Raises:
+        AdapterConfigurationError: 如果配置无效
+        AdapterNotAvailableError: 如果 Redis 库不可用
     """
-    global _redis_client
+    global _redis_client, _connection_pool
     
     if not REDIS_AVAILABLE:
-        logger.warning("Redis library not available")
-        return None
+        raise AdapterNotAvailableError("Redis library not available", adapter_name="RedisClient")
     
-    ***REMOVED*** 从环境变量读取配置（如果未提供参数）
-    import os
-    if host is None:
-        host = os.getenv("REDIS_HOST", "localhost")
-    if port is None:
-        port = int(os.getenv("REDIS_PORT", "6379"))
-    if db is None:
-        db = int(os.getenv("REDIS_DB", "0"))
-    if password is None:
-        password = os.getenv("REDIS_PASSWORD")
+    ***REMOVED*** 读取配置（简化版）
+    host = host or os.getenv("REDIS_HOST", "localhost")
+    port = port or int(os.getenv("REDIS_PORT", "6379"))
+    db = db or int(os.getenv("REDIS_DB", "0"))
+    password = password or os.getenv("REDIS_PASSWORD")
+    max_connections = max_connections or int(os.getenv("REDIS_MAX_CONNECTIONS", "50"))
     
-    if _redis_client is None:
-        try:
-            _redis_client = redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
-                decode_responses=decode_responses,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-                retry_on_timeout=True,
-            )
-            ***REMOVED*** 测试连接
-            _redis_client.ping()
-            logger.info(f"Redis connected: {host}:{port}/{db}")
-        except redis.exceptions.ConnectionError as e:
-            logger.warning(f"Redis connection failed: {host}:{port}/{db} - {e}. Redis operations will be unavailable.")
-            _redis_client = None
-        except Exception as e:
-            logger.error(f"Failed to connect to Redis: {e}", exc_info=True)
-            _redis_client = None
+    ***REMOVED*** 验证配置
+    if not (1 <= port <= 65535):
+        raise AdapterConfigurationError(f"Invalid Redis port: {port}", adapter_name="RedisClient")
+    if db < 0:
+        raise AdapterConfigurationError(f"Invalid Redis db: {db}", adapter_name="RedisClient")
+    
+    with _client_lock:
+        if _redis_client is None or connection_pool:
+            try:
+                ***REMOVED*** 使用连接池（线程安全，支持连接复用）
+                pool = connection_pool or redis.ConnectionPool(
+                    host=host,
+                    port=port,
+                    db=db,
+                    password=password,
+                    decode_responses=decode_responses,
+                    max_connections=max_connections,
+                    socket_connect_timeout=5,
+                    socket_timeout=5,
+                    retry_on_timeout=True,
+                    health_check_interval=30,
+                )
+                if not connection_pool:
+                    _connection_pool = pool
+                
+                _redis_client = redis.Redis(connection_pool=pool)
+                
+                ***REMOVED*** 测试连接（带重试）
+                for attempt in range(3):
+                    try:
+                        _redis_client.ping()
+                        break
+                    except Exception as e:
+                        if attempt == 2:
+                            raise ConnectionError(f"Failed to connect after 3 attempts: {e}")
+                        time.sleep(0.1 * (2 ** attempt))
+                
+                logger.info(f"Redis connected: {host}:{port}/{db}")
+            except (ConnectionError, TimeoutError) as e:
+                _redis_client = _connection_pool = None
+                raise AdapterNotAvailableError(f"Failed to connect to Redis: {e}", adapter_name="RedisClient", cause=e) from e
+            except Exception as e:
+                _redis_client = _connection_pool = None
+                raise AdapterError(f"Failed to initialize Redis: {e}", adapter_name="RedisClient", cause=e) from e
     
     return _redis_client
+
+
+
+
+def _execute_with_retry(operation: callable, operation_name: str = "operation", max_retries: int = None) -> Any:
+    """带重试的操作执行"""
+    if max_retries is None:
+        max_retries = _max_retries
+    
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            return operation()
+        except (ConnectionError, TimeoutError) as e:
+            last_error = e
+            if attempt < max_retries:
+                wait_time = _retry_delay * (2 ** attempt)  ***REMOVED*** 指数退避
+                logger.warning(f"{operation_name} failed (attempt {attempt + 1}/{max_retries + 1}): {e}, retrying in {wait_time:.3f}s...")
+                time.sleep(wait_time)
+            else:
+                logger.error(f"{operation_name} failed after {max_retries + 1} attempts: {e}")
+        except RedisError as e:
+            ***REMOVED*** Redis 其他错误不重试
+            logger.error(f"{operation_name} failed with Redis error: {e}")
+            raise AdapterError(
+                f"{operation_name} failed: {e}",
+                adapter_name="RedisClient",
+                cause=e
+            ) from e
+        except Exception as e:
+            ***REMOVED*** 未知错误不重试
+            logger.error(f"{operation_name} failed with unexpected error: {e}", exc_info=True)
+            raise AdapterError(
+                f"{operation_name} failed: {e}",
+                adapter_name="RedisClient",
+                cause=e
+            ) from e
+    
+    if last_error:
+        raise AdapterNotAvailableError(
+            f"{operation_name} failed after retries: {last_error}",
+            adapter_name="RedisClient",
+            cause=last_error
+        ) from last_error
+    
+    return None
 
 
 def get_current_time() -> str:
@@ -157,7 +278,7 @@ def _dict_to_memory(data: Dict[str, Any]) -> Memory:
 
 def add_to_foa(memory: Memory, client: Optional[Any] = None, ttl: int = 3600) -> bool:
     """
-    添加记忆到 FoA（工作记忆层）
+    添加记忆到 FoA（工作记忆层，带重试）
     
     FoA 特点：
     - 临时存储，高频访问
@@ -171,41 +292,67 @@ def add_to_foa(memory: Memory, client: Optional[Any] = None, ttl: int = 3600) ->
         
     Returns:
         是否成功添加
+        
+    Raises:
+        AdapterError: 如果操作失败
     """
     if not REDIS_AVAILABLE:
-        logger.warning("Redis not available")
-        return False
+        raise AdapterNotAvailableError(
+            "Redis not available",
+            adapter_name="RedisClient"
+        )
     
+    if not memory:
+        raise AdapterError(
+            "memory cannot be None",
+            adapter_name="RedisClient"
+        )
+    
+    start_time = time.time()
     client = client or get_redis_client()
     if not client:
-        return False
+        raise AdapterNotAvailableError(
+            "Redis client not available",
+            adapter_name="RedisClient"
+        )
     
     try:
-        ***REMOVED*** 1. 存储记忆对象（JSON）
-        memory_key = f"foa:memory:{memory.id}"
-        memory_data = _memory_to_dict(memory)
-        client.setex(memory_key, ttl, json.dumps(memory_data, ensure_ascii=False))
+        def add_operation():
+            ***REMOVED*** 1. 存储记忆对象（JSON）
+            memory_key = f"foa:memory:{memory.id}"
+            memory_data = _memory_to_dict(memory)
+            client.setex(memory_key, ttl, json.dumps(memory_data, ensure_ascii=False))
+            
+            ***REMOVED*** 2. 添加到 FoA 记忆列表（最近访问的记忆）
+            list_key = "foa:memories"
+            client.lpush(list_key, memory.id)
+            client.expire(list_key, ttl)
+            
+            ***REMOVED*** 3. 限制列表长度（保留最近1000个）
+            client.ltrim(list_key, 0, 999)
+            
+            ***REMOVED*** 4. 如果有关联的会话，添加到会话列表
+            if memory.metadata.get("session_id"):
+                session_key = f"foa:session:{memory.metadata['session_id']}"
+                client.lpush(session_key, memory.id)
+                client.expire(session_key, ttl)
+                client.ltrim(session_key, 0, 499)  ***REMOVED*** 每个会话保留最近500个
         
-        ***REMOVED*** 2. 添加到 FoA 记忆列表（最近访问的记忆）
-        list_key = "foa:memories"
-        client.lpush(list_key, memory.id)
-        client.expire(list_key, ttl)
+        _execute_with_retry(add_operation, operation_name="add_to_foa")
         
-        ***REMOVED*** 3. 限制列表长度（保留最近1000个）
-        client.ltrim(list_key, 0, 999)
-        
-        ***REMOVED*** 4. 如果有关联的会话，添加到会话列表
-        if memory.metadata.get("session_id"):
-            session_key = f"foa:session:{memory.metadata['session_id']}"
-            client.lpush(session_key, memory.id)
-            client.expire(session_key, ttl)
-            client.ltrim(session_key, 0, 499)  ***REMOVED*** 每个会话保留最近500个
-        
-        logger.debug(f"Added memory {memory.id} to FoA")
+        duration = time.time() - start_time
+        logger.debug(f"Added memory {memory.id} to FoA (time: {duration:.3f}s)")
         return True
+    except (AdapterError, AdapterNotAvailableError):
+        raise
     except Exception as e:
+        duration = time.time() - start_time
         logger.error(f"Failed to add memory {memory.id} to FoA: {e}", exc_info=True)
-        return False
+        raise AdapterError(
+            f"Failed to add memory {memory.id} to FoA: {e}",
+            adapter_name="RedisClient",
+            cause=e
+        ) from e
 
 
 def get_from_foa(memory_id: str, client: Optional[Any] = None) -> Optional[Memory]:
@@ -698,7 +845,7 @@ def add_to_da_batch(memories: List[Memory], client: Optional[Any] = None, ttl: i
 
 def ping(client: Optional[Any] = None) -> bool:
     """
-    检查 Redis 连接是否正常
+    检查 Redis 连接是否正常（带重试）
     
     Args:
         client: Redis 客户端（可选）
@@ -709,19 +856,23 @@ def ping(client: Optional[Any] = None) -> bool:
     if not REDIS_AVAILABLE:
         return False
     
-    client = client or get_redis_client()
-    if not client:
-        return False
-    
     try:
-        return client.ping()
+        client = client or get_redis_client()
+        if not client:
+            return False
+        
+        return _execute_with_retry(
+            lambda: client.ping(),
+            operation_name="ping",
+            max_retries=2
+        )
     except Exception:
         return False
 
 
 def get_stats(client: Optional[Any] = None) -> Dict[str, Any]:
     """
-    获取 Redis 存储统计信息
+    获取 Redis 存储统计信息（带重试）
     
     Args:
         client: Redis 客户端（可选）
@@ -732,19 +883,93 @@ def get_stats(client: Optional[Any] = None) -> Dict[str, Any]:
     if not REDIS_AVAILABLE:
         return {}
     
-    client = client or get_redis_client()
-    if not client:
-        return {}
-    
     try:
-        stats = {
-            "foa_memory_count": client.llen("foa:memories"),
-            "da_memory_count": client.scard("da:memories"),
-            "foa_keys": len(client.keys("foa:memory:*")),
-            "da_keys": len(client.keys("da:memory:*")),
-        }
-        return stats
+        client = client or get_redis_client()
+        if not client:
+            return {}
+        
+        def get_stats_internal():
+            stats = {
+                "foa_memory_count": client.llen("foa:memories"),
+                "da_memory_count": client.scard("da:memories"),
+                "foa_keys": len(client.keys("foa:memory:*")),
+                "da_keys": len(client.keys("da:memory:*")),
+            }
+            ***REMOVED*** 获取连接池信息
+            if _connection_pool:
+                stats["connection_pool"] = {
+                    "created_connections": _connection_pool.created_connections,
+                    "available_connections": _connection_pool.available_connections,
+                }
+            return stats
+        
+        return _execute_with_retry(
+            get_stats_internal,
+            operation_name="get_stats",
+            max_retries=2
+        ) or {}
     except Exception as e:
         logger.error(f"Failed to get stats: {e}", exc_info=True)
         return {}
+
+
+def health_check(client: Optional[Any] = None) -> Dict[str, Any]:
+    """
+    健康检查（带连接状态和统计信息）
+    
+    Args:
+        client: Redis 客户端（可选）
+        
+    Returns:
+        健康状态字典
+    """
+    if not REDIS_AVAILABLE:
+        return {
+            "available": False,
+            "error": "Redis library not available",
+            "timestamp": datetime.now().isoformat(),
+        }
+    
+    try:
+        client = client or get_redis_client()
+        if not client:
+            return {
+                "available": False,
+                "error": "Redis client not available",
+                "timestamp": datetime.now().isoformat(),
+            }
+        
+        ***REMOVED*** 检查连接
+        is_alive = ping(client)
+        
+        ***REMOVED*** 获取统计信息
+        stats = get_stats(client)
+        
+        ***REMOVED*** 获取连接池信息
+        pool_info = {}
+        if _connection_pool:
+            try:
+                pool_info = {
+                    "created_connections": _connection_pool.created_connections,
+                    "available_connections": _connection_pool.available_connections,
+                    "max_connections": _connection_pool.max_connections,
+                }
+            except Exception:
+                pass
+        
+        return {
+            "available": is_alive,
+            "status": "healthy" if is_alive else "unhealthy",
+            "stats": stats,
+            "connection_pool": pool_info,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}", exc_info=True)
+        return {
+            "available": False,
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
 

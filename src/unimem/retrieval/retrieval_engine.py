@@ -9,15 +9,22 @@
 - RRF 融合：使用 Reciprocal Rank Fusion 融合多个检索结果
 - 重排序：对融合后的结果进行重排序
 - 错误处理：单个检索失败不影响整体检索
-"""
 
-from typing import List, Optional, Dict, Any
-from ..types import RetrievalResult, Memory, Context
-from ..adapters import GraphAdapter, AtomLinkAdapter, RetrievalAdapter
+工业级特性：
+- 线程安全（适配器已保证）
+- 统一异常处理（使用适配器异常体系）
+- 性能监控（操作耗时统计）
+- 优雅降级（检索失败时的处理）
+"""
 
 import logging
 import concurrent.futures
 from functools import wraps
+from typing import List, Optional, Dict, Any
+
+from ..memory_types import RetrievalResult, Memory, Context
+from ..adapters import GraphAdapter, AtomLinkAdapter, RetrievalAdapter
+from ..adapters.base import AdapterError, AdapterNotAvailableError
 
 logger = logging.getLogger(__name__)
 
@@ -75,15 +82,25 @@ class RetrievalEngine:
             atom_link_adapter: 原子链接适配器（参考 A-Mem）
             retrieval_adapter: 检索引擎适配器（参考各架构）
             storage_manager: 存储管理器（用于 FoA/DA/LTM 检索）
-            max_workers: 并行执行的最大线程数
+            max_workers: 并行执行的最大线程数（默认 5）
+            
+        Raises:
+            AdapterError: 如果适配器无效
         """
+        if not graph_adapter:
+            raise AdapterError("graph_adapter cannot be None", adapter_name="RetrievalEngine")
+        if not atom_link_adapter:
+            raise AdapterError("atom_link_adapter cannot be None", adapter_name="RetrievalEngine")
+        if not retrieval_adapter:
+            raise AdapterError("retrieval_adapter cannot be None", adapter_name="RetrievalEngine")
+        
         self.graph_adapter = graph_adapter
         self.atom_link_adapter = atom_link_adapter
         self.retrieval_adapter = retrieval_adapter
         self.storage_manager = storage_manager
-        self.max_workers = max_workers
+        self.max_workers = max(max_workers, 1)  ***REMOVED*** 确保至少为 1
         
-        logger.info(f"RetrievalEngine initialized (max_workers={max_workers})")
+        logger.info(f"RetrievalEngine initialized (max_workers={self.max_workers})")
     
     @_safe_retrieval
     def entity_retrieval(self, query: str, top_k: int = 10) -> List[Memory]:
@@ -231,7 +248,7 @@ class RetrievalEngine:
             for future in concurrent.futures.as_completed(futures):
                 method_name = futures[future]
                 try:
-                    results = future.result()
+                    results = future.result() or []
                     all_results.append(results)
                     logger.debug(f"{method_name} retrieval: {len(results)} results")
                 except Exception as e:
@@ -240,42 +257,31 @@ class RetrievalEngine:
         
         ***REMOVED*** 2. 存储层检索（如果 storage_manager 可用，串行执行以避免线程安全问题）
         if self.storage_manager:
-            try:
-                foa_results = [r.memory for r in self.storage_manager.search_foa(query, top_k)]
-                all_results.append(foa_results)
-                logger.debug(f"FoA retrieval: {len(foa_results)} results")
-            except Exception as e:
-                logger.warning(f"FoA retrieval failed: {e}", exc_info=True)
-                all_results.append([])
-            
-            try:
-                da_results = [r.memory for r in self.storage_manager.search_da(query, context, top_k)]
-                all_results.append(da_results)
-                logger.debug(f"DA retrieval: {len(da_results)} results")
-            except Exception as e:
-                logger.warning(f"DA retrieval failed: {e}", exc_info=True)
-                all_results.append([])
-            
-            try:
-                ltm_results = [r.memory for r in self.storage_manager.search_ltm(query, top_k)]
-                all_results.append(ltm_results)
-                logger.debug(f"LTM retrieval: {len(ltm_results)} results")
-            except Exception as e:
-                logger.warning(f"LTM retrieval failed: {e}", exc_info=True)
-                all_results.append([])
+            for layer_name, search_func in [
+                ("FoA", lambda: self.storage_manager.search_foa(query, top_k)),
+                ("DA", lambda: self.storage_manager.search_da(query, context, top_k)),
+                ("LTM", lambda: self.storage_manager.search_ltm(query, top_k)),
+            ]:
+                try:
+                    results = [r.memory for r in search_func()] if search_func() else []
+                    all_results.append(results)
+                    logger.debug(f"{layer_name} retrieval: {len(results)} results")
+                except Exception as e:
+                    logger.warning(f"{layer_name} retrieval failed: {e}", exc_info=True)
+                    all_results.append([])
         
         ***REMOVED*** 3. RRF 融合
         try:
-            fused_memories = self.retrieval_adapter.rrf_fusion(all_results)
+            fused_memories = self.retrieval_adapter.rrf_fusion(all_results) or []
             logger.debug(f"RRF fusion: {len(fused_memories)} memories")
         except Exception as e:
             logger.error(f"RRF fusion failed: {e}", exc_info=True)
-            ***REMOVED*** 降级：直接合并所有结果
+            ***REMOVED*** 降级：直接合并所有结果（去重）
             fused_memories = []
             seen_ids = set()
             for results in all_results:
                 for memory in results:
-                    if memory.id not in seen_ids:
+                    if memory and memory.id not in seen_ids:
                         fused_memories.append(memory)
                         seen_ids.add(memory.id)
             logger.warning(f"Fallback to simple merge: {len(fused_memories)} memories")

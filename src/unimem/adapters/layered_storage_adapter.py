@@ -15,19 +15,59 @@
 - 完善的错误处理
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import threading
 import logging
+import os
 
 from .base import (
     BaseAdapter,
     AdapterConfigurationError,
     AdapterError
 )
-from ..types import Memory, Context, MemoryType
+from ..memory_types import Memory, Context, MemoryType
 
 logger = logging.getLogger(__name__)
+
+***REMOVED*** 导入后端模块（可选）
+try:
+    from ..redis import (
+        add_to_foa as redis_add_to_foa,
+        get_from_foa as redis_get_from_foa,
+        remove_from_foa as redis_remove_from_foa,
+        add_to_da as redis_add_to_da,
+        get_from_da as redis_get_from_da,
+        remove_from_da as redis_remove_from_da,
+        get_redis_client,
+        REDIS_AVAILABLE,
+    )
+except ImportError:
+    REDIS_AVAILABLE = False
+    redis_add_to_foa = None
+    redis_get_from_foa = None
+    redis_remove_from_foa = None
+    redis_add_to_da = None
+    redis_get_from_da = None
+    redis_remove_from_da = None
+    get_redis_client = None
+
+try:
+    from ..neo4j import (
+        create_memory as neo4j_create_memory,
+        get_memory as neo4j_get_memory,
+        update_memory as neo4j_update_memory,
+        delete_memory as neo4j_delete_memory,
+        get_graph,
+        NEO4J_AVAILABLE,
+    )
+except ImportError:
+    NEO4J_AVAILABLE = False
+    neo4j_create_memory = None
+    neo4j_get_memory = None
+    neo4j_update_memory = None
+    neo4j_delete_memory = None
+    get_graph = None
 
 
 class LayeredStorageAdapter(BaseAdapter):
@@ -50,14 +90,50 @@ class LayeredStorageAdapter(BaseAdapter):
         初始化分层存储适配器
         
         初始化三层存储结构和线程安全锁。
+        根据配置选择使用内存、Redis 或 Neo4j 后端。
         
         Raises:
             AdapterConfigurationError: 如果配置无效
         """
-        ***REMOVED*** 参考 CogMem 的初始化思路
-        ***REMOVED*** FoA: 工作记忆，极小 token 预算
-        ***REMOVED*** DA: 快速访问，会话级
-        ***REMOVED*** LTM: 长期存储，无限制
+        ***REMOVED*** 读取存储后端配置
+        self.foa_backend = self.config.get("foa_backend", "memory").lower()
+        self.da_backend = self.config.get("da_backend", "memory").lower()
+        self.ltm_backend = self.config.get("ltm_backend", "memory").lower()
+        
+        ***REMOVED*** 验证后端配置
+        valid_backends = {"memory", "redis", "neo4j"}
+        if self.foa_backend not in valid_backends:
+            raise AdapterConfigurationError(
+                f"Invalid FoA backend: {self.foa_backend}. Valid options: {valid_backends}",
+                adapter_name=self.__class__.__name__
+            )
+        if self.da_backend not in valid_backends:
+            raise AdapterConfigurationError(
+                f"Invalid DA backend: {self.da_backend}. Valid options: {valid_backends}",
+                adapter_name=self.__class__.__name__
+            )
+        if self.ltm_backend not in valid_backends:
+            raise AdapterConfigurationError(
+                f"Invalid LTM backend: {self.ltm_backend}. Valid options: {valid_backends}",
+                adapter_name=self.__class__.__name__
+            )
+        
+        ***REMOVED*** 如果使用 Redis，检查可用性
+        if self.foa_backend == "redis" or self.da_backend == "redis":
+            if not REDIS_AVAILABLE:
+                logger.warning(f"Redis backend configured but not available, falling back to memory")
+                if self.foa_backend == "redis":
+                    self.foa_backend = "memory"
+                if self.da_backend == "redis":
+                    self.da_backend = "memory"
+        
+        ***REMOVED*** 如果使用 Neo4j，检查可用性
+        if self.ltm_backend == "neo4j":
+            if not NEO4J_AVAILABLE:
+                logger.warning(f"Neo4j backend configured but not available, falling back to memory")
+                self.ltm_backend = "memory"
+        
+        ***REMOVED*** 初始化内存存储（作为后备或主要存储）
         self.foa_storage: List[Memory] = []
         self.da_storage: Dict[str, Memory] = {}
         self.ltm_storage: Dict[str, Memory] = {}
@@ -88,8 +164,8 @@ class LayeredStorageAdapter(BaseAdapter):
         
         logger.info(
             f"Layered storage adapter initialized "
-            f"(using CogMem principles, FoA max: {self.foa_max_tokens} tokens, "
-            f"{self.foa_max_memories} memories)"
+            f"(FoA: {self.foa_backend}, DA: {self.da_backend}, LTM: {self.ltm_backend}, "
+            f"FoA max: {self.foa_max_tokens} tokens, {self.foa_max_memories} memories)"
         )
     
     def _estimate_tokens(self, text: str) -> int:
@@ -134,6 +210,7 @@ class LayeredStorageAdapter(BaseAdapter):
         Note:
             - 如果超过 token 预算或记忆数量限制，会自动移除最旧的记忆
             - 线程安全
+            - 根据配置使用 Redis 或内存存储
         """
         if not memory:
             logger.warning("Cannot add None memory to FoA")
@@ -145,6 +222,15 @@ class LayeredStorageAdapter(BaseAdapter):
         
         try:
             with self._foa_lock:
+                if self.foa_backend == "redis":
+                    ***REMOVED*** 使用 Redis 后端
+                    if REDIS_AVAILABLE and redis_add_to_foa:
+                        return redis_add_to_foa(memory)
+                    else:
+                        logger.warning("Redis backend not available, falling back to memory")
+                        self.foa_backend = "memory"
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 ***REMOVED*** 估算新记忆的 token 数
                 memory_tokens = self._estimate_tokens(memory.content)
                 current_tokens = sum(self._estimate_tokens(m.content) for m in self.foa_storage)
@@ -180,7 +266,7 @@ class LayeredStorageAdapter(BaseAdapter):
             
         Note:
             - 线程安全
-            - 使用字典存储，支持快速查找
+            - 根据配置使用 Redis 或内存存储
         """
         if not memory:
             logger.warning("Cannot add None memory to DA")
@@ -192,6 +278,15 @@ class LayeredStorageAdapter(BaseAdapter):
         
         try:
             with self._da_lock:
+                if self.da_backend == "redis":
+                    ***REMOVED*** 使用 Redis 后端
+                    if REDIS_AVAILABLE and redis_add_to_da:
+                        return redis_add_to_da(memory)
+                    else:
+                        logger.warning("Redis backend not available, falling back to memory")
+                        self.da_backend = "memory"
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 self.da_storage[memory.id] = memory
                 logger.debug(f"Added memory {memory.id[:8]}... to DA")
                 return True
@@ -216,7 +311,7 @@ class LayeredStorageAdapter(BaseAdapter):
             
         Note:
             - 线程安全
-            - 使用字典存储，支持快速查找
+            - 根据配置使用 Neo4j 或内存存储
         """
         if not memory:
             logger.warning("Cannot add None memory to LTM")
@@ -228,6 +323,30 @@ class LayeredStorageAdapter(BaseAdapter):
         
         try:
             with self._ltm_lock:
+                if self.ltm_backend == "neo4j":
+                    ***REMOVED*** 使用 Neo4j 后端
+                    if NEO4J_AVAILABLE and neo4j_create_memory:
+                        try:
+                            ***REMOVED*** 确保 Neo4j 连接已初始化
+                            graph = get_graph() if get_graph else None
+                            if not graph:
+                                logger.warning("Neo4j graph not initialized, falling back to memory")
+                                self.ltm_backend = "memory"
+                            else:
+                                ***REMOVED*** 检查是否已存在，如果存在则更新
+                                existing = neo4j_get_memory(memory.id) if neo4j_get_memory else None
+                                if existing:
+                                    return neo4j_update_memory(memory) if neo4j_update_memory else False
+                                else:
+                                    return neo4j_create_memory(memory)
+                        except Exception as e:
+                            logger.warning(f"Neo4j operation failed: {e}, falling back to memory")
+                            self.ltm_backend = "memory"
+                    else:
+                        logger.warning("Neo4j backend not available, falling back to memory")
+                        self.ltm_backend = "memory"
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 self.ltm_storage[memory.id] = memory
                 logger.debug(f"Added memory {memory.id[:8]}... to LTM (type: {memory_type.value})")
                 return True
@@ -250,14 +369,29 @@ class LayeredStorageAdapter(BaseAdapter):
             - 线程安全
             - 返回副本，避免外部修改内部存储
             - 当前实现为简单实现（返回最近的记忆），实际应该实现语义搜索
+            - 根据配置使用 Redis 或内存存储
         """
         if not self.is_available():
             return []
         
         try:
             with self._foa_lock:
-                ***REMOVED*** 简单实现：返回最近的记忆（最新的在前）
-                ***REMOVED*** 实际应该实现语义搜索
+                if self.foa_backend == "redis":
+                    ***REMOVED*** 使用 Redis 后端
+                    if REDIS_AVAILABLE and get_redis_client:
+                        client = get_redis_client()
+                        if client:
+                            ***REMOVED*** 从 Redis 列表获取最近的记忆 ID
+                            list_key = "foa:memories"
+                            memory_ids = client.lrange(list_key, 0, top_k - 1)
+                            memories = []
+                            for memory_id in memory_ids:
+                                memory = redis_get_from_foa(memory_id) if redis_get_from_foa else None
+                                if memory:
+                                    memories.append(memory)
+                            return memories
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 return self.foa_storage[-top_k:].copy()  ***REMOVED*** 返回副本，避免外部修改
         except Exception as e:
             logger.error(f"Error searching FoA: {e}", exc_info=True)
@@ -278,14 +412,29 @@ class LayeredStorageAdapter(BaseAdapter):
         Note:
             - 线程安全
             - 当前实现为简单实现（返回所有记忆），实际应该实现语义搜索
+            - 根据配置使用 Redis 或内存存储
         """
         if not self.is_available():
             return []
         
         try:
             with self._da_lock:
-                ***REMOVED*** 简单实现：返回所有 DA 记忆
-                ***REMOVED*** 实际应该实现语义搜索
+                if self.da_backend == "redis":
+                    ***REMOVED*** 使用 Redis 后端
+                    if REDIS_AVAILABLE and get_redis_client:
+                        client = get_redis_client()
+                        if client:
+                            ***REMOVED*** 从 Redis 集合获取记忆 ID
+                            set_key = "da:memories"
+                            memory_ids = list(client.smembers(set_key))[:top_k]
+                            memories = []
+                            for memory_id in memory_ids:
+                                memory = redis_get_from_da(memory_id) if redis_get_from_da else None
+                                if memory:
+                                    memories.append(memory)
+                            return memories
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 return list(self.da_storage.values())[:top_k]
         except Exception as e:
             logger.error(f"Error searching DA: {e}", exc_info=True)
@@ -305,14 +454,36 @@ class LayeredStorageAdapter(BaseAdapter):
         Note:
             - 线程安全
             - 当前实现为简单实现（返回所有记忆），实际应该实现语义搜索
+            - 根据配置使用 Neo4j 或内存存储
         """
         if not self.is_available():
             return []
         
         try:
             with self._ltm_lock:
-                ***REMOVED*** 简单实现：返回所有 LTM 记忆
-                ***REMOVED*** 实际应该实现语义搜索
+                if self.ltm_backend == "neo4j":
+                    ***REMOVED*** 使用 Neo4j 后端（通过 Cypher 查询）
+                    if NEO4J_AVAILABLE and get_graph:
+                        graph = get_graph()
+                        if graph:
+                            ***REMOVED*** 查询最近的记忆
+                            cypher_query = f"""
+                            MATCH (m:Memory)
+                            RETURN m
+                            ORDER BY m.timestamp DESC
+                            LIMIT {top_k}
+                            """
+                            results = graph.run(cypher_query).data()
+                            memories = []
+                            for result in results:
+                                node = result.get("m")
+                                if node:
+                                    memory = neo4j_get_memory(node["id"]) if neo4j_get_memory else None
+                                    if memory:
+                                        memories.append(memory)
+                            return memories
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 return list(self.ltm_storage.values())[:top_k]
         except Exception as e:
             logger.error(f"Error searching LTM: {e}", exc_info=True)
@@ -406,12 +577,19 @@ class LayeredStorageAdapter(BaseAdapter):
             
         Note:
             - 线程安全
+            - 根据配置使用 Redis 或内存存储
         """
         if not memory_id:
             return False
         
         try:
             with self._foa_lock:
+                if self.foa_backend == "redis":
+                    ***REMOVED*** 使用 Redis 后端
+                    if REDIS_AVAILABLE and redis_remove_from_foa:
+                        return redis_remove_from_foa(memory_id)
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 original_count = len(self.foa_storage)
                 self.foa_storage = [m for m in self.foa_storage if m.id != memory_id]
                 removed = len(self.foa_storage) < original_count
@@ -434,12 +612,19 @@ class LayeredStorageAdapter(BaseAdapter):
             
         Note:
             - 线程安全
+            - 根据配置使用 Redis 或内存存储
         """
         if not memory_id:
             return False
         
         try:
             with self._da_lock:
+                if self.da_backend == "redis":
+                    ***REMOVED*** 使用 Redis 后端
+                    if REDIS_AVAILABLE and redis_remove_from_da:
+                        return redis_remove_from_da(memory_id)
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 if memory_id in self.da_storage:
                     del self.da_storage[memory_id]
                     logger.debug(f"Removed memory {memory_id[:8]}... from DA")
@@ -461,12 +646,19 @@ class LayeredStorageAdapter(BaseAdapter):
             
         Note:
             - 线程安全
+            - 根据配置使用 Neo4j 或内存存储
         """
         if not memory_id:
             return False
         
         try:
             with self._ltm_lock:
+                if self.ltm_backend == "neo4j":
+                    ***REMOVED*** 使用 Neo4j 后端
+                    if NEO4J_AVAILABLE and neo4j_delete_memory:
+                        return neo4j_delete_memory(memory_id)
+                
+                ***REMOVED*** 使用内存存储（默认或降级）
                 if memory_id in self.ltm_storage:
                     del self.ltm_storage[memory_id]
                     logger.debug(f"Removed memory {memory_id[:8]}... from LTM")

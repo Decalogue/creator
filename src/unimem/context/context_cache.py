@@ -2,14 +2,19 @@
 上下文缓存
 
 实现上下文的缓存机制，提升检索性能。
+
+工业级特性：
+- 线程安全（使用锁保护缓存）
+- LRU/TTL 淘汰策略
+- 参数验证
 """
 
 import logging
 import hashlib
-import time
+import threading
 from typing import Dict, Optional, Any
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -49,18 +54,21 @@ class ContextCache:
         初始化上下文缓存
         
         Args:
-            max_size: 最大缓存条目数
-            ttl_seconds: TTL（秒），如果为 None 则不过期
-            enable_lru: 是否启用 LRU 淘汰
+            max_size: 最大缓存条目数（默认 1000，必须 > 0）
+            ttl_seconds: TTL（秒），如果为 None 则不过期（默认 None）
+            enable_lru: 是否启用 LRU 淘汰（默认 True）
         """
-        self.max_size = max_size
+        self.max_size = max(max_size, 1)  ***REMOVED*** 确保至少为 1
         self.ttl_seconds = ttl_seconds
         self.enable_lru = enable_lru
         
-        ***REMOVED*** 缓存存储
+        ***REMOVED*** 线程安全锁
+        self._lock = threading.RLock()
+        
+        ***REMOVED*** 缓存存储（线程安全）
         self._cache: Dict[str, CacheEntry] = {}
         
-        logger.info(f"ContextCache initialized: max_size={max_size}, ttl={ttl_seconds}")
+        logger.info(f"ContextCache initialized: max_size={self.max_size}, ttl={ttl_seconds}")
     
     def _generate_key(self, query: str, levels: Optional[list] = None) -> str:
         """生成缓存键"""
@@ -73,32 +81,37 @@ class ContextCache:
     
     def get(self, query: str, levels: Optional[list] = None) -> Optional[str]:
         """
-        获取缓存的上下文
+        获取缓存的上下文（线程安全）
         
         Args:
-            query: 查询文本
-            levels: 层级列表
+            query: 查询文本（不能为空）
+            levels: 层级列表（可选）
             
         Returns:
             缓存的上下文，如果不存在或已过期则返回 None
         """
-        key = self._generate_key(query, levels)
-        entry = self._cache.get(key)
-        
-        if not entry:
+        if not query or not query.strip():
             return None
         
-        ***REMOVED*** 检查是否过期
-        if self.ttl_seconds:
-            age = (datetime.now() - entry.created_at).total_seconds()
-            if age > self.ttl_seconds:
-                del self._cache[key]
-                logger.debug(f"Cache entry expired: {key}")
-                return None
+        key = self._generate_key(query, levels)
         
-        ***REMOVED*** 记录访问
-        entry.access()
-        return entry.value
+        with self._lock:
+            entry = self._cache.get(key)
+            
+            if not entry:
+                return None
+            
+            ***REMOVED*** 检查是否过期
+            if self.ttl_seconds:
+                age = (datetime.now() - entry.created_at).total_seconds()
+                if age > self.ttl_seconds:
+                    del self._cache[key]
+                    logger.debug(f"Cache entry expired: {key}")
+                    return None
+            
+            ***REMOVED*** 记录访问
+            entry.access()
+            return entry.value
     
     def put(
         self,
@@ -116,24 +129,25 @@ class ContextCache:
             levels: 层级列表
             metadata: 元数据
         """
-        if not context:
+        if not query or not query.strip() or not context or not context.strip():
             return
         
         key = self._generate_key(query, levels)
         
-        ***REMOVED*** 检查是否需要淘汰
-        if len(self._cache) >= self.max_size and key not in self._cache:
-            self._evict()
-        
-        ***REMOVED*** 创建缓存条目
-        entry = CacheEntry(
-            key=key,
-            value=context,
-            metadata=metadata or {}
-        )
-        
-        self._cache[key] = entry
-        logger.debug(f"Cached context: {key}")
+        with self._lock:
+            ***REMOVED*** 检查是否需要淘汰
+            if len(self._cache) >= self.max_size and key not in self._cache:
+                self._evict()
+            
+            ***REMOVED*** 创建缓存条目
+            entry = CacheEntry(
+                key=key,
+                value=context,
+                metadata=metadata or {}
+            )
+            
+            self._cache[key] = entry
+            logger.debug(f"Cached context: {key}")
     
     def _evict(self) -> None:
         """淘汰缓存条目"""
@@ -158,18 +172,19 @@ class ContextCache:
             logger.debug(f"Evicted FIFO entry: {fifo_key}")
     
     def clear(self) -> None:
-        """清空缓存"""
-        self._cache.clear()
-        logger.info("Context cache cleared")
+        """清空缓存（线程安全）"""
+        with self._lock:
+            self._cache.clear()
+            logger.info("Context cache cleared")
     
     def get_statistics(self) -> Dict[str, Any]:
-        """获取缓存统计信息"""
-        total_size = sum(len(entry.value) for entry in self._cache.values())
-        
-        return {
-            "size": len(self._cache),
-            "max_size": self.max_size,
-            "total_bytes": total_size,
-            "hit_rate": 0.0  ***REMOVED*** 需要记录命中率
-        }
+        """获取缓存统计信息（线程安全）"""
+        with self._lock:
+            total_size = sum(len(entry.value) for entry in self._cache.values())
+            
+            return {
+                "size": len(self._cache),
+                "max_size": self.max_size,
+                "total_bytes": total_size,
+            }
 

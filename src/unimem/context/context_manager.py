@@ -2,6 +2,11 @@
 上下文管理器
 
 统一管理上下文的压缩、融合、检索和缓存。
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
+- 缓存管理优化
 """
 
 import logging
@@ -11,6 +16,7 @@ from .context_compressor import ContextCompressor
 from .context_fusion import ContextFusion
 from .context_cache import ContextCache
 from ..storage.hierarchical import HierarchicalStorage, ContentLevel
+from ..adapters.base import AdapterError
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +60,19 @@ class ContextManager:
         
         Args:
             content: 要压缩的内容
-            target_length: 目标长度
+            target_length: 目标长度（必须 > 0）
             
         Returns:
             压缩后的内容
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
+        if not content or not isinstance(content, str):
+            raise AdapterError("content must be a non-empty string", adapter_name="ContextManager")
+        if target_length <= 0:
+            raise AdapterError(f"target_length must be positive, got {target_length}", adapter_name="ContextManager")
+        
         return self.compressor.compress(content, target_length)
     
     def fuse(self, contexts: List[str], max_length: Optional[int] = None) -> str:
@@ -67,11 +81,19 @@ class ContextManager:
         
         Args:
             contexts: 上下文列表
-            max_length: 最大长度限制
+            max_length: 最大长度限制（可选，如果提供必须 > 0）
             
         Returns:
             融合后的上下文
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
+        if not contexts or not isinstance(contexts, list):
+            raise AdapterError("contexts must be a non-empty list", adapter_name="ContextManager")
+        if max_length is not None and max_length <= 0:
+            raise AdapterError(f"max_length must be positive, got {max_length}", adapter_name="ContextManager")
+        
         return self.fusion.fuse(contexts, max_length=max_length)
     
     def retrieve_context(
@@ -85,14 +107,23 @@ class ContextManager:
         检索上下文
         
         Args:
-            query: 查询文本
-            levels: 要检索的层级列表
-            top_k: 每个层级返回的前K个结果
-            use_cache: 是否使用缓存
+            query: 查询文本（不能为空）
+            levels: 要检索的层级列表（不能为空）
+            top_k: 每个层级返回的前K个结果（必须 > 0，默认 10）
+            use_cache: 是否使用缓存（默认 True）
             
         Returns:
             检索到的上下文（融合后）
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
+        if not query or not query.strip():
+            raise AdapterError("query must be a non-empty string", adapter_name="ContextManager")
+        if not levels or not isinstance(levels, list):
+            raise AdapterError("levels must be a non-empty list", adapter_name="ContextManager")
+        if top_k <= 0:
+            raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="ContextManager")
         ***REMOVED*** 1. 检查缓存
         if use_cache:
             cached = self.cache.get(query, [l.value for l in levels])

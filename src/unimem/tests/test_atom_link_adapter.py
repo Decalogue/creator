@@ -25,7 +25,7 @@ if os.environ.get("CONDA_DEFAULT_ENV") != "myswift":
     print("="*60 + "\n")
 
 from unimem.adapters.atom_link_adapter import AtomLinkAdapter
-from unimem.types import Memory, Entity, MemoryType, MemoryLayer
+from unimem.memory_types import Memory, Entity, MemoryType, MemoryLayer
 
 
 class TestAtomLinkAdapter(unittest.TestCase):

@@ -29,7 +29,7 @@ from .base import (
     AdapterConfigurationError,
     AdapterError
 )
-from ..types import Experience, Memory, Task, Context, MemoryType
+from ..memory_types import Experience, Memory, Task, Context, MemoryType
 from ..chat import ark_deepseek_v3_2
 
 logger = logging.getLogger(__name__)
@@ -373,8 +373,9 @@ class OperationAdapter(BaseAdapter):
             
             _, answer_text = ark_deepseek_v3_2(messages, max_new_tokens=max_tokens)
             
-            ***REMOVED*** 提取新观点（如果有）
+            ***REMOVED*** 提取新观点和经验（如果有）
             new_opinions = self._extract_new_opinions(answer_text, memories)
+            new_experiences = self._extract_experiences(answer_text, memories, task)
             
             ***REMOVED*** 更新记忆的置信度（如果有观点记忆）
             updated_memories = self._update_confidence(memories, answer_text)
@@ -389,6 +390,7 @@ class OperationAdapter(BaseAdapter):
                 "based_on": based_on,
                 "updated_memories": updated_memories,
                 "new_opinions": new_opinions,
+                "new_experiences": new_experiences,
             }
             
         except Exception as e:
@@ -475,10 +477,18 @@ Agent 性格配置：
 问题: {query}
 
 请基于以上事实回答问题，并：
-1. 提供清晰、准确的答案
-2. 如果形成了新的观点或信念，请在答案末尾用【新观点】标记
-3. 考虑 Agent 的性格配置，调整回答风格
-4. 注意记忆的抽象层级：具体事件（episodic）用于时间序列推理，抽象概念（semantic）用于概念推理
+1. 提供清晰、准确的答案，**重点说明"为什么"**（决策理由、推理过程、依据的先例或规则）
+2. 如果形成了新的观点或信念，请在答案末尾用【新观点】标记，并说明**为什么**持有这个观点
+3. 如果识别出了可复用的经验模式或通用策略，请在答案末尾用【新经验】标记，并明确说明：
+   - **是什么**：经验模式的具体内容
+   - **为什么**：为什么这个经验有效？基于什么先例或规则？
+   - **如何应用**：在什么情况下可以使用这个经验？
+4. 对于每个重要决策或判断，明确回答：
+   - **为什么选择这个方案**而不是其他方案？
+   - **基于什么先例、规则或经验**做出的决策？
+   - **遇到了什么异常或特殊情况**，是如何处理的？
+5. 考虑 Agent 的性格配置，调整回答风格
+6. 注意记忆的抽象层级：具体事件（episodic）用于时间序列推理，抽象概念（semantic）用于概念推理
 
 答案："""
         
@@ -531,6 +541,321 @@ Agent 性格配置：
                 logger.warning(f"Failed to extract new opinions: {e}")
         
         return new_opinions
+    
+    def _extract_experiences(
+        self, 
+        answer_text: str, 
+        original_memories: List[Memory],
+        task: Task
+    ) -> List[Memory]:
+        """
+        从答案中提取可复用的经验模式
+        
+        经验应该是：
+        - 可复用的：适用于类似场景
+        - 通用的：不是具体事件，而是抽象模式
+        - 经过验证的：基于多个观察或案例
+        """
+        new_experiences = []
+        
+        ***REMOVED*** 检查是否包含【新经验】标记
+        if "【新经验】" in answer_text or "[新经验]" in answer_text:
+            try:
+                ***REMOVED*** 提取经验部分
+                if "【新经验】" in answer_text:
+                    experience_text = answer_text.split("【新经验】")[-1].strip()
+                else:
+                    experience_text = answer_text.split("[新经验]")[-1].strip()
+                
+                if experience_text:
+                    ***REMOVED*** 使用LLM进一步提炼经验，确保是可复用的模式
+                    refined_experience = self._refine_experience(experience_text, original_memories, task)
+                    
+                    if refined_experience:
+                        ***REMOVED*** 提取"为什么"（决策理由）
+                        reasoning = self._extract_reasoning_from_text(experience_text, answer_text)
+                        
+                        ***REMOVED*** 创建经验记忆（包含reasoning字段）
+                        ***REMOVED*** 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
+                        import uuid
+                        experience_memory = Memory(
+                            id=str(uuid.uuid4()),
+                            content=refined_experience,
+                            timestamp=datetime.now(),
+                            memory_type=MemoryType.EXPERIENCE,
+                            context="通过反思提取的可复用经验模式",
+                            reasoning=reasoning,  ***REMOVED*** 新增：存储"为什么"
+                            metadata={
+                                "confidence": 0.8,
+                                "source": "reflect",
+                                "task_context": task.description[:200] if task.description else "",
+                            },
+                        )
+                        new_experiences.append(experience_memory)
+                        logger.info(f"Extracted new experience: {refined_experience[:100]}...")
+            except Exception as e:
+                logger.warning(f"Failed to extract experiences: {e}")
+        
+        ***REMOVED*** 即使没有明确标记，也尝试从答案中识别经验模式
+        ***REMOVED*** 特别是当任务明确要求总结经验时，或者有多轮对话记忆时
+        should_extract_implicit = (
+            not new_experiences and (
+                any(keyword in task.description.lower() for keyword in ["经验", "模式", "策略", "最佳实践", "总结", "优化", "改进"]) or
+                len(original_memories) >= 3  ***REMOVED*** 多轮对话，更可能有可提取的经验
+            )
+        )
+        
+        if should_extract_implicit:
+            try:
+                ***REMOVED*** 尝试从答案中提取通用经验
+                extracted = self._extract_implicit_experience(answer_text, original_memories)
+                if extracted:
+                    ***REMOVED*** 提取"为什么"
+                    reasoning = self._extract_reasoning_from_text(answer_text, original_memories)
+                    
+                    ***REMOVED*** 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
+                    import uuid
+                    experience_memory = Memory(
+                        id=str(uuid.uuid4()),
+                        content=extracted,
+                        timestamp=datetime.now(),
+                        memory_type=MemoryType.EXPERIENCE,
+                        context="通过反思识别出的经验模式",
+                        reasoning=reasoning,  ***REMOVED*** 新增：存储"为什么"
+                        metadata={
+                            "confidence": 0.7,
+                            "source": "reflect_implicit",
+                            "task_context": task.description[:200] if task.description else "",
+                        },
+                    )
+                    new_experiences.append(experience_memory)
+                    logger.info(f"Extracted implicit experience: {extracted[:100]}...")
+            except Exception as e:
+                logger.debug(f"Failed to extract implicit experience: {e}")
+        
+        ***REMOVED*** 如果还是没有提取到经验，但有多轮反馈记忆，主动尝试总结模式
+        if not new_experiences and len(original_memories) >= 2:
+            try:
+                ***REMOVED*** 检查是否有反馈记忆
+                feedback_memories = [m for m in original_memories if m.metadata.get("source") == "user_feedback"]
+                if len(feedback_memories) >= 2:
+                    ***REMOVED*** 主动总结反馈模式
+                    pattern_summary = self._summarize_feedback_patterns(feedback_memories, task)
+                    if pattern_summary:
+                        reasoning = f"基于{len(feedback_memories)}轮用户反馈，总结出的优化模式"
+                        ***REMOVED*** 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
+                        import uuid
+                        experience_memory = Memory(
+                            id=str(uuid.uuid4()),
+                            content=pattern_summary,
+                            timestamp=datetime.now(),
+                            memory_type=MemoryType.EXPERIENCE,
+                            context="基于多轮反馈总结的优化经验",
+                            reasoning=reasoning,
+                            metadata={
+                                "confidence": 0.75,
+                                "source": "reflect_pattern_summary",
+                                "task_context": task.description[:200] if task.description else "",
+                                "feedback_count": len(feedback_memories),
+                            },
+                        )
+                        new_experiences.append(experience_memory)
+                        logger.info(f"Summarized feedback pattern: {pattern_summary[:100]}...")
+            except Exception as e:
+                logger.debug(f"Failed to summarize feedback patterns: {e}")
+        
+        return new_experiences
+    
+    def _refine_experience(
+        self, 
+        raw_experience: str, 
+        original_memories: List[Memory],
+        task: Task
+    ) -> Optional[str]:
+        """使用LLM提炼经验，确保是可复用的通用模式"""
+        try:
+            prompt = f"""请将以下文本提炼为一个可复用的经验模式。
+
+要求：
+1. 必须是通用的、可复用的模式，而不是具体事件
+2. 应该是经过验证的最佳实践
+3. 应该适用于类似场景
+4. 语言简洁、清晰
+
+原始文本：
+{raw_experience}
+
+基于的记忆数量：{len(original_memories)}条
+
+提炼后的经验模式："""
+            
+            messages = [
+                {"role": "system", "content": "你是一个经验提炼专家，擅长从具体案例中提取可复用的通用模式。"},
+                {"role": "user", "content": prompt}
+            ]
+            
+            _, refined_text = ark_deepseek_v3_2(messages, max_new_tokens=512)
+            
+            ***REMOVED*** 清理输出
+            refined_text = refined_text.strip()
+            if len(refined_text) > 500:
+                refined_text = refined_text[:500] + "..."
+            
+            return refined_text if refined_text else None
+        except Exception as e:
+            logger.warning(f"Failed to refine experience: {e}")
+            ***REMOVED*** 如果提炼失败，返回原始文本（经过清理）
+            return raw_experience[:500] if raw_experience else None
+    
+    def _extract_implicit_experience(
+        self,
+        answer_text: str,
+        original_memories: List[Memory]
+    ) -> Optional[str]:
+        """从答案中隐式提取经验模式（没有明确标记时）"""
+        try:
+            ***REMOVED*** 查找可能包含经验模式的句子（通常包含"应该"、"建议"、"通常"、"最好"等词）
+            import re
+            experience_keywords = ["应该", "建议", "通常", "最好", "最佳实践", "经验表明", "实践证明"]
+            
+            sentences = re.split(r'[。！？\n]', answer_text)
+            experience_sentences = []
+            
+            for sentence in sentences:
+                if any(keyword in sentence for keyword in experience_keywords):
+                    if len(sentence.strip()) > 20:  ***REMOVED*** 过滤太短的句子
+                        experience_sentences.append(sentence.strip())
+            
+            if experience_sentences:
+                ***REMOVED*** 返回第一个或合并多个经验句子
+                return " ".join(experience_sentences[:3])  ***REMOVED*** 最多取3个句子
+            
+            return None
+        except Exception as e:
+            logger.debug(f"Failed to extract implicit experience: {e}")
+            return None
+    
+    def _summarize_feedback_patterns(
+        self,
+        feedback_memories: List[Memory],
+        task: Task
+    ) -> Optional[str]:
+        """从多轮反馈记忆中总结优化模式"""
+        try:
+            if len(feedback_memories) < 2:
+                return None
+            
+            ***REMOVED*** 提取反馈内容
+            feedback_contents = [m.content for m in feedback_memories[:5]]  ***REMOVED*** 最多取5个反馈
+            
+            prompt = f"""请分析以下多轮用户反馈，总结出一个通用的优化模式或最佳实践。
+
+要求：
+1. 必须是通用的、可复用的模式
+2. 应该适用于类似场景
+3. 语言简洁、清晰
+4. 格式：问题模式 -> 优化策略
+
+用户反馈（{len(feedback_contents)}轮）：
+{chr(10).join([f"{i+1}. {fb[:200]}" for i, fb in enumerate(feedback_contents)])}
+
+任务上下文：{task.description[:200] if task.description else ""}
+
+总结出的通用优化模式："""
+            
+            messages = [
+                {"role": "system", "content": "你是一个经验总结专家，擅长从多轮反馈中识别通用的优化模式。"},
+                {"role": "user", "content": prompt}
+            ]
+            
+            _, pattern_text = ark_deepseek_v3_2(messages, max_new_tokens=512)
+            
+            ***REMOVED*** 清理输出
+            pattern_text = pattern_text.strip()
+            if len(pattern_text) > 500:
+                pattern_text = pattern_text[:500] + "..."
+            
+            return pattern_text if pattern_text else None
+        except Exception as e:
+            logger.debug(f"Failed to summarize feedback patterns: {e}")
+            return None
+    
+    def _extract_reasoning_from_text(
+        self,
+        text: str,
+        context: Union[str, List[Memory], Task] = ""
+    ) -> Optional[str]:
+        """
+        从文本中提取"为什么"（决策理由）
+        
+        寻找包含"为什么"、"因为"、"由于"、"基于"、"依据"等关键词的句子
+        """
+        try:
+            import re
+            
+            ***REMOVED*** 决策理由的关键词
+            reasoning_keywords = [
+                "为什么", "因为", "由于", "基于", "依据", "根据", 
+                "原因是", "理由是", "考虑到", "鉴于", "通过分析"
+            ]
+            
+            ***REMOVED*** 如果context是List[Memory]，提取相关记忆的内容作为上下文
+            context_text = ""
+            if isinstance(context, list):
+                context_text = " ".join([m.content[:200] for m in context[:3]])
+            elif isinstance(context, str):
+                context_text = context
+            
+            ***REMOVED*** 在文本中查找包含理由的句子
+            sentences = re.split(r'[。！？\n]', text)
+            reasoning_sentences = []
+            
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if any(keyword in sentence for keyword in reasoning_keywords):
+                    if len(sentence) > 15:  ***REMOVED*** 过滤太短的句子
+                        reasoning_sentences.append(sentence)
+            
+            ***REMOVED*** 如果在原文本中找不到，尝试从上下文提取
+            if not reasoning_sentences and context_text:
+                context_sentences = re.split(r'[。！？\n]', context_text)
+                for sentence in context_sentences:
+                    sentence = sentence.strip()
+                    if any(keyword in sentence for keyword in reasoning_keywords):
+                        if len(sentence) > 15:
+                            reasoning_sentences.append(sentence)
+            
+            ***REMOVED*** 使用LLM进一步提炼"为什么"
+            if reasoning_sentences:
+                reasoning_text = " ".join(reasoning_sentences[:3])
+                ***REMOVED*** 如果理由不够清晰，尝试使用LLM提炼
+                if len(reasoning_text) < 50:
+                    try:
+                        prompt = f"""请从以下文本中提取决策理由（"为什么"），要求：
+1. 简洁明了地说明为什么做出这个决策
+2. 基于什么先例、规则或经验
+3. 遇到什么特殊情况或异常
+
+文本：
+{reasoning_text}
+
+决策理由："""
+                        messages = [
+                            {"role": "system", "content": "你是一个推理分析专家，擅长提取决策的理由和依据。"},
+                            {"role": "user", "content": prompt}
+                        ]
+                        _, refined_reasoning = ark_deepseek_v3_2(messages, max_new_tokens=200)
+                        return refined_reasoning.strip()[:300] if refined_reasoning else reasoning_text
+                    except:
+                        return reasoning_text[:300]
+                else:
+                    return reasoning_text[:300]
+            
+            ***REMOVED*** 如果没有找到明确的理由，返回None
+            return None
+        except Exception as e:
+            logger.debug(f"Failed to extract reasoning: {e}")
+            return None
     
     def _update_confidence(self, memories: List[Memory], answer_text: str) -> List[Memory]:
         """更新记忆的置信度"""
@@ -635,7 +960,7 @@ Agent 性格配置：
             fact_dict = {
                 "id": fact.id,
                 "text": fact.content,
-                "type": fact.memory_type.value if fact.memory_type else None,
+                "type": fact.memory_type.value if fact.memory_type is not None else None,
                 "context": fact.context,
             }
             
