@@ -7,6 +7,7 @@ from .graph_adapter import GraphAdapter
 from .atom_link_adapter import AtomLinkAdapter
 from .novel_adapter import NovelAdapter
 from .script_adapter import ScriptAdapter
+from .video_adapter import VideoAdapter
 from .retrieval_adapter import RetrievalAdapter
 from .update_adapter import UpdateAdapter
 
@@ -21,6 +22,7 @@ __all__ = [
     "AtomLinkAdapter",
     "NovelAdapter",
     "ScriptAdapter",
+    "VideoAdapter",
     "RetrievalAdapter",
     "UpdateAdapter",
 ]

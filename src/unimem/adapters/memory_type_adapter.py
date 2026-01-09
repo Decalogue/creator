@@ -12,7 +12,7 @@
 
 from typing import Optional
 from .base import BaseAdapter
-from ..types import Memory, MemoryType
+from ..memory_types import Memory, MemoryType
 from ..chat import ark_deepseek_v3_2
 import logging
 

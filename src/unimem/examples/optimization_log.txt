@@ -1,0 +1,162 @@
+2026-01-08 10:38:56,253 - unimem.adapters.video_adapter - INFO - Video adapter initialized (standalone mode)
+2026-01-08 10:38:56,253 - unimem.examples.generate_video_script - INFO - VideoScriptGenerator initialized (UniMem skipped)
+2026-01-08 10:38:56,253 - __main__ - INFO - [Memory Operation] INIT: {'status': 'standalone mode', 'error': '[UniMem] Missing required config key: graph'}
+2026-01-08 10:38:56,254 - unimem.examples.generate_video_script - INFO - Parsing Word document: video_script_filled_example.docx
+2026-01-08 10:39:06,587 - httpx - INFO - HTTP Request: POST https://ark.cn-beijing.volces.com/api/v3/chat/completions "HTTP/1.1 200 OK"
+2026-01-08 10:39:06,595 - unimem.adapters.video_adapter - INFO - Parsed Word document using LLM: 4 task memories, 0 modification memories, 4 general memories, 3 preference fields, 4 product fields, 5 shots, video_type=ecommerce, platform=douyin, duration=60s
+2026-01-08 10:39:06,595 - unimem.examples.generate_video_script - INFO - Parsed successfully: video_type=ecommerce, platform=douyin, duration=60s
+2026-01-08 10:39:06,595 - __main__ - INFO - [Memory Operation] PARSE: {'document': 'video_script_filled_example.docx', 'task_memories_count': 4, 'general_memories_count': 4}
+2026-01-08 10:39:06,595 - unimem.examples.generate_video_script - INFO - Extracting modification feedback from user input...
+2026-01-08 10:39:06,685 - httpx - INFO - HTTP Request: GET http://localhost:6333/collections/unimem_memories "HTTP/1.1 404 Not Found"
+2026-01-08 10:39:06,688 - httpx - INFO - HTTP Request: PUT http://localhost:6333/collections/unimem_memories "HTTP/1.1 500 Internal Server Error"
+2026-01-08 10:39:06,689 - unimem.adapters.atom_link_adapter - WARNING - Failed to connect to Qdrant: Unexpected Response: 500 (Internal Server Error)
+Raw response content:
+b'{"status":{"error":"Service internal error: Can\'t create directory for collection unimem_memories. Error: failed to create directory `./storage/collections/unimem_memories`: No such file or directo ...'. Vector operations will be limited.
+2026-01-08 10:39:06,691 - unimem.adapters.atom_link_adapter - INFO - Loading embedding model from HuggingFace: intfloat/multilingual-e5-small
+2026-01-08 10:39:06,752 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cuda:0
+2026-01-08 10:39:06,752 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: intfloat/multilingual-e5-small
+2026-01-08 10:39:24,240 - unimem.adapters.atom_link_adapter - INFO - Embedding model loaded successfully (dimension: 384)
+2026-01-08 10:39:24,240 - unimem.adapters.atom_link_adapter - INFO - Atom link adapter initialized (using A-Mem principles)
+2026-01-08 10:39:24,240 - unimem.adapters.video_adapter - INFO - Video adapter initialized (specialized for short video script writing)
+2026-01-08 10:39:24,240 - unimem.adapters.base - INFO - VideoAdapter initialized successfully
+2026-01-08 10:39:26,706 - httpx - INFO - HTTP Request: POST https://ark.cn-beijing.volces.com/api/v3/chat/completions "HTTP/1.1 200 OK"
+2026-01-08 10:39:26,707 - unimem.adapters.video_adapter - INFO - Extracted 2 new modification memories (priority: medium, is_update: False)
+2026-01-08 10:39:26,707 - unimem.examples.generate_video_script - INFO - Extracted 2 new modification requirements
+2026-01-08 10:39:26,707 - __main__ - INFO - [Memory Operation] EXTRACT_MODIFICATIONS: {'round': 1, 'input': '开场不够吸引人，需要更有冲击力的开场。另外中间部分节奏有点慢，需要加快一些。', 'extracted': ['开场需要更有冲击力，以提升吸引力', '中间部分节奏需要加快'], 'accumulated_count': 0}
+2026-01-08 10:39:26,707 - __main__ - INFO - [Memory Operation] OPTIMIZE_START: {'round': 1, 'accumulated_modifications_count': 2}
+2026-01-08 10:39:26,707 - unimem.examples.generate_video_script - INFO - Optimizing script based on user feedback...
+2026-01-08 10:39:26,707 - unimem.examples.generate_video_script - INFO - Total accumulated modifications: 4 (existing: 2, new: 2)
+2026-01-08 10:40:44,763 - httpx - INFO - HTTP Request: POST https://ark.cn-beijing.volces.com/api/v3/chat/completions "HTTP/1.1 200 OK"
+2026-01-08 10:40:44,764 - unimem.adapters.atom_link_adapter - WARNING - Failed to parse JSON response: Expecting value: line 34 column 22 (char 916)
+2026-01-08 10:40:44,765 - unimem.adapters.video_adapter - WARNING - Failed to parse optimized script, returning original
+2026-01-08 10:40:44,765 - unimem.examples.generate_video_script - INFO - Script optimized successfully
+2026-01-08 10:40:44,765 - __main__ - INFO - [Memory Operation] OPTIMIZE_COMPLETE: {'round': 1, 'output_file': 'generated_script_optimized_v1.json', 'segments_count': 7}
+2026-01-08 10:40:44,765 - unimem.examples.generate_video_script - INFO - Extracting modification feedback from user input...
+2026-01-08 10:40:47,621 - httpx - INFO - HTTP Request: POST https://ark.cn-beijing.volces.com/api/v3/chat/completions "HTTP/1.1 200 OK"
+2026-01-08 10:40:47,622 - unimem.adapters.video_adapter - INFO - Extracted 2 new modification memories (priority: medium, is_update: False)
+2026-01-08 10:40:47,622 - unimem.examples.generate_video_script - INFO - Extracted 2 new modification requirements
+2026-01-08 10:40:47,622 - __main__ - INFO - [Memory Operation] EXTRACT_MODIFICATIONS: {'round': 2, 'input': '结尾的转化引导太生硬了，希望更自然一些，像朋友推荐一样。还有夜景拍照那个部分可以更详细一点。', 'extracted': ['结尾的转化引导需要调整得更自然，采用朋友推荐的语气和风格', '夜景拍照部分需要补充更详细的内容或说明'], 'accumulated_count': 2}
+2026-01-08 10:40:47,622 - __main__ - INFO - [Memory Operation] OPTIMIZE_START: {'round': 2, 'accumulated_modifications_count': 4}
+2026-01-08 10:40:47,622 - unimem.examples.generate_video_script - INFO - Optimizing script based on user feedback...
+2026-01-08 10:40:47,622 - unimem.examples.generate_video_script - INFO - Total accumulated modifications: 6 (existing: 4, new: 2)
+2026-01-08 10:42:23,337 - httpx - INFO - HTTP Request: POST https://ark.cn-beijing.volces.com/api/v3/chat/completions "HTTP/1.1 200 OK"
+2026-01-08 10:42:23,340 - unimem.adapters.atom_link_adapter - WARNING - Failed to parse JSON response: Expecting value: line 33 column 22 (char 1074)
+2026-01-08 10:42:23,340 - unimem.adapters.video_adapter - WARNING - Failed to parse optimized script, returning original
+2026-01-08 10:42:23,341 - unimem.examples.generate_video_script - INFO - Script optimized successfully
+2026-01-08 10:42:23,341 - __main__ - INFO - [Memory Operation] OPTIMIZE_COMPLETE: {'round': 2, 'output_file': 'generated_script_optimized_v2.json', 'segments_count': 7}
+2026-01-08 10:42:23,341 - unimem.examples.generate_video_script - INFO - Extracting modification feedback from user input...
+2026-01-08 10:42:25,874 - httpx - INFO - HTTP Request: POST https://ark.cn-beijing.volces.com/api/v3/chat/completions "HTTP/1.1 200 OK"
+2026-01-08 10:42:25,875 - unimem.adapters.video_adapter - INFO - Extracted 1 new modification memories (priority: medium, is_update: False)
+2026-01-08 10:42:25,875 - unimem.examples.generate_video_script - INFO - Extracted 1 new modification requirements
+2026-01-08 10:42:25,875 - __main__ - INFO - [Memory Operation] EXTRACT_MODIFICATIONS: {'round': 3, 'input': '整体感觉不错，但是可以加一些情感共鸣的元素，让观众更有代入感。', 'extracted': ['加入情感共鸣元素，增强观众代入感'], 'accumulated_count': 4}
+2026-01-08 10:42:25,875 - __main__ - INFO - [Memory Operation] OPTIMIZE_START: {'round': 3, 'accumulated_modifications_count': 5}
+2026-01-08 10:42:25,875 - unimem.examples.generate_video_script - INFO - Optimizing script based on user feedback...
+2026-01-08 10:42:25,875 - unimem.examples.generate_video_script - INFO - Total accumulated modifications: 6 (existing: 5, new: 1)
+2026-01-08 10:44:03,624 - httpx - INFO - HTTP Request: POST https://ark.cn-beijing.volces.com/api/v3/chat/completions "HTTP/1.1 200 OK"
+2026-01-08 10:44:03,625 - unimem.adapters.video_adapter - INFO - Optimized script for editing
+2026-01-08 10:44:03,625 - unimem.examples.generate_video_script - INFO - Script optimized successfully
+2026-01-08 10:44:03,626 - __main__ - INFO - [Memory Operation] OPTIMIZE_COMPLETE: {'round': 3, 'output_file': 'generated_script_optimized_v3.json', 'segments_count': 7}
+
+======================================================================
+模拟用户反馈优化剧本流程
+======================================================================
+
+⚠ UniMem 初始化失败: [UniMem] Missing required config key: graph
+⚠ 使用独立模式（记忆功能受限）
+1. 读取初始剧本: generated_script.json
+   - 段数: 7
+   - 总时长: 60秒
+   - 开头: 以预算疑问开场，直接切入年轻人换机痛点...
+
+2. 解析原始文档: video_script_filled_example.docx
+
+3. 开始模拟 3 轮用户反馈优化
+
+----------------------------------------------------------------------
+【第 1 轮反馈】
+用户反馈: 开场不够吸引人，需要更有冲击力的开场。另外中间部分节奏有点慢，需要加快一些。
+
+正在提取修改需求...
+  提取到 2 条修改需求：
+    1. 开场需要更有冲击力，以提升吸引力
+    2. 中间部分节奏需要加快
+
+  累积修改需求总数: 2
+
+正在优化剧本...
+
+  ✓ 优化完成
+    开头亮点: 以预算疑问开场，直接切入年轻人换机痛点...
+    核心内容: 突出三大卖点：夜景拍照、超广角镜头、快速充电，强调真实使用体验和性价比...
+    段数: 7
+    已保存到: generated_script_optimized_v1.json
+
+----------------------------------------------------------------------
+【第 2 轮反馈】
+用户反馈: 结尾的转化引导太生硬了，希望更自然一些，像朋友推荐一样。还有夜景拍照那个部分可以更详细一点。
+
+正在提取修改需求...
+  提取到 2 条修改需求：
+    1. 结尾的转化引导需要调整得更自然，采用朋友推荐的语气和风格
+    2. 夜景拍照部分需要补充更详细的内容或说明
+
+  累积修改需求总数: 4
+
+正在优化剧本...
+
+  ✓ 优化完成
+    开头亮点: 以预算疑问开场，直接切入年轻人换机痛点...
+    核心内容: 突出三大卖点：夜景拍照、超广角镜头、快速充电，强调真实使用体验和性价比...
+    段数: 7
+    已保存到: generated_script_optimized_v2.json
+
+----------------------------------------------------------------------
+【第 3 轮反馈】
+用户反馈: 整体感觉不错，但是可以加一些情感共鸣的元素，让观众更有代入感。
+
+正在提取修改需求...
+  提取到 1 条修改需求：
+    1. 加入情感共鸣元素，增强观众代入感
+
+  累积修改需求总数: 5
+
+正在优化剧本...
+
+  ✓ 优化完成
+    开头亮点: 3秒内用动态画面、价格悬念和“别纠结”的肯定语气强力吸引，直奔痛点...
+    核心内容: 三大卖点深度优化：1.夜景强化对比与社交情感（朋友圈获赞）；2.广角强化场景实用与视觉冲击；3.快充融入晨间碎片化场景，...
+    段数: 7
+    已保存到: generated_script_optimized_v3.json
+
+
+======================================================================
+5. 生成优化分析报告
+======================================================================
+
+
+优化跟踪报告已保存到: optimization_analysis_report.json
+
+【优化摘要】
+  总反馈轮次: 3
+  总记忆操作: 11
+  操作类型分布:
+    - INIT: 1
+    - PARSE: 1
+    - EXTRACT_MODIFICATIONS: 3
+    - OPTIMIZE_START: 3
+    - OPTIMIZE_COMPLETE: 3
+
+【记忆操作流程】
+  1. INIT - 2026-01-08T10:38:56.253933
+  2. PARSE - 2026-01-08T10:39:06.595376
+  3. EXTRACT_MODIFICATIONS - 2026-01-08T10:39:26.707519
+  4. OPTIMIZE_START - 2026-01-08T10:39:26.707603
+  5. OPTIMIZE_COMPLETE - 2026-01-08T10:40:44.765593
+  6. EXTRACT_MODIFICATIONS - 2026-01-08T10:40:47.622830
+  7. OPTIMIZE_START - 2026-01-08T10:40:47.622895
+  8. OPTIMIZE_COMPLETE - 2026-01-08T10:42:23.341517
+  9. EXTRACT_MODIFICATIONS - 2026-01-08T10:42:25.875321
+  10. OPTIMIZE_START - 2026-01-08T10:42:25.875399
+  11. OPTIMIZE_COMPLETE - 2026-01-08T10:44:03.626432
+
+优化流程完成！

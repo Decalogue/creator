@@ -8,7 +8,7 @@ import logging
 from typing import List, Dict, Optional
 from collections import defaultdict
 
-from ...types import Memory
+from ...memory_types import Memory
 from .level_index import ContentLevel
 from .hierarchical_storage import HierarchicalStorage
 

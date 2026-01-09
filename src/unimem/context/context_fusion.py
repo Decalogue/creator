@@ -2,12 +2,18 @@
 上下文融合
 
 将多个上下文源融合成一个统一的上下文。
+
+工业级特性：
+- 参数验证和输入检查
+- 统一异常处理
+- 优雅降级（LLM 失败时使用简单拼接）
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 
 from ..chat import ark_deepseek_v3_2
+from ..adapters.base import AdapterError
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +47,20 @@ class ContextFusion:
         融合多个上下文
         
         Args:
-            contexts: 上下文列表
-            strategy: 融合策略（"merge" 或 "concatenate"）
-            max_length: 最大长度限制
+            contexts: 上下文列表（不能为空）
+            strategy: 融合策略（"merge" 或 "concatenate"，默认 "merge"）
+            max_length: 最大长度限制（可选，如果提供必须 > 0）
             
         Returns:
             融合后的上下文
+            
+        Raises:
+            AdapterError: 如果参数无效
         """
-        if not contexts:
-            return ""
+        if not contexts or not isinstance(contexts, list):
+            raise AdapterError("contexts must be a non-empty list", adapter_name="ContextFusion")
+        if max_length is not None and max_length <= 0:
+            raise AdapterError(f"max_length must be positive, got {max_length}", adapter_name="ContextFusion")
         
         if len(contexts) == 1:
             result = contexts[0]

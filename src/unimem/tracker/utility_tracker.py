@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Set
 from datetime import datetime
 from dataclasses import dataclass, field
 
-from ..types import Memory
+from ..memory_types import Memory
 
 logger = logging.getLogger(__name__)
 

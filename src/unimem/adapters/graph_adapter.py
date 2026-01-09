@@ -18,11 +18,11 @@
 - 完善的错误处理
 """
 
-from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime
 import json
 import time
+from datetime import datetime
 from dataclasses import dataclass, field
+from typing import Dict, Any, Optional, List, Tuple
 
 try:
     import requests
@@ -52,7 +52,7 @@ from .base import (
     AdapterNotAvailableError,
     AdapterError
 )
-from ..types import Entity, Relation, Memory
+from ..memory_types import Entity, Relation, Memory
 import logging
 
 logger = logging.getLogger(__name__)

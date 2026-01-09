@@ -8,6 +8,6 @@ export default defineConfig({
     routes: routes,
     npmClient: 'pnpm',
     define:{
-        'API_URL':'http://ngb1.dc.huixingyun.com:53115',
+        'API_URL':'http://azj1.dc.huixingyun.com:53115',
     },
 });

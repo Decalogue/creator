@@ -11,7 +11,7 @@ from unimem.storage.hierarchical.hierarchical_storage import (
     ContentLevel,
     MemoryType
 )
-from unimem.types import Memory
+from unimem.memory_types import Memory
 from workflow import ShellSwappingOrchestrator, SeasoningManager, SeasoningType
 
 

@@ -39,7 +39,7 @@ from .base import (
     AdapterNotAvailableError,
     AdapterError
 )
-from ..types import Entity, Memory
+from ..memory_types import Entity, Memory
 from ..chat import ark_deepseek_v3_2
 
 logger = logging.getLogger(__name__)
@@ -146,18 +146,41 @@ class AtomLinkAdapter(BaseAdapter):
                     collection_info = self.qdrant_client.get_collection(collection_name)
                     self.embedding_dimension = collection_info.config.params.vectors.size
                     logger.info(f"Using existing Qdrant collection: {collection_name} (dim={self.embedding_dimension})")
-                except Exception:
-                    # 集合不存在，创建它
-                    default_dim = int(self.config.get("embedding_dimension", 384))
-                    self.qdrant_client.create_collection(
-                        collection_name=collection_name,
-                        vectors_config=VectorParams(
-                            size=default_dim,
-                            distance=Distance.COSINE,
-                        ),
-                    )
-                    self.embedding_dimension = default_dim
-                    logger.info(f"Created Qdrant collection: {collection_name} (dim={default_dim})")
+                except Exception as get_error:
+                    # 集合不存在，尝试创建它
+                    error_str = str(get_error).lower()
+                    if "not found" in error_str or "404" in error_str:
+                        # 集合确实不存在，创建它
+                        try:
+                            default_dim = int(self.config.get("embedding_dimension", 384))
+                            self.qdrant_client.create_collection(
+                                collection_name=collection_name,
+                                vectors_config=VectorParams(
+                                    size=default_dim,
+                                    distance=Distance.COSINE,
+                                ),
+                            )
+                            self.embedding_dimension = default_dim
+                            logger.info(f"Created Qdrant collection: {collection_name} (dim={default_dim})")
+                        except Exception as create_error:
+                            create_error_str = str(create_error).lower()
+                            # 如果创建时遇到409（集合已存在），说明集合在创建过程中被创建了，重新获取
+                            if "409" in create_error_str or "already exists" in create_error_str or "conflict" in create_error_str:
+                                try:
+                                    collection_info = self.qdrant_client.get_collection(collection_name)
+                                    self.embedding_dimension = collection_info.config.params.vectors.size
+                                    logger.info(f"Qdrant collection already exists (recovered): {collection_name} (dim={self.embedding_dimension})")
+                                except Exception:
+                                    logger.warning(f"Collection {collection_name} exists but cannot access: {create_error}")
+                                    self.embedding_dimension = default_dim
+                            else:
+                                # 其他创建错误
+                                logger.warning(f"Failed to create Qdrant collection {collection_name}: {create_error}")
+                                raise create_error
+                    else:
+                        # get_collection失败但不是"not found"，记录警告但使用默认维度
+                        logger.warning(f"Failed to get Qdrant collection {collection_name}: {get_error}. Using default dimension.")
+                        self.embedding_dimension = int(self.config.get("embedding_dimension", 384))
                 
                 self.collection_name = collection_name
                 logger.info(f"Qdrant client connected: {qdrant_host}:{qdrant_port}")
@@ -812,19 +835,19 @@ class AtomLinkAdapter(BaseAdapter):
             if query_vector is None:
                 return []
             
-            # 在 Qdrant 中搜索（使用 query_points API）
-            # query 参数可以直接接受列表，Qdrant 会自动处理
-            search_results = self.qdrant_client.query_points(
+            # 在 Qdrant 中搜索（使用 search API）
+            search_results = self.qdrant_client.search(
                 collection_name=self.collection_name,
-                query=query_vector,  # 直接使用列表，Qdrant 会自动转换为向量查询
+                query_vector=query_vector,  # 查询向量
                 limit=top_k,
             )
             
             # 转换为 Memory 对象
             memories = []
-            # Qdrant 返回的是 QueryResponse 对象，需要访问 points
-            points = search_results.points if hasattr(search_results, 'points') else []
+            # Qdrant search API 返回 ScoredPoint 列表
+            points = search_results if isinstance(search_results, list) else []
             for point in points:
+                # 获取 point ID（ScoredPoint 对象）
                 point_id = point.id
                 # Qdrant 返回的 ID 可能是 UUID 对象，需要转换为字符串
                 if isinstance(point_id, uuid.UUID):
@@ -1087,22 +1110,28 @@ class AtomLinkAdapter(BaseAdapter):
                 logger.warning("Qdrant client not available, cannot add memory to vector store")
                 return False
             
-            # 确保 ID 是有效的 UUID 格式（Qdrant 要求）
+            # 确保 ID 是有效的格式（Qdrant 要求字符串或整数）
             try:
-                # 尝试将 memory.id 解析为 UUID
-                point_id = uuid.UUID(memory.id) if isinstance(memory.id, str) else memory.id
-                # 如果已经是 UUID，直接使用
+                # 如果 memory.id 已在映射中，使用映射的ID
                 if memory.id in self.id_mapping:
                     point_id = self.id_mapping[memory.id]
                 else:
+                    # 尝试将 memory.id 解析为 UUID，然后转换为字符串
+                    try:
+                        uuid_obj = uuid.UUID(memory.id) if isinstance(memory.id, str) else memory.id
+                        # Qdrant PointStruct 要求 ID 是字符串或整数，不是 UUID 对象
+                        point_id = str(uuid_obj)
+                    except (ValueError, AttributeError, TypeError):
+                        # 如果不是有效的 UUID，使用原始字符串
+                        point_id = str(memory.id)
+                    # 保存映射
                     self.id_mapping[memory.id] = point_id
-            except (ValueError, AttributeError, TypeError):
-                # 如果不是有效的 UUID，生成一个新的 UUID 并保存映射
-                point_id = uuid.uuid4()
+                original_id = None
+            except Exception:
+                # 如果以上都失败，生成一个新的 UUID 字符串并保存映射
+                point_id = str(uuid.uuid4())
                 self.id_mapping[memory.id] = point_id
                 original_id = memory.id
-            else:
-                original_id = None
             
             # 添加到 Qdrant
             payload = {
@@ -1115,13 +1144,18 @@ class AtomLinkAdapter(BaseAdapter):
             if original_id:
                 payload["original_id"] = original_id
             
+            # 使用PointStruct格式（Qdrant客户端要求）
+            from qdrant_client.models import PointStruct
+            
             self.qdrant_client.upsert(
                 collection_name=self.collection_name,
-                points=[{
-                    "id": point_id,
-                    "vector": embedding,
-                    "payload": payload
-                }]
+                points=[
+                    PointStruct(
+                        id=point_id,
+                        vector=embedding,
+                        payload=payload
+                    )
+                ]
             )
             
             # 更新内存存储

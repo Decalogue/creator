@@ -13,7 +13,7 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from unimem.types import Memory, MemoryType, MemoryLayer
+from unimem.memory_types import Memory, MemoryType, MemoryLayer
 from unimem.neo4j import (
     create_memory,
     search_memories_by_type,

@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from unimem import UniMem, Experience, Context
 from unimem.adapters.atom_link_adapter import AtomLinkAdapter
-from unimem.types import Memory, Entity
+from unimem.memory_types import Memory, Entity
 
 logging.basicConfig(
     level=logging.INFO,

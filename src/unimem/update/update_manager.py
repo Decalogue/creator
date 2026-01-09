@@ -8,14 +8,20 @@
 - 睡眠更新：批量处理非关键记忆的优化（参考 LightMem）
 - 统一接口：提供统一的更新接口，简化调用
 - 错误处理：完善的错误处理和降级策略
+
+工业级特性：
+- 统一异常处理（使用适配器异常体系）
+- 参数验证和输入检查
 """
 
+import logging
 from typing import List, Set, Optional
-from ..types import Memory, Entity, Relation
+
+from ..memory_types import Memory, Entity, Relation
 from ..adapters import GraphAdapter, AtomLinkAdapter, UpdateAdapter
+from ..adapters.base import AdapterError, AdapterNotAvailableError
 from .ripple_effect import RippleEffectUpdater
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -83,7 +89,7 @@ class UpdateManager:
             ValueError: 如果 center 为 None
         """
         if not center:
-            raise ValueError("center cannot be None")
+            raise AdapterError("center cannot be None", adapter_name="UpdateManager")
         
         try:
             self.ripple_updater.trigger_ripple(
@@ -117,7 +123,7 @@ class UpdateManager:
             logger.warning("Empty memories list for sleep queue")
             return False
         
-        if not self.update_adapter:
+        if not self.update_adapter or not self.update_adapter.is_available():
             logger.warning("Update adapter not available, cannot add to sleep queue")
             return False
         
