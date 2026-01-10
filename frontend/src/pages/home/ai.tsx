@@ -56,15 +56,15 @@ interface Message {
 }
 
 // 模型类型
-type ModelType = 'Gemini-3-pro' | 'Gemini-3-flash' | 'DeepSeek-v3-2' | 'GLM-4-7';
+type ModelType = 'DeepSeek-v3-2' | 'GLM-4-7' | 'Gemini-3-flash' | 'Claude-Opus-4-5';
 
 // 获取模型显示名称
 const getModelDisplayName = (model: ModelType | string): string => {
   const modelMap: Record<string, string> = {
-    'Gemini-3-pro': 'Gemini 3 Pro',
-    'Gemini-3-flash': 'Gemini 3 Flash',
     'DeepSeek-v3-2': 'DeepSeek V3.2',
     'GLM-4-7': 'GLM-4-7',
+    'Gemini-3-flash': 'Gemini 3 Flash',
+    'Claude-Opus-4-5': 'Claude Opus 4.5',
   };
   return modelMap[model] || model || 'Unknown';
 };
@@ -77,8 +77,10 @@ const getModelAvatar = (model: ModelType | string | undefined): string => {
     return '/avatars/deepseek.png';
   } else if (model === 'GLM-4-7') {
     return '/avatars/zai.png';
-  } else if (model === 'Gemini-3-pro' || model === 'Gemini-3-flash') {
+  } else if (model === 'Gemini-3-flash') {
     return '/avatars/google.png';
+  } else if (model === 'Claude-Opus-4-5') {
+    return '/avatars/claude.png';
   }
   
   return '/avatars/assistant.png';
@@ -559,9 +561,9 @@ const AIAssistant: React.FC = () => {
             bordered={false}
           >
             <Option value="DeepSeek-v3-2">DeepSeek V3.2</Option>
-            <Option value="Gemini-3-flash">Gemini 3 Flash</Option>
-            <Option value="Gemini-3-pro">Gemini 3 Pro</Option>
             <Option value="GLM-4-7">GLM-4.7</Option>
+            <Option value="Gemini-3-flash">Gemini 3 Flash</Option>
+            <Option value="Claude-Opus-4-5">Claude Opus 4.5</Option>
           </Select>
           <Button
             type="text"
@@ -664,7 +666,7 @@ const AIAssistant: React.FC = () => {
                     maxWidth: '400px',
                   }}
                 >
-                  支持 Gemini 3 Pro、Gemini 3 Flash、DeepSeek V3.2 和 GLM-4.7
+                  支持 DeepSeek V3.2、GLM-4.7、Gemini 3 Flash、Claude Opus 4.5
                 </Text>
               </div>
             ) : (
