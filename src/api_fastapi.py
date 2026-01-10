@@ -19,8 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from llm.chat import ark_deepseek_v3_2, ark_deepseek_v3_2_stream
 from llm.glm import glm, glm_stream
+from llm.deepseek import deepseek_v3_2, deepseek_v3_2_stream
+from llm.gemini import gemini_3_flash, gemini_3_flash_stream
+from llm.claude import claude_opus_4_5, claude_opus_4_5_stream
 
 ***REMOVED*** 请求模型定义
 class ChatMessage(BaseModel):
@@ -73,15 +75,15 @@ async def chat(request: ChatRequest):
         if model == 'DeepSeek-v3-2' or model == 'deepseek-v3-2':
             if stream:  ***REMOVED*** 流式数据请求
                 def stream_data():
-                    for t in ark_deepseek_v3_2_stream(messages_dict):
+                    for t in deepseek_v3_2_stream(messages_dict):
                         yield t
                 return StreamingResponse(
                     stream_data(),
                     media_type="text/plain;charset=utf-8"
                 )
             else:
-                reasoning_content, content = ark_deepseek_v3_2(messages_dict)
-        elif model == 'GLM-4-7' or model == 'GLM-4.7':
+                reasoning_content, content = deepseek_v3_2(messages_dict)
+        elif model == 'GLM-4-7' or model == 'glm-4-7':
             if stream:  ***REMOVED*** 流式数据请求
                 def stream_data():
                     for t in glm_stream(messages_dict):
@@ -92,19 +94,28 @@ async def chat(request: ChatRequest):
                 )
             else:
                 reasoning_content, content = glm(messages_dict)
-        elif model in ['Gemini-3-pro', 'Gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash']:
-            ***REMOVED*** TODO: 实现 Gemini 3 Pro/Flash 的调用
-            ***REMOVED*** 目前暂时使用 deepseek-v3-2 作为 fallback
+        elif model == 'Gemini-3-flash' or model == 'gemini-3-flash':
             if stream:  ***REMOVED*** 流式数据请求
                 def stream_data():
-                    for t in ark_deepseek_v3_2_stream(messages_dict):
+                    for t in gemini_3_flash_stream(messages_dict):
                         yield t
                 return StreamingResponse(
                     stream_data(),
                     media_type="text/plain;charset=utf-8"
                 )
             else:
-                reasoning_content, content = ark_deepseek_v3_2(messages_dict)
+                reasoning_content, content = gemini_3_flash(messages_dict)
+        elif model == 'Claude-Opus-4-5' or model == 'claude-opus-4-5':
+            if stream:  ***REMOVED*** 流式数据请求
+                def stream_data():
+                    for t in claude_opus_4_5_stream(messages_dict):
+                        yield t
+                return StreamingResponse(
+                    stream_data(),
+                    media_type="text/plain;charset=utf-8"
+                )
+            else:
+                reasoning_content, content = claude_opus_4_5(messages_dict)
         else:
             state['message'] = f'请求异常：模型不存在 ({model})'
             return JSONResponse(content=state, status_code=400)

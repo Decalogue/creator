@@ -1,0 +1,279 @@
+{
+  "start_time": "2026-01-10T14:54:57.247895",
+  "scenarios": [
+    {
+      "scenario_id": "scenario_1",
+      "scenario_name": "电商-美妆-小红书-简单",
+      "complexity": "simple",
+      "timestamp": "2026-01-10T14:54:57.247917",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_docs_new_template/scenario_1.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 4,
+            "video_type": "ecommerce",
+            "platform": "xiaohongshu"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        }
+      ],
+      "memory_ids": [
+        "13413440-f1ef-466d-ae6e-f7ba25206335"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "13413440-f1ef-466d-ae6e-f7ba25206335",
+          "has_reasoning": true,
+          "reasoning_preview": "基于4条任务记忆，生成ecommerce类型脚本，适配xiaohongshu平台特点",
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ],
+          "decision_trace_type": "dict"
+        }
+      ],
+      "errors": [
+        "生成剧本失败: name 'logger' is not defined"
+      ]
+    },
+    {
+      "scenario_id": "scenario_2",
+      "scenario_name": "教育-编程-抖音-中等",
+      "complexity": "medium",
+      "timestamp": "2026-01-10T14:56:27.050757",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_docs_new_template/scenario_2.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 4,
+            "video_type": "knowledge",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        }
+      ],
+      "memory_ids": [
+        "6608af2d-c091-4588-9867-0afab337af47"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "6608af2d-c091-4588-9867-0afab337af47",
+          "has_reasoning": true,
+          "reasoning_preview": "基于4条任务记忆，生成knowledge类型脚本，适配douyin平台特点",
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ],
+          "decision_trace_type": "dict"
+        }
+      ],
+      "errors": [
+        "生成剧本失败: name 'logger' is not defined"
+      ]
+    },
+    {
+      "scenario_id": "scenario_3",
+      "scenario_name": "娱乐-搞笑-抖音-简单",
+      "complexity": "simple",
+      "timestamp": "2026-01-10T14:57:53.013225",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_docs_new_template/scenario_3.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 4,
+            "video_type": "ecommerce",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        }
+      ],
+      "memory_ids": [
+        "e2da8e17-94d6-49e5-9678-51bcc815a49b"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "e2da8e17-94d6-49e5-9678-51bcc815a49b",
+          "has_reasoning": true,
+          "reasoning_preview": "基于4条任务记忆，生成ecommerce类型脚本，适配douyin平台特点",
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ],
+          "decision_trace_type": "dict"
+        }
+      ],
+      "errors": [
+        "生成剧本失败: name 'logger' is not defined"
+      ]
+    },
+    {
+      "scenario_id": "scenario_4",
+      "scenario_name": "电商-服装-淘宝-复杂",
+      "complexity": "complex",
+      "timestamp": "2026-01-10T14:58:47.996639",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_docs_new_template/scenario_4.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 6,
+            "video_type": "ecommerce",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        }
+      ],
+      "memory_ids": [
+        "ad4770cc-88e7-4eee-932a-c2d29674443d"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "ad4770cc-88e7-4eee-932a-c2d29674443d",
+          "has_reasoning": true,
+          "reasoning_preview": "基于6条任务记忆，生成ecommerce类型脚本，适配douyin平台特点",
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ],
+          "decision_trace_type": "dict"
+        }
+      ],
+      "errors": [
+        "生成剧本失败: name 'logger' is not defined"
+      ]
+    },
+    {
+      "scenario_id": "scenario_5",
+      "scenario_name": "知识-科技-抖音-复杂",
+      "complexity": "complex",
+      "timestamp": "2026-01-10T15:00:14.096545",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/tmp/test_docs_new_template/scenario_5.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 6,
+            "video_type": "knowledge",
+            "platform": "douyin"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        }
+      ],
+      "memory_ids": [
+        "a5ef4d11-4457-4353-bb09-d0ce8617a41c"
+      ],
+      "decision_events": [],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "a5ef4d11-4457-4353-bb09-d0ce8617a41c",
+          "has_reasoning": true,
+          "reasoning_preview": "基于6条任务记忆，生成knowledge类型脚本，适配douyin平台特点",
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ],
+          "decision_trace_type": "dict"
+        }
+      ],
+      "errors": [
+        "生成剧本失败: name 'logger' is not defined"
+      ]
+    }
+  ],
+  "summary": {
+    "total_scenarios": 5,
+    "successful_scenarios": 0,
+    "total_memories": 5,
+    "total_decision_events": 0,
+    "reasoning_coverage": 0.0,
+    "precedents_found": 0,
+    "common_patterns": [],
+    "improvements": [
+      "增强REFLECT提示词，提升reasoning提取率",
+      "检查decision_trace捕获逻辑"
+    ]
+  },
+  "end_time": "2026-01-10T15:02:15.391304"
+}

@@ -12,8 +12,11 @@ app.config['SECRET_KEY'] = 'you-will-never-guess'
 from flask_cors import CORS
 CORS(app)
 
-from llm.chat import ark_deepseek_v3_2, ark_deepseek_v3_2_stream
 from llm.glm import glm, glm_stream
+from llm.deepseek import deepseek_v3_2, deepseek_v3_2_stream
+from llm.gemini import gemini_3_flash, gemini_3_flash_stream
+from llm.claude import claude_opus_4_5, claude_opus_4_5_stream
+
 
 def get_current_time(format_string="%Y-%m-%d-%H-%M-%S"):
     return time.strftime(format_string, time.localtime())
@@ -28,8 +31,8 @@ def url2file(url, savepath=None):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     state = {
-        'code' : 1,
-        'message' : "回复失败",
+        'code': 1,
+        'message': "回复失败",
         'content': '',
     }
     
@@ -49,16 +52,16 @@ def chat():
             model = request.json.get('model', 'DeepSeek-v3-2') ***REMOVED*** 默认使用 DeepSeek-v3-2
 
             ***REMOVED*** 根据模型类型选择对应的函数
-            if model == 'DeepSeek-v3-2':
+            if model == 'DeepSeek-v3-2' or model == 'deepseek-v3-2':
                 if stream:  ***REMOVED*** 流式数据请求
                     @stream_with_context
                     def stream_data():
-                        for t in ark_deepseek_v3_2_stream(messages):
+                        for t in deepseek_v3_2_stream(messages):
                             yield t
                     return Response(stream_data(), mimetype="text/plain;charset=utf-8")
                 else:
-                    reasoning_content, content = ark_deepseek_v3_2(messages)
-            elif model == 'GLM-4-7':
+                    reasoning_content, content = deepseek_v3_2(messages)
+            elif model == 'GLM-4-7' or model == 'glm-4-7':
                 if stream:  ***REMOVED*** 流式数据请求
                     @stream_with_context
                     def stream_data():
@@ -67,15 +70,24 @@ def chat():
                     return Response(stream_data(), mimetype="text/plain;charset=utf-8")
                 else:
                     reasoning_content, content = glm(messages)
-            elif model in ['Gemini-3-pro', 'Gemini-3-flash']:
+            elif model == 'Gemini-3-flash' or model == 'gemini-3-flash':
                 if stream:  ***REMOVED*** 流式数据请求
                     @stream_with_context
                     def stream_data():
-                        for t in ark_deepseek_v3_2_stream(messages):
+                        for t in gemini_3_flash_stream(messages):
                             yield t
                     return Response(stream_data(), mimetype="text/plain;charset=utf-8")
                 else:
-                    reasoning_content, content = ark_deepseek_v3_2(messages)
+                    reasoning_content, content = gemini_3_flash(messages)
+            elif model == 'Claude-Opus-4-5' or model == 'claude-opus-4-5':
+                if stream:  ***REMOVED*** 流式数据请求
+                    @stream_with_context
+                    def stream_data():
+                        for t in claude_opus_4_5_stream(messages):
+                            yield t
+                    return Response(stream_data(), mimetype="text/plain;charset=utf-8")
+                else:
+                    reasoning_content, content = claude_opus_4_5(messages)
             else:
                 state['message'] = '请求异常：模型不存在'
                 return jsonify(state)
