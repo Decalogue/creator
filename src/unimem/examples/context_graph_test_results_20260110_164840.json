@@ -1,11 +1,11 @@
 {
-  "start_time": "2026-01-10T14:54:57.247895",
+  "start_time": "2026-01-10T16:41:19.770659",
   "scenarios": [
     {
       "scenario_id": "scenario_1",
       "scenario_name": "电商-美妆-小红书-简单",
       "complexity": "simple",
-      "timestamp": "2026-01-10T14:54:57.247917",
+      "timestamp": "2026-01-10T16:41:19.770679",
       "steps": [
         {
           "step": "create_document",
@@ -28,13 +28,13 @@
         }
       ],
       "memory_ids": [
-        "13413440-f1ef-466d-ae6e-f7ba25206335"
+        "1141984b-5282-43a1-9743-c6cad29f5a91"
       ],
       "decision_events": [],
       "precedents_found": [],
       "reasoning_extracted": [
         {
-          "memory_id": "13413440-f1ef-466d-ae6e-f7ba25206335",
+          "memory_id": "1141984b-5282-43a1-9743-c6cad29f5a91",
           "has_reasoning": true,
           "reasoning_preview": "基于4条任务记忆，生成ecommerce类型脚本，适配xiaohongshu平台特点",
           "has_decision_trace": true,
@@ -57,7 +57,7 @@
       "scenario_id": "scenario_2",
       "scenario_name": "教育-编程-抖音-中等",
       "complexity": "medium",
-      "timestamp": "2026-01-10T14:56:27.050757",
+      "timestamp": "2026-01-10T16:42:56.396917",
       "steps": [
         {
           "step": "create_document",
@@ -80,13 +80,13 @@
         }
       ],
       "memory_ids": [
-        "6608af2d-c091-4588-9867-0afab337af47"
+        "28d4c8d8-e945-43f6-9786-71c3f2a4cf1b"
       ],
       "decision_events": [],
       "precedents_found": [],
       "reasoning_extracted": [
         {
-          "memory_id": "6608af2d-c091-4588-9867-0afab337af47",
+          "memory_id": "28d4c8d8-e945-43f6-9786-71c3f2a4cf1b",
           "has_reasoning": true,
           "reasoning_preview": "基于4条任务记忆，生成knowledge类型脚本，适配douyin平台特点",
           "has_decision_trace": true,
@@ -109,7 +109,7 @@
       "scenario_id": "scenario_3",
       "scenario_name": "娱乐-搞笑-抖音-简单",
       "complexity": "simple",
-      "timestamp": "2026-01-10T14:57:53.013225",
+      "timestamp": "2026-01-10T16:44:22.663427",
       "steps": [
         {
           "step": "create_document",
@@ -132,13 +132,13 @@
         }
       ],
       "memory_ids": [
-        "e2da8e17-94d6-49e5-9678-51bcc815a49b"
+        "2a1cab51-cdd5-4e72-975a-d2fd35cb1f1a"
       ],
       "decision_events": [],
       "precedents_found": [],
       "reasoning_extracted": [
         {
-          "memory_id": "e2da8e17-94d6-49e5-9678-51bcc815a49b",
+          "memory_id": "2a1cab51-cdd5-4e72-975a-d2fd35cb1f1a",
           "has_reasoning": true,
           "reasoning_preview": "基于4条任务记忆，生成ecommerce类型脚本，适配douyin平台特点",
           "has_decision_trace": true,
@@ -161,7 +161,7 @@
       "scenario_id": "scenario_4",
       "scenario_name": "电商-服装-淘宝-复杂",
       "complexity": "complex",
-      "timestamp": "2026-01-10T14:58:47.996639",
+      "timestamp": "2026-01-10T16:45:27.250728",
       "steps": [
         {
           "step": "create_document",
@@ -184,13 +184,13 @@
         }
       ],
       "memory_ids": [
-        "ad4770cc-88e7-4eee-932a-c2d29674443d"
+        "78c81e20-42c2-4a84-8ab7-08eff4a6d422"
       ],
       "decision_events": [],
       "precedents_found": [],
       "reasoning_extracted": [
         {
-          "memory_id": "ad4770cc-88e7-4eee-932a-c2d29674443d",
+          "memory_id": "78c81e20-42c2-4a84-8ab7-08eff4a6d422",
           "has_reasoning": true,
           "reasoning_preview": "基于6条任务记忆，生成ecommerce类型脚本，适配douyin平台特点",
           "has_decision_trace": true,
@@ -213,7 +213,7 @@
       "scenario_id": "scenario_5",
       "scenario_name": "知识-科技-抖音-复杂",
       "complexity": "complex",
-      "timestamp": "2026-01-10T15:00:14.096545",
+      "timestamp": "2026-01-10T16:46:57.263052",
       "steps": [
         {
           "step": "create_document",
@@ -236,13 +236,13 @@
         }
       ],
       "memory_ids": [
-        "a5ef4d11-4457-4353-bb09-d0ce8617a41c"
+        "0848c64b-cb19-46b1-9571-e406b1a72d83"
       ],
       "decision_events": [],
       "precedents_found": [],
       "reasoning_extracted": [
         {
-          "memory_id": "a5ef4d11-4457-4353-bb09-d0ce8617a41c",
+          "memory_id": "0848c64b-cb19-46b1-9571-e406b1a72d83",
           "has_reasoning": true,
           "reasoning_preview": "基于6条任务记忆，生成knowledge类型脚本，适配douyin平台特点",
           "has_decision_trace": true,
@@ -275,5 +275,5 @@
       "检查decision_trace捕获逻辑"
     ]
   },
-  "end_time": "2026-01-10T15:02:15.391304"
+  "end_time": "2026-01-10T16:48:40.105349"
 }

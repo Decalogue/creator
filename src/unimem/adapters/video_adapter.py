@@ -413,7 +413,7 @@ class VideoAdapter(AtomLinkAdapter):
                 doc.add_paragraph('[例如：喜欢用生活化语言]')
                 doc.add_paragraph('[例如：避免使用"姐妹们"等称呼]')
                 doc.add_paragraph('[例如：偏好真实体验分享]')
-            doc.add_paragraph()
+                doc.add_paragraph()
             
             ***REMOVED*** 5. 用户偏好设置
             doc.add_heading('五、用户偏好设置（可选）', level=1)
@@ -436,8 +436,8 @@ class VideoAdapter(AtomLinkAdapter):
                 doc.add_paragraph('风格偏好: 真诚自然')
                 doc.add_paragraph('平台偏好: 抖音')
                 doc.add_paragraph('语气偏好: 像朋友分享')
-            doc.add_paragraph('[请在此填写您的偏好设置]')
-            doc.add_paragraph()
+                doc.add_paragraph('[请在此填写您的偏好设置]')
+                doc.add_paragraph()
             
             ***REMOVED*** 6. 商品信息（仅电商题材需要）
             doc.add_heading('六、商品信息（仅电商题材需要）', level=1)
@@ -470,7 +470,7 @@ class VideoAdapter(AtomLinkAdapter):
                 doc.add_paragraph('镜头1: 产品特写，展示手机外观')
                 doc.add_paragraph('镜头2: 使用场景，年轻人拍照')
                 doc.add_paragraph('[请在此填写镜头素材]')
-            doc.add_paragraph()
+                doc.add_paragraph()
             
             ***REMOVED*** 保存文档
             doc.save(output_path)
