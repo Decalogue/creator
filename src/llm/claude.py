@@ -6,9 +6,9 @@ client = OpenAI(
 )
 
 
-def gemini_3_flash(messages, max_new_tokens=8192):
+def claude_opus_4_5(messages, max_new_tokens=8192):
     response = client.chat.completions.create(
-        model="gemini-3-flash-preview-nothinking",
+        model="claude-opus-4-5-20251101",
         messages=messages,
         stream=False,
         max_tokens=max_new_tokens,
@@ -21,5 +21,5 @@ if __name__ == "__main__":
     messages = [
         {"role": "user", "content": "你是谁？"}
     ]
-    reasoning_content, content = gemini_3_flash(messages)
+    reasoning_content, content = claude_opus_4_5(messages)
     print(content)
