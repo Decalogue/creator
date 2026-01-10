@@ -697,19 +697,68 @@ class UniMem:
                         logger.warning(f"Ripple effect update failed: {e}")
                 
                 ***REMOVED*** 9. 创建决策事件节点（Context Graph增强）
-                ***REMOVED*** 如果有decision_trace且包含有效的决策信息，则创建DecisionEvent节点
-                should_create_event = (
-                    memory.decision_trace and 
-                    isinstance(memory.decision_trace, dict) and
-                    (
+                ***REMOVED*** 优化：降低创建阈值，增强fallback机制
+                should_create_event = False
+                decision_trace_for_event = None
+                reasoning_for_event = memory.reasoning or ""
+                
+                ***REMOVED*** 首先检查memory对象中的decision_trace
+                if memory.decision_trace and isinstance(memory.decision_trace, dict):
+                    decision_trace_for_event = memory.decision_trace
+                    ***REMOVED*** 检查是否有有效内容（降低阈值：只要decision_trace存在且有结构就创建）
+                    has_content = (
                         len(memory.decision_trace.get("inputs", [])) > 0 or
                         len(memory.decision_trace.get("rules_applied", [])) > 0 or
                         len(memory.decision_trace.get("exceptions", [])) > 0 or
-                        len(memory.decision_trace.get("approvals", [])) > 0
+                        len(memory.decision_trace.get("approvals", [])) > 0 or
+                        memory.decision_trace.get("timestamp") or
+                        memory.decision_trace.get("operation_id")
                     )
-                )
+                    if has_content:
+                        should_create_event = True
                 
-                if should_create_event:
+                ***REMOVED*** Fallback: 如果memory对象没有decision_trace，尝试从Neo4j读取
+                if not decision_trace_for_event:
+                    try:
+                        from .neo4j import get_memory
+                        ***REMOVED*** 从Neo4j读取完整的memory节点（使用已修复的读取逻辑）
+                        neo4j_memory = get_memory(memory.id)
+                        if neo4j_memory and neo4j_memory.decision_trace and isinstance(neo4j_memory.decision_trace, dict):
+                            decision_trace_for_event = neo4j_memory.decision_trace
+                            if not reasoning_for_event and neo4j_memory.reasoning:
+                                reasoning_for_event = neo4j_memory.reasoning
+                            ***REMOVED*** 检查是否有有效内容
+                            has_content = (
+                                len(decision_trace_for_event.get("inputs", [])) > 0 or
+                                len(decision_trace_for_event.get("rules_applied", [])) > 0 or
+                                len(decision_trace_for_event.get("exceptions", [])) > 0 or
+                                len(decision_trace_for_event.get("approvals", [])) > 0 or
+                                decision_trace_for_event.get("timestamp") or
+                                decision_trace_for_event.get("operation_id")
+                            )
+                            if has_content:
+                                should_create_event = True
+                                logger.debug(f"Found decision_trace in Neo4j for memory {memory.id}, will create event")
+                    except Exception as e:
+                        logger.debug(f"Failed to read decision_trace from Neo4j for memory {memory.id}: {e}")
+                
+                ***REMOVED*** 如果有reasoning但还没有decision_trace，也尝试创建（至少记录推理过程）
+                if not should_create_event and reasoning_for_event and len(reasoning_for_event.strip()) > 10:
+                    ***REMOVED*** 创建一个基础的decision_trace
+                    decision_trace_for_event = {
+                        "inputs": [memory.content[:200]] if memory.content else [],
+                        "rules_applied": [],
+                        "exceptions": [],
+                        "approvals": [],
+                        "timestamp": memory.timestamp.isoformat(),
+                        "operation_id": operation_id,
+                        "reasoning": reasoning_for_event
+                    }
+                    should_create_event = True
+                    logger.debug(f"Creating decision event based on reasoning for memory {memory.id}")
+                
+                ***REMOVED*** 创建DecisionEvent节点
+                if should_create_event and decision_trace_for_event:
                     try:
                         from .neo4j import create_decision_event
                         ***REMOVED*** 获取相关实体ID
@@ -717,16 +766,18 @@ class UniMem:
                         ***REMOVED*** 创建决策事件节点
                         if create_decision_event(
                             memory_id=memory.id,
-                            decision_trace=memory.decision_trace,
-                            reasoning=memory.reasoning,
+                            decision_trace=decision_trace_for_event,
+                            reasoning=reasoning_for_event,
                             related_entity_ids=related_entity_ids
                         ):
-                            logger.debug(f"Created decision event for memory {memory.id}")
+                            logger.info(f"Created decision event for memory {memory.id}")
+                        else:
+                            logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
                     except Exception as e:
                         ***REMOVED*** 决策事件创建失败不影响主流程
-                        logger.warning(f"Failed to create decision event for memory {memory.id}: {e}")
+                        logger.warning(f"Failed to create decision event for memory {memory.id}: {e}", exc_info=True)
                 else:
-                    logger.debug(f"Skipping decision event creation for memory {memory.id} (no significant trace data)")
+                    logger.debug(f"Skipping decision event creation for memory {memory.id} (no trace data or reasoning)")
                 
                 ***REMOVED*** 记录操作历史（用于幂等性检查）
                 self._record_operation("retain", operation_id, memory)

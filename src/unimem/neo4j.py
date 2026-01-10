@@ -19,6 +19,7 @@ UniMem Neo4j 图数据库操作
 
 import os
 import json
+import re
 import time
 import logging
 import threading
@@ -932,11 +933,75 @@ def get_memory(memory_id: str) -> Optional[Memory]:
         reasoning = node.get("reasoning") or None
         decision_trace = None
         decision_trace_str = node.get("decision_trace", "")
+        
+        ***REMOVED*** 增强decision_trace反序列化逻辑
         if decision_trace_str:
-            try:
-                decision_trace = json.loads(decision_trace_str) if isinstance(decision_trace_str, str) else decision_trace_str
-            except:
-                decision_trace = None
+            ***REMOVED*** 如果已经是dict，直接使用
+            if isinstance(decision_trace_str, dict):
+                decision_trace = decision_trace_str
+            ***REMOVED*** 如果是字符串，尝试解析JSON
+            elif isinstance(decision_trace_str, str):
+                ***REMOVED*** 检查是否为空字符串或"None"/"null"
+                if decision_trace_str.strip() and decision_trace_str.strip().lower() not in ["none", "null", ""]:
+                    try:
+                        decision_trace = json.loads(decision_trace_str)
+                    except json.JSONDecodeError as e:
+                        ***REMOVED*** 记录解析失败，但不影响其他字段的读取
+                        logger.warning(f"Failed to parse decision_trace JSON for memory {node.get('id', 'unknown')}: {e}")
+                        logger.debug(f"decision_trace_str (first 200 chars): {decision_trace_str[:200]}")
+                        ***REMOVED*** 尝试修复常见的JSON错误
+                        try:
+                            ***REMOVED*** 尝试修复单引号、尾随逗号等常见错误
+                            fixed = decision_trace_str.replace("'", '"')
+                            ***REMOVED*** 移除尾随逗号
+                            fixed = re.sub(r',(\s*[}\]])', r'\1', fixed)
+                            decision_trace = json.loads(fixed)
+                            logger.debug(f"Successfully parsed decision_trace after fixing")
+                        except:
+                            decision_trace = None
+                    except Exception as e:
+                        logger.warning(f"Unexpected error parsing decision_trace for memory {node.get('id', 'unknown')}: {e}")
+                        decision_trace = None
+        
+        ***REMOVED*** Fallback: 如果节点的decision_trace字段为空，尝试从metadata中读取
+        if not decision_trace and metadata:
+            decision_trace_from_metadata = metadata.get("decision_trace")
+            if decision_trace_from_metadata:
+                if isinstance(decision_trace_from_metadata, dict):
+                    decision_trace = decision_trace_from_metadata
+                    logger.debug(f"Retrieved decision_trace from metadata for memory {node.get('id', 'unknown')}")
+                elif isinstance(decision_trace_from_metadata, str):
+                    try:
+                        decision_trace = json.loads(decision_trace_from_metadata)
+                        logger.debug(f"Parsed decision_trace from metadata JSON for memory {node.get('id', 'unknown')}")
+                    except:
+                        pass
+        
+        ***REMOVED*** Fallback: 如果仍然没有decision_trace，从metadata中构建
+        if not decision_trace and metadata:
+            has_trace_fields = any([
+                metadata.get("inputs"),
+                metadata.get("rules_applied") or metadata.get("rules"),
+                metadata.get("exceptions"),
+                metadata.get("approvals")
+            ])
+            if has_trace_fields:
+                decision_trace = {
+                    "inputs": metadata.get("inputs", []),
+                    "rules_applied": metadata.get("rules_applied") or metadata.get("rules", []),
+                    "exceptions": metadata.get("exceptions", []),
+                    "approvals": metadata.get("approvals", []),
+                    "timestamp": metadata.get("timestamp") or node.get("timestamp", ""),
+                    "operation_id": metadata.get("operation_id", ""),
+                }
+                logger.debug(f"Constructed decision_trace from metadata fields for memory {node.get('id', 'unknown')}")
+        
+        ***REMOVED*** Fallback: 如果reasoning为空，也从metadata中读取
+        if not reasoning and metadata:
+            reasoning_from_metadata = metadata.get("reasoning")
+            if reasoning_from_metadata:
+                reasoning = reasoning_from_metadata
+                logger.debug(f"Retrieved reasoning from metadata for memory {node.get('id', 'unknown')}")
         
         memory = Memory(
             id=node["id"],

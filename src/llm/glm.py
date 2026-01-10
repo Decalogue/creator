@@ -51,3 +51,21 @@ def glm_stream(messages, thinking='disabled', max_new_tokens=8192, buffer_size=1
     ***REMOVED*** 发送剩余的缓冲内容
     if buffer:
         yield buffer
+
+
+if __name__ == "__main__":
+    prompt = '小说《倚天屠龙记》的作者是谁？'
+    messages = [
+        {'role': 'user', 'content': prompt}
+    ]
+    
+    print("=== 测试非流式 ===")
+    reasoning_content, content = glm(messages)
+    print(f'reasoning_content:\n{reasoning_content}\ncontent:\n{content}')
+
+    print("\n=== 测试流式 ===")
+    stream_res = glm_stream(messages)
+    full_content = ''
+    for chunk in stream_res:
+        full_content += chunk
+        print(chunk, end='', flush=True)

@@ -274,7 +274,20 @@ class VideoAdapter(AtomLinkAdapter):
                     ],
                     "exceptions": [],  ***REMOVED*** 可以在这里添加异常情况
                     "approvals": [],  ***REMOVED*** 可以在这里添加审批流程
-                    "reasoning": f"基于{len(task_memories) if task_memories else 0}条任务记忆，生成{video_type}类型脚本，适配{platform}平台特点"
+                    "reasoning": f"基于{len(task_memories) if task_memories else 0}条任务记忆，生成{video_type}类型脚本，适配{platform}平台特点",
+                    ***REMOVED*** 确保decision_trace字段被正确设置
+                    "decision_trace": {
+                        "inputs": task_memories[:5] if task_memories else [],
+                        "rules_applied": [
+                            f"{platform}平台规则",
+                            f"{video_type}类型脚本规范",
+                            "3秒原则（前3秒抓住注意力）",
+                            "转化率优化要求"
+                        ],
+                        "exceptions": [],
+                        "approvals": [],
+                        "timestamp": datetime.now().isoformat(),
+                    }
                 }
             )
             

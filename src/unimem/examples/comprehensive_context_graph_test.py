@@ -548,12 +548,33 @@ class ContextGraphTestFramework:
                     memory = get_memory(script_memory_id)
                     if memory:
                         test_result["memory_ids"].append(script_memory_id)
+                        
+                        ***REMOVED*** 增强调试日志
+                        has_reasoning = memory.reasoning is not None and memory.reasoning.strip() != ""
+                        has_decision_trace = memory.decision_trace is not None and isinstance(memory.decision_trace, dict)
+                        
+                        ***REMOVED*** 如果decision_trace为空，尝试从Neo4j直接查询
+                        if not has_decision_trace:
+                            try:
+                                from py2neo import Graph
+                                graph = Graph("bolt://localhost:7680", auth=('neo4j', 'seeme_db'), name='neo4j')
+                                result = graph.run("""
+                                    MATCH (m:Memory {id: $memory_id})
+                                    RETURN m.decision_trace as decision_trace
+                                """, memory_id=script_memory_id).data()
+                                if result and result[0].get("decision_trace"):
+                                    logger.debug(f"Found decision_trace in Neo4j for memory {script_memory_id} but not in memory object")
+                                    has_decision_trace = True
+                            except Exception as e:
+                                logger.debug(f"Failed to check decision_trace in Neo4j: {e}")
+                        
                         test_result["reasoning_extracted"].append({
                             "memory_id": memory.id,
-                            "has_reasoning": memory.reasoning is not None,
+                            "has_reasoning": has_reasoning,
                             "reasoning_preview": memory.reasoning[:100] if memory.reasoning else None,
-                            "has_decision_trace": memory.decision_trace is not None,
-                            "decision_trace_keys": list(memory.decision_trace.keys()) if memory.decision_trace else []
+                            "has_decision_trace": has_decision_trace,
+                            "decision_trace_keys": list(memory.decision_trace.keys()) if memory.decision_trace else [],
+                            "decision_trace_type": type(memory.decision_trace).__name__ if memory.decision_trace else None
                         })
                         
                         ***REMOVED*** 验证DecisionEvent节点
@@ -564,6 +585,10 @@ class ContextGraphTestFramework:
                                 "events_count": len(events),
                                 "latest_event": events[0] if events else None
                             })
+                        else:
+                            ***REMOVED*** 如果应该有decision_trace但没有事件，记录日志
+                            if has_decision_trace:
+                                logger.debug(f"Memory {script_memory_id} has decision_trace but no DecisionEvent created")
                 
                 test_result["steps"].append({
                     "step": "generate_script",

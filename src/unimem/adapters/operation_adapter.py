@@ -377,6 +377,18 @@ class OperationAdapter(BaseAdapter):
             new_opinions = self._extract_new_opinions(answer_text, memories)
             new_experiences = self._extract_experiences(answer_text, memories, task)
             
+            ***REMOVED*** 增强：从答案中主动提取reasoning，并更新到新观点和经验中
+            extracted_reasoning = self._extract_reasoning_from_text(answer_text, memories)
+            if extracted_reasoning:
+                ***REMOVED*** 如果新观点没有reasoning，则添加
+                for opinion in new_opinions:
+                    if not opinion.reasoning:
+                        opinion.reasoning = extracted_reasoning
+                ***REMOVED*** 如果新经验没有reasoning，则添加
+                for experience in new_experiences:
+                    if not experience.reasoning:
+                        experience.reasoning = extracted_reasoning
+            
             ***REMOVED*** 更新记忆的置信度（如果有观点记忆）
             updated_memories = self._update_confidence(memories, answer_text)
             
@@ -477,18 +489,24 @@ Agent 性格配置：
 问题: {query}
 
 请基于以上事实回答问题，并：
-1. 提供清晰、准确的答案，**重点说明"为什么"**（决策理由、推理过程、依据的先例或规则）
-2. 如果形成了新的观点或信念，请在答案末尾用【新观点】标记，并说明**为什么**持有这个观点
+1. **必须提供清晰、准确的答案，并明确说明"为什么"**（决策理由、推理过程、依据的先例或规则）
+   - 在答案开头或关键段落中，使用"基于..."、"因为..."、"依据..."等明确标记决策理由
+   - 每个重要判断都要说明推理依据
+2. 如果形成了新的观点或信念，请在答案末尾用【新观点】标记，并**必须说明为什么持有这个观点**（基于什么事实、先例或规则）
 3. 如果识别出了可复用的经验模式或通用策略，请在答案末尾用【新经验】标记，并明确说明：
    - **是什么**：经验模式的具体内容
-   - **为什么**：为什么这个经验有效？基于什么先例或规则？
+   - **为什么**：为什么这个经验有效？基于什么先例或规则？（**必须提供**）
    - **如何应用**：在什么情况下可以使用这个经验？
-4. 对于每个重要决策或判断，明确回答：
-   - **为什么选择这个方案**而不是其他方案？
-   - **基于什么先例、规则或经验**做出的决策？
+4. 对于每个重要决策或判断，**必须明确回答**：
+   - **为什么选择这个方案**而不是其他方案？（**必须提供理由**）
+   - **基于什么先例、规则或经验**做出的决策？（**必须列出具体依据**）
    - **遇到了什么异常或特殊情况**，是如何处理的？
-5. 考虑 Agent 的性格配置，调整回答风格
-6. 注意记忆的抽象层级：具体事件（episodic）用于时间序列推理，抽象概念（semantic）用于概念推理
+5. **重要：在答案中主动提取和总结推理链条**，使用以下格式标记：
+   - "推理依据：" + 列出基于的事实、规则或先例
+   - "决策理由：" + 说明为什么做出这个判断
+   - "经验来源：" + 说明这个经验来自哪些先例
+6. 考虑 Agent 的性格配置，调整回答风格
+7. 注意记忆的抽象层级：具体事件（episodic）用于时间序列推理，抽象概念（semantic）用于概念推理
 
 答案："""
         
@@ -527,13 +545,20 @@ Agent 性格配置：
                     opinion_text = answer_text.split("[新观点]")[-1].strip()
                 
                 if opinion_text:
-                    ***REMOVED*** 创建新观点记忆
+                    ***REMOVED*** 从观点文本中提取reasoning（"为什么"）
+                    reasoning = self._extract_reasoning_from_text(opinion_text, original_memories)
+                    ***REMOVED*** 如果观点文本中没有，尝试从整个答案中提取
+                    if not reasoning:
+                        reasoning = self._extract_reasoning_from_text(answer_text, original_memories)
+                    
+                    ***REMOVED*** 创建新观点记忆（包含reasoning字段）
                     opinion_memory = Memory(
                         id=f"opinion_{datetime.now().timestamp()}",
                         content=opinion_text,
                         timestamp=datetime.now(),
                         memory_type=MemoryType.OPINION,
                         context="通过反思形成的新观点",
+                        reasoning=reasoning,  ***REMOVED*** 新增：存储"为什么"
                         metadata={"confidence": 0.7, "source": "reflect"},
                     )
                     new_opinions.append(opinion_memory)
@@ -850,6 +875,23 @@ Agent 性格配置：
                         return reasoning_text[:300]
                 else:
                     return reasoning_text[:300]
+            
+            ***REMOVED*** 增强：即使没有明确的关键词，也尝试从整个文本中提取推理链条
+            ***REMOVED*** 查找"推理依据"、"决策理由"、"经验来源"等标记
+            import re
+            reasoning_patterns = [
+                r'推理依据[：:]\s*(.+?)(?:\n|$)',
+                r'决策理由[：:]\s*(.+?)(?:\n|$)',
+                r'经验来源[：:]\s*(.+?)(?:\n|$)',
+                r'基于[：:]\s*(.+?)(?:\n|$)',
+            ]
+            
+            for pattern in reasoning_patterns:
+                matches = re.findall(pattern, text, re.MULTILINE)
+                if matches:
+                    reasoning_text = " ".join(matches[:2])
+                    if len(reasoning_text) > 20:
+                        return reasoning_text[:300]
             
             ***REMOVED*** 如果没有找到明确的理由，返回None
             return None
