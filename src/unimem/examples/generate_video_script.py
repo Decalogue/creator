@@ -490,12 +490,26 @@ class VideoScriptGenerator:
                         "exceptions": [],
                         "approvals": ["用户确认"],
                         "timestamp": datetime.now().isoformat(),
+                        "operation_id": f"feedback_{script_memory_id}_{datetime.now().timestamp()}" if script_memory_id else f"feedback_{datetime.now().timestamp()}",
                     }
                 }
             )
             
             memory = self.unimem.retain(experience, context)
             logger.info(f"Feedback stored to UniMem: memory_id={memory.id}")
+            
+            ***REMOVED*** 建立与脚本Memory的关系（改进：建立Memory关系网络）
+            if script_memory_id and memory.id:
+                try:
+                    ***REMOVED*** 将脚本Memory ID添加到links中
+                    memory.links.add(script_memory_id)
+                    ***REMOVED*** 更新Memory以建立RELATED_TO关系
+                    if hasattr(self.unimem, 'storage') and hasattr(self.unimem.storage, 'update_memory'):
+                        self.unimem.storage.update_memory(memory)
+                        logger.debug(f"Established relationship: feedback memory {memory.id} -> script memory {script_memory_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to establish relationship with script memory {script_memory_id}: {e}")
+            
             return memory.id
         except Exception as e:
             logger.warning(f"Failed to store feedback to UniMem: {e}")

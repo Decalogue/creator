@@ -551,6 +551,11 @@ class UniMem:
                 decision_trace = context.metadata.get("decision_trace") if context.metadata else None
                 reasoning = context.metadata.get("reasoning", "") if context.metadata else None
                 
+                ***REMOVED*** 调试日志：检查decision_trace的来源
+                logger.debug(f"RETAIN: decision_trace from context.metadata: {decision_trace is not None}, type: {type(decision_trace)}")
+                if decision_trace:
+                    logger.debug(f"RETAIN: decision_trace keys: {list(decision_trace.keys()) if isinstance(decision_trace, dict) else 'N/A'}")
+                
                 ***REMOVED*** 如果没有decision_trace，则从metadata中构建
                 if not decision_trace and context.metadata:
                     ***REMOVED*** 检查是否有构建decision_trace所需的字段
@@ -598,6 +603,11 @@ class UniMem:
                     else:
                         reasoning = ""  ***REMOVED*** 设置为空字符串而不是None
                 
+                ***REMOVED*** 调试日志：在创建Memory对象之前检查decision_trace
+                logger.debug(f"RETAIN: Before creating Memory - decision_trace: {decision_trace is not None}, reasoning: {reasoning is not None and len(reasoning) > 0}")
+                if decision_trace:
+                    logger.debug(f"RETAIN: decision_trace content: keys={list(decision_trace.keys()) if isinstance(decision_trace, dict) else 'N/A'}")
+                
                 memory = Memory(
                     id=atomic_note.id,
                     content=atomic_note.content,
@@ -613,8 +623,15 @@ class UniMem:
                     decision_trace=decision_trace,  ***REMOVED*** 新增：决策痕迹
                 )
                 
+                ***REMOVED*** 调试日志：Memory对象创建后立即检查decision_trace
+                logger.debug(f"RETAIN: After creating Memory {memory.id} - decision_trace: {memory.decision_trace is not None}, reasoning: {memory.reasoning is not None and len(memory.reasoning) > 0 if memory.reasoning else False}")
+                if memory.decision_trace:
+                    logger.debug(f"RETAIN: Memory.decision_trace keys: {list(memory.decision_trace.keys()) if isinstance(memory.decision_trace, dict) else 'N/A'}")
+                
                 ***REMOVED*** 去重检查：在存储前检查是否有相似记忆
                 similar_memory = self._check_duplicate_memory(memory)
+                skip_storage = False  ***REMOVED*** 标记是否跳过存储逻辑
+                
                 if similar_memory:
                     ***REMOVED*** 如果找到高度相似的记忆，更新已有记忆而不是创建新记忆
                     logger.info(f"Found similar memory {similar_memory.id}, updating instead of creating new")
@@ -629,39 +646,58 @@ class UniMem:
                     ***REMOVED*** 合并keywords和tags
                     similar_memory.keywords = list(set(similar_memory.keywords + memory.keywords))
                     similar_memory.tags = list(set(similar_memory.tags + memory.tags))
-                    ***REMOVED*** 更新记忆
+                    ***REMOVED*** 重要：更新decision_trace和reasoning（修复DecisionEvent创建问题）
+                    if memory.decision_trace:
+                        similar_memory.decision_trace = memory.decision_trace
+                        logger.debug(f"Updated similar_memory {similar_memory.id} with decision_trace")
+                    if memory.reasoning:
+                        similar_memory.reasoning = memory.reasoning
+                        logger.debug(f"Updated similar_memory {similar_memory.id} with reasoning")
+                    ***REMOVED*** 更新记忆（相似记忆已经存在，直接更新即可）
                     self.storage.update_memory(similar_memory)
-                    ***REMOVED*** 记录操作历史
-                    self._record_operation("retain", operation_id, similar_memory)
-                    return similar_memory
+                    ***REMOVED*** 将similar_memory赋值给memory，以便后续的DecisionEvent创建逻辑使用
+                    memory = similar_memory
+                    skip_storage = True  ***REMOVED*** 标记跳过存储逻辑
                 
-                ***REMOVED*** 使用事务确保原子性
-                with self._retain_transaction(memory.id) as rollback_actions:
-                    ***REMOVED*** 5. 存储管理器：存储到相应层级（自动判断 FoA/DA/LTM）
-                    self._record_adapter_call("LayeredStorageAdapter", "add_to_foa")
-                    if not self.storage.add_memory(memory, context):
-                        raise RetainError(
-                            "Failed to add memory to storage",
-                            adapter_name="UniMem"
-                        )
-                    
-                    ***REMOVED*** 记录回滚操作
-                    rollback_actions.append(lambda: self._rollback_storage(memory.id))
-                    
-                    ***REMOVED*** 6. 图结构适配器：更新网络结构
+                ***REMOVED*** 使用事务确保原子性（仅对新记忆执行）
+                if not skip_storage:
+                    with self._retain_transaction(memory.id) as rollback_actions:
+                        ***REMOVED*** 5. 存储管理器：存储到相应层级（自动判断 FoA/DA/LTM）
+                        self._record_adapter_call("LayeredStorageAdapter", "add_to_foa")
+                        if not self.storage.add_memory(memory, context):
+                            raise RetainError(
+                                "Failed to add memory to storage",
+                                adapter_name="UniMem"
+                            )
+                        
+                        ***REMOVED*** 记录回滚操作
+                        rollback_actions.append(lambda: self._rollback_storage(memory.id))
+                        
+                        ***REMOVED*** 6. 图结构适配器：更新网络结构
+                        if entities:
+                            self._record_adapter_call("GraphAdapter", "add_entities")
+                            if not self.graph_adapter.add_entities(entities):
+                                logger.warning("Failed to add some entities to graph")
+                            else:
+                                rollback_actions.append(lambda: self._rollback_entities(entities))
+                        
+                        if relations:
+                            self._record_adapter_call("GraphAdapter", "add_relations")
+                            if not self.graph_adapter.add_relations(relations):
+                                logger.warning("Failed to add some relations to graph")
+                            else:
+                                rollback_actions.append(lambda: self._rollback_relations(relations))
+                else:
+                    ***REMOVED*** 相似记忆也需要更新图结构（如果有新的实体和关系）
                     if entities:
                         self._record_adapter_call("GraphAdapter", "add_entities")
                         if not self.graph_adapter.add_entities(entities):
                             logger.warning("Failed to add some entities to graph")
-                        else:
-                            rollback_actions.append(lambda: self._rollback_entities(entities))
                     
                     if relations:
                         self._record_adapter_call("GraphAdapter", "add_relations")
                         if not self.graph_adapter.add_relations(relations):
                             logger.warning("Failed to add some relations to graph")
-                        else:
-                            rollback_actions.append(lambda: self._rollback_relations(relations))
                     
                 ***REMOVED*** 7. 原子链接适配器：生成链接
                 self._record_adapter_call("AtomLinkAdapter", "generate_links")
@@ -701,6 +737,11 @@ class UniMem:
                 should_create_event = False
                 decision_trace_for_event = None
                 reasoning_for_event = memory.reasoning or ""
+                
+                ***REMOVED*** 调试日志：检查Memory对象在DecisionEvent创建前的状态
+                logger.debug(f"RETAIN: Before DecisionEvent creation for memory {memory.id} - decision_trace: {memory.decision_trace is not None}, type: {type(memory.decision_trace)}")
+                if memory.decision_trace:
+                    logger.debug(f"RETAIN: Memory.decision_trace is dict: {isinstance(memory.decision_trace, dict)}, keys: {list(memory.decision_trace.keys()) if isinstance(memory.decision_trace, dict) else 'N/A'}")
                 
                 ***REMOVED*** 首先检查memory对象中的decision_trace
                 if memory.decision_trace and isinstance(memory.decision_trace, dict):
@@ -757,12 +798,17 @@ class UniMem:
                     should_create_event = True
                     logger.debug(f"Creating decision event based on reasoning for memory {memory.id}")
                 
+                ***REMOVED*** 调试日志：DecisionEvent创建条件检查
+                logger.debug(f"RETAIN: DecisionEvent creation check for memory {memory.id} - should_create_event: {should_create_event}, decision_trace_for_event: {decision_trace_for_event is not None}")
+                
                 ***REMOVED*** 创建DecisionEvent节点
                 if should_create_event and decision_trace_for_event:
                     try:
                         from .neo4j import create_decision_event
                         ***REMOVED*** 获取相关实体ID
                         related_entity_ids = memory.entities if memory.entities else []
+                        ***REMOVED*** 调试日志：即将创建DecisionEvent
+                        logger.debug(f"RETAIN: Creating DecisionEvent for memory {memory.id} with decision_trace keys: {list(decision_trace_for_event.keys()) if isinstance(decision_trace_for_event, dict) else 'N/A'}")
                         ***REMOVED*** 创建决策事件节点
                         if create_decision_event(
                             memory_id=memory.id,
@@ -777,7 +823,7 @@ class UniMem:
                         ***REMOVED*** 决策事件创建失败不影响主流程
                         logger.warning(f"Failed to create decision event for memory {memory.id}: {e}", exc_info=True)
                 else:
-                    logger.debug(f"Skipping decision event creation for memory {memory.id} (no trace data or reasoning)")
+                    logger.debug(f"Skipping decision event creation for memory {memory.id} - should_create_event: {should_create_event}, decision_trace_for_event: {decision_trace_for_event is not None}, reasoning_for_event: {len(reasoning_for_event) if reasoning_for_event else 0} chars")
                 
                 ***REMOVED*** 记录操作历史（用于幂等性检查）
                 self._record_operation("retain", operation_id, memory)
@@ -1089,32 +1135,101 @@ class UniMem:
                     self.update_adapter.add_to_sleep_queue([evolved])
                 
                 ***REMOVED*** 3. 存储新形成的观点（Hindsight 风格）
+                ***REMOVED*** 改进：使用retain方法存储，确保创建decision_trace
                 for opinion in new_opinions:
-                    ***REMOVED*** 存储新观点
-                    self.storage.add_memory(opinion, context)
-                    evolved_memories.append(opinion)
+                    ***REMOVED*** 构建决策痕迹（Context Graph增强）
+                    from .memory_types import Experience
+                    experience = Experience(
+                        content=opinion.content,
+                        timestamp=opinion.timestamp
+                    )
                     
-                    ***REMOVED*** 更新向量存储
-                    if hasattr(self.network_adapter, 'add_memory_to_vector_store'):
-                        self.network_adapter.add_memory_to_vector_store(opinion)
+                    ***REMOVED*** 构建包含decision_trace的context
+                    reflect_context = Context(
+                        metadata={
+                            "source": opinion.metadata.get("source", "reflect"),
+                            "task_description": current_task.description,
+                            "task_id": current_task.id,
+                            "inputs": [m.content[:200] for m in memories[:3]],  ***REMOVED*** 基于的记忆
+                            "rules": [
+                                "基于事实进行推理",
+                                "形成可复用的观点",
+                                "考虑Agent性格配置"
+                            ],
+                            "exceptions": [],
+                            "approvals": [],
+                            "reasoning": opinion.reasoning or "",
+                            "decision_trace": {
+                                "inputs": [m.content[:200] for m in memories[:3]],
+                                "rules_applied": [
+                                    "基于事实进行推理",
+                                    "形成可复用的观点",
+                                    "考虑Agent性格配置"
+                                ],
+                                "exceptions": [],
+                                "approvals": [],
+                                "timestamp": opinion.timestamp.isoformat(),
+                                "operation_id": f"reflect_opinion_{current_task.id}",
+                                "task_id": current_task.id,
+                                "based_on_memories": [m.id for m in memories[:5]]
+                            }
+                        }
+                    )
                     
-                    logger.debug(f"Stored new opinion: {opinion.id}")
+                    ***REMOVED*** 使用retain存储，确保创建decision_trace和DecisionEvent
+                    stored_opinion = self.retain(experience, reflect_context)
+                    evolved_memories.append(stored_opinion)
+                    logger.debug(f"Stored new opinion: {stored_opinion.id}")
                 
                 ***REMOVED*** 4. 存储新提取的经验（增强功能）
-                for experience in new_experiences:
+                ***REMOVED*** 改进：使用retain方法存储，确保创建decision_trace
+                for experience_mem in new_experiences:
                     ***REMOVED*** 确保经验记忆有正确的source
-                    if "source" not in experience.metadata:
-                        experience.metadata["source"] = "reflect_experience"
+                    source = experience_mem.metadata.get("source", "reflect_experience")
                     
-                    ***REMOVED*** 存储新经验
-                    self.storage.add_memory(experience, context)
-                    evolved_memories.append(experience)
+                    ***REMOVED*** 构建决策痕迹（Context Graph增强）
+                    experience = Experience(
+                        content=experience_mem.content,
+                        timestamp=experience_mem.timestamp
+                    )
                     
-                    ***REMOVED*** 更新向量存储
-                    if hasattr(self.network_adapter, 'add_memory_to_vector_store'):
-                        self.network_adapter.add_memory_to_vector_store(experience)
+                    ***REMOVED*** 构建包含decision_trace的context
+                    reflect_context = Context(
+                        metadata={
+                            "source": source,
+                            "task_description": current_task.description,
+                            "task_id": current_task.id,
+                            "inputs": [m.content[:200] for m in memories[:3]],  ***REMOVED*** 基于的记忆
+                            "rules": [
+                                "从多轮对话中提取经验模式",
+                                "识别可复用的优化策略",
+                                "总结通用最佳实践"
+                            ],
+                            "exceptions": [],
+                            "approvals": [],
+                            "reasoning": experience_mem.reasoning or "",
+                            "decision_trace": {
+                                "inputs": [m.content[:200] for m in memories[:3]],
+                                "rules_applied": [
+                                    "从多轮对话中提取经验模式",
+                                    "识别可复用的优化策略",
+                                    "总结通用最佳实践"
+                                ],
+                                "exceptions": [],
+                                "approvals": [],
+                                "timestamp": experience_mem.timestamp.isoformat(),
+                                "operation_id": f"reflect_experience_{current_task.id}",
+                                "task_id": current_task.id,
+                                "based_on_memories": [m.id for m in memories[:5]],
+                                "experience_type": source  ***REMOVED*** reflect_experience, reflect_implicit, reflect_pattern_summary
+                            }
+                        }
+                    )
                     
-                    logger.debug(f"Stored new experience: {experience.id}")
+                    ***REMOVED*** 使用retain存储，确保创建decision_trace和DecisionEvent
+                    stored_experience = self.retain(experience, reflect_context)
+                    evolved_memories.append(stored_experience)
+                    logger.debug(f"Stored new experience: {stored_experience.id}")
                 
                 logger.info(f"REFLECT completed: {len(evolved_memories)} memories evolved "
                           f"(including {len(new_opinions)} new opinions, {len(new_experiences)} new experiences)")

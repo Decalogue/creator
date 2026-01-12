@@ -18,6 +18,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 import random
+import logging
 from typing import List, Dict, Any, Optional
 
 ***REMOVED*** 添加项目路径
@@ -29,6 +30,9 @@ from unimem.memory_types import Experience, Context, Task, Memory
 from unimem.examples.generate_video_script import VideoScriptGenerator
 from unimem.neo4j import get_decision_events_for_memory
 from py2neo import Graph
+
+***REMOVED*** 初始化logger
+logger = logging.getLogger(__name__)
 
 
 class ContextGraphTestFramework:
@@ -854,7 +858,8 @@ class ContextGraphTestFramework:
         for r in results:
             all_reasoning.extend(r.get("reasoning_extracted", []))
         
-        memories_with_reasoning = sum(1 for re in all_reasoning if re.get("reasoning"))
+        ***REMOVED*** 修复：使用has_reasoning字段而不是reasoning字段
+        memories_with_reasoning = sum(1 for re in all_reasoning if re.get("has_reasoning") or re.get("reasoning"))
         total_memories = summary["total_memories"]
         summary["reasoning_coverage"] = memories_with_reasoning / total_memories * 100 if total_memories > 0 else 0
         
