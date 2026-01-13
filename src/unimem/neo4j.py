@@ -224,6 +224,7 @@ def _ensure_initialized():
             ***REMOVED*** 确保 node_matcher 也被初始化（get_graph 应该已经初始化了，但为了安全再检查一次）
             if _node_matcher is None and _graph:
                 _node_matcher = NodeMatcher(_graph)
+            if _relationship_matcher is None and _graph:
                 _relationship_matcher = RelationshipMatcher(_graph)
             ***REMOVED*** 更新模块级别变量（必须执行，即使 _graph 已经存在）
             graph = _graph

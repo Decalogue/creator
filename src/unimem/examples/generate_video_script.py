@@ -423,6 +423,77 @@ class VideoScriptGenerator:
                 script_data=original_script,
                 feedback=feedback_text
             )
+            
+            ***REMOVED*** 改进：将优化后的脚本存储到UniMem（如果UniMem可用）
+            if optimized_script and self.unimem and self.adapter:
+                try:
+                    ***REMOVED*** 获取原始脚本的memory_id（如果有）
+                    original_script_memory_id = original_script.get("unimem_memory_id")
+                    
+                    ***REMOVED*** 存储优化后的脚本到UniMem
+                    video_type = original_doc_data.get("video_type", "ecommerce")
+                    platform = original_doc_data.get("platform", "douyin")
+                    task_memories = original_doc_data.get("task_memories", [])
+                    
+                    ***REMOVED*** 构建包含反馈信息的decision_trace
+                    optimized_decision_trace = {
+                        "inputs": task_memories[:5] + all_modifications[:3],  ***REMOVED*** 任务记忆 + 反馈
+                        "rules_applied": [
+                            f"{platform}平台规则",
+                            f"{video_type}类型脚本规范",
+                            "用户反馈优先原则",
+                            "脚本优化规范"
+                        ],
+                        "exceptions": [],
+                        "approvals": ["用户反馈确认"],
+                        "timestamp": datetime.now().isoformat(),
+                        "operation_id": f"optimize_{original_script_memory_id}_{datetime.now().timestamp()}" if original_script_memory_id else f"optimize_{datetime.now().timestamp()}",
+                        "based_on_script": original_script_memory_id  ***REMOVED*** 记录基于哪个脚本优化
+                    }
+                    
+                    ***REMOVED*** 创建Experience和Context
+                    from unimem.memory_types import Experience, Context
+                    experience = Experience(
+                        content=f"优化后的脚本（基于用户反馈）：{optimized_script.get('summary', {}).get('title', '')}",
+                        timestamp=datetime.now()
+                    )
+                    
+                    context = Context(
+                        metadata={
+                            "source": "script_optimization",
+                            "task_description": f"基于用户反馈优化{video_type}类型脚本",
+                            "video_type": video_type,
+                            "platform": platform,
+                            "optimization_feedback": all_modifications[:5],
+                            "original_script_id": original_script_memory_id,
+                            "reasoning": f"基于{len(all_modifications)}条用户反馈优化脚本，提升用户体验和转化率",
+                            "decision_trace": optimized_decision_trace
+                        }
+                    )
+                    
+                    ***REMOVED*** 存储优化后的脚本
+                    optimized_memory = self.unimem.retain(experience, context)
+                    optimized_script["unimem_memory_id"] = optimized_memory.id
+                    logger.info(f"Stored optimized script to UniMem: memory_id={optimized_memory.id}")
+                    
+                    ***REMOVED*** 建立与原始脚本的关系
+                    if original_script_memory_id:
+                        optimized_memory.links.add(original_script_memory_id)
+                        if hasattr(self.unimem, 'storage') and hasattr(self.unimem.storage, 'update_memory'):
+                            self.unimem.storage.update_memory(optimized_memory)
+                    
+                    ***REMOVED*** 为优化后的脚本创建DecisionEvent
+                    if optimized_memory.decision_trace:
+                        from unimem.neo4j import create_decision_event
+                        if create_decision_event(
+                            memory_id=optimized_memory.id,
+                            decision_trace=optimized_memory.decision_trace,
+                            reasoning=optimized_memory.reasoning or context.metadata.get("reasoning", ""),
+                            related_entity_ids=optimized_memory.entities if optimized_memory.entities else []
+                        ):
+                            logger.info(f"Created DecisionEvent for optimized script memory {optimized_memory.id}")
+                except Exception as e:
+                    logger.warning(f"Failed to store optimized script to UniMem: {e}")
         else:
             ***REMOVED*** 否则重新生成
             optimized_script = self.generate_script(optimized_doc_data)
@@ -463,6 +534,50 @@ class VideoScriptGenerator:
                 timestamp=datetime.now()
             )
             
+            ***REMOVED*** 改进1：从关联的脚本Memory继承decision_trace
+            inherited_decision_trace = None
+            if script_memory_id:
+                try:
+                    from unimem.neo4j import get_memory
+                    script_memory = get_memory(script_memory_id)
+                    if script_memory and script_memory.decision_trace:
+                        ***REMOVED*** 继承脚本Memory的decision_trace，但更新inputs和operation_id
+                        inherited_decision_trace = script_memory.decision_trace.copy()
+                        inherited_decision_trace["inputs"] = [feedback]  ***REMOVED*** 更新为当前反馈
+                        inherited_decision_trace["operation_id"] = f"feedback_{script_memory_id}_{datetime.now().timestamp()}"
+                        inherited_decision_trace["timestamp"] = datetime.now().isoformat()
+                        ***REMOVED*** 添加反馈相关的规则
+                        if "rules_applied" in inherited_decision_trace:
+                            inherited_decision_trace["rules_applied"].extend([
+                                "用户反馈优先原则",
+                                "脚本优化规范",
+                                "用户体验改进要求"
+                            ])
+                        else:
+                            inherited_decision_trace["rules_applied"] = [
+                                "用户反馈优先原则",
+                                "脚本优化规范",
+                                "用户体验改进要求"
+                            ]
+                        logger.debug(f"Inherited decision_trace from script memory {script_memory_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to inherit decision_trace from script memory {script_memory_id}: {e}")
+            
+            ***REMOVED*** 如果没有继承到decision_trace，创建新的
+            if not inherited_decision_trace:
+                inherited_decision_trace = {
+                    "inputs": [feedback],
+                    "rules_applied": [
+                        "用户反馈优先原则",
+                        "脚本优化规范",
+                        "用户体验改进要求"
+                    ],
+                    "exceptions": [],
+                    "approvals": ["用户确认"],
+                    "timestamp": datetime.now().isoformat(),
+                    "operation_id": f"feedback_{script_memory_id}_{datetime.now().timestamp()}" if script_memory_id else f"feedback_{datetime.now().timestamp()}",
+                }
+            
             context = Context(
                 metadata={
                     "source": "user_feedback",  ***REMOVED*** 明确标识来源
@@ -479,19 +594,8 @@ class VideoScriptGenerator:
                     "exceptions": [],  ***REMOVED*** 可以记录特殊反馈情况
                     "approvals": ["用户确认"],  ***REMOVED*** 用户反馈本身就是一种确认
                     "reasoning": f"用户反馈要求：{feedback[:100]}，需要据此优化脚本",
-                    ***REMOVED*** 确保decision_trace字段被正确设置
-                    "decision_trace": {
-                        "inputs": [feedback],
-                        "rules_applied": [
-                            "用户反馈优先原则",
-                            "脚本优化规范",
-                            "用户体验改进要求"
-                        ],
-                        "exceptions": [],
-                        "approvals": ["用户确认"],
-                        "timestamp": datetime.now().isoformat(),
-                        "operation_id": f"feedback_{script_memory_id}_{datetime.now().timestamp()}" if script_memory_id else f"feedback_{datetime.now().timestamp()}",
-                    }
+                    ***REMOVED*** 使用继承或新建的decision_trace
+                    "decision_trace": inherited_decision_trace
                 }
             )
             
@@ -509,6 +613,22 @@ class VideoScriptGenerator:
                         logger.debug(f"Established relationship: feedback memory {memory.id} -> script memory {script_memory_id}")
                 except Exception as e:
                     logger.warning(f"Failed to establish relationship with script memory {script_memory_id}: {e}")
+            
+            ***REMOVED*** 改进2：为反馈Memory创建DecisionEvent
+            if memory.decision_trace:
+                try:
+                    from unimem.neo4j import create_decision_event
+                    if create_decision_event(
+                        memory_id=memory.id,
+                        decision_trace=memory.decision_trace,
+                        reasoning=memory.reasoning or context.metadata.get("reasoning", ""),
+                        related_entity_ids=memory.entities if memory.entities else []
+                    ):
+                        logger.info(f"Created DecisionEvent for feedback memory {memory.id}")
+                    else:
+                        logger.warning(f"Failed to create DecisionEvent for feedback memory {memory.id}")
+                except Exception as e:
+                    logger.warning(f"Failed to create DecisionEvent for feedback memory {memory.id}: {e}")
             
             return memory.id
         except Exception as e:

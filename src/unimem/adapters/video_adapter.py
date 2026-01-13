@@ -74,6 +74,7 @@ class VideoAdapter(AtomLinkAdapter):
         """
         super().__init__(config)
         self.unimem = unimem_instance
+        self.last_script_memory_id = None  ***REMOVED*** 保存最近存储的脚本memory_id
         if self.unimem:
             logger.info("Video adapter initialized with UniMem integration")
         else:
@@ -293,6 +294,9 @@ class VideoAdapter(AtomLinkAdapter):
             
             ***REMOVED*** 使用 UniMem 的 RETAIN 操作存储
             memory = self.unimem.retain(experience, context)
+            
+            ***REMOVED*** 保存memory_id到adapter实例，以便后续使用
+            self.last_script_memory_id = memory.id
             
             logger.info(f"Stored script to UniMem: memory_id={memory.id}")
             return memory.id

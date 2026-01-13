@@ -1125,7 +1125,7 @@ class AtomLinkAdapter(BaseAdapter):
                         ***REMOVED*** 如果不是有效的 UUID，使用原始字符串
                         point_id = str(memory.id)
                     ***REMOVED*** 保存映射
-                self.id_mapping[memory.id] = point_id
+                    self.id_mapping[memory.id] = point_id
                 original_id = None
             except Exception:
                 ***REMOVED*** 如果以上都失败，生成一个新的 UUID 字符串并保存映射
