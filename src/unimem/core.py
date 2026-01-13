@@ -1138,7 +1138,6 @@ class UniMem:
                 # 改进：使用retain方法存储，确保创建decision_trace
                 for opinion in new_opinions:
                     # 构建决策痕迹（Context Graph增强）
-                    from .memory_types import Experience
                     experience = Experience(
                         content=opinion.content,
                         timestamp=opinion.timestamp
