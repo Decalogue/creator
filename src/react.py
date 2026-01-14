@@ -13,8 +13,10 @@ import os
 import re
 from typing import List, Dict, Optional, Tuple, Any
 
-from tools import default_registry
-from llm.chat import ark_client, ark_deepseek_v3_2
+from tools import default_registry, get_discovery
+from agent.context_manager import get_context_manager
+from agent.layered_action_space import get_layered_action_space
+from llm.chat import deepseek_v3_2
 
 
 class ReActAgent:
@@ -23,36 +25,40 @@ class ReActAgent:
     实现 Reasoning + Acting 的推理模式
     """
     
-    def __init__(self, max_iterations: int = 10):
+    def __init__(self, max_iterations: int = 10, enable_context_offloading: bool = True):
         """
         初始化 ReAct 代理
         
         Args:
             max_iterations: 最大迭代次数，防止无限循环
+            enable_context_offloading: 是否启用上下文卸载（Context Offloading）
         """
         self.max_iterations = max_iterations
         self.tools = default_registry
         self.conversation_history: List[Dict[str, str]] = []
+        self.enable_context_offloading = enable_context_offloading
+        self.context_manager = get_context_manager() if enable_context_offloading else None
+        self.layered_action_space = get_layered_action_space()
     
     def _get_tools_description(self) -> str:
-        """获取所有可用工具的文本描述"""
-        tools = self.tools.get_all_functions()
-        if not tools:
-            return "没有可用的工具。"
+        """
+        获取工具描述（Index Layer + Layered Action Space）
+        只返回工具名称列表，详细描述在 Discovery Layer 中按需查找
+        """
+        discovery = get_discovery()
+        index_layer = discovery.get_index_layer()
         
-        descriptions = []
-        for tool in tools:
-            func = tool.get("function", {})
-            name = func.get("name", "")
-            desc = func.get("description", "")
-            params = func.get("parameters", {}).get("properties", {})
-            
-            param_desc = ", ".join([f"{k}: {v.get('description', '')}" 
-                                   for k, v in params.items()])
-            
-            descriptions.append(f"- {name}: {desc} (参数: {param_desc})")
+        ***REMOVED*** 添加分层行动空间描述
+        las = self.layered_action_space
+        layered_desc = f"""
+{las.get_l1_functions_description()}
+
+{las.get_l2_tools_description()}
+
+{las.get_l3_description()}
+"""
         
-        return "\n".join(descriptions)
+        return index_layer + layered_desc
     
     def _parse_action(self, text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
         """
@@ -96,10 +102,25 @@ class ReActAgent:
         return None
     
     def _execute_action(self, action_name: str, action_input: Dict[str, Any]) -> str:
-        """执行行动并返回观察结果"""
+        """
+        执行行动并返回观察结果
+        如果启用 Context Offloading，会将冗长的结果写入文件
+        """
         try:
             result = self.tools.execute_tool(action_name, action_input)
-            return f"执行成功: {result}"
+            result_str = str(result)
+            
+            ***REMOVED*** 如果启用 Context Offloading 且结果过长，写入文件
+            if self.enable_context_offloading and self.context_manager:
+                offloaded_result, file_path = self.context_manager.offload_tool_result(
+                    tool_name=action_name,
+                    tool_input=action_input,
+                    tool_output=result_str,
+                    max_length=500  ***REMOVED*** 超过500字符则写入文件
+                )
+                return offloaded_result
+            
+            return f"执行成功: {result_str}"
         except ValueError as e:
             return f"执行失败: {str(e)}"
         except Exception as e:
@@ -124,11 +145,24 @@ class ReActAgent:
         """构建系统提示词"""
         tools_desc = self._get_tools_description()
         
+        context_offloading_note = ""
+        if self.enable_context_offloading:
+            context_offloading_note = """
+**上下文管理**：
+- 如果工具返回结果过长，会自动保存到文件，只返回文件路径引用
+- 如果上下文接近限制，会将完整历史保存到文件，提供摘要+文件引用
+- 可以使用 `read_file` 工具读取保存的文件，或使用 `grep` 命令搜索特定内容
+"""
+        
         return f"""你是一个使用 ReAct (Reasoning + Acting) 方式解决问题的 AI 助手。
 
-你可以使用以下工具：
 {tools_desc}
 
+**工具发现机制**：
+- 系统提示词中只包含工具名称列表（Index Layer）
+- 如需了解工具的详细描述、参数定义和使用方法，请使用 `search_tool_docs` 工具搜索工具文档
+- 找到相关工具后，可以使用 `read_tool_doc` 工具读取完整的工具文档（Discovery Layer）
+{context_offloading_note}
 请按照以下格式思考和行动：
 
 Thought: [你的思考过程，分析问题并决定下一步行动]
@@ -145,8 +179,10 @@ Final Answer: [最终答案]
 重要提示：
 1. 每次只能执行一个 Action
 2. Action Input 必须是有效的 JSON 格式
-3. 仔细分析 Observation 结果，再决定下一步
-4. 如果工具执行失败，尝试其他方法或给出合理的解释"""
+3. 如果不确定工具的使用方法，先使用 `search_tool_docs` 搜索工具文档
+4. 如果工具返回文件路径引用，可以使用 `read_file` 工具读取完整内容
+5. 仔细分析 Observation 结果，再决定下一步
+6. 如果工具执行失败，尝试其他方法或给出合理的解释"""
     
     def run(self, query: str, verbose: bool = True) -> str:
         """
@@ -174,6 +210,56 @@ Final Answer: [最终答案]
             if verbose:
                 print(f"\n[迭代 {iteration + 1}/{self.max_iterations}]")
             
+            ***REMOVED*** 检查上下文长度，如果接近限制则卸载历史（Context Offloading）
+            if self.enable_context_offloading and self.context_manager:
+                estimated_tokens, needs_reduction = self.context_manager.estimate_context_length(
+                    self.conversation_history,
+                    threshold=128000  ***REMOVED*** Pre-rot threshold: 128K tokens
+                )
+                
+                if needs_reduction and iteration > 0:  ***REMOVED*** 至少执行一次迭代后再缩减
+                    if verbose:
+                        print(f"⚠️  上下文长度: {estimated_tokens} tokens，触发上下文缩减...")
+                    
+                    ***REMOVED*** 第一步：Compaction（紧凑化）- 无损、可逆
+                    compacted_history, removed_records = self.context_manager.compact_conversation_history(
+                        self.conversation_history,
+                        keep_recent=3  ***REMOVED*** 保留最近3条作为 Few-shot Examples
+                    )
+                    
+                    if verbose and removed_records:
+                        print(f"  ✓ Compaction: 紧凑化了 {len(removed_records)} 条记录")
+                    
+                    ***REMOVED*** 如果 Compaction 后仍然超过阈值，进行 Summarization
+                    compacted_tokens, still_needs_reduction = self.context_manager.estimate_context_length(
+                        compacted_history,
+                        threshold=self.context_manager.pre_rot_threshold
+                    )
+                    
+                    if still_needs_reduction:
+                        if verbose:
+                            print(f"  ⚠️  Compaction 后仍超过阈值 ({compacted_tokens} tokens)，进行 Summarization...")
+                        
+                        ***REMOVED*** 第二步：Summarization（摘要化）- 有损但带保险
+                        summary_ref, dump_file, recent_history = self.context_manager.summarize_with_dump(
+                            self.conversation_history,
+                            keep_recent=3
+                        )
+                        
+                        if verbose:
+                            print(f"  ✓ Summarization: 完整上下文已转储到 {dump_file}")
+                        
+                        ***REMOVED*** 替换对话历史为摘要+文件引用+最近记录
+                        self.conversation_history = [
+                            {"role": "system", "content": self._build_system_prompt()},
+                            {"role": "user", "content": f"之前的对话历史摘要:\n{summary_ref}"},
+                        ] + recent_history
+                    else:
+                        ***REMOVED*** 只进行 Compaction，不进行 Summarization
+                        self.conversation_history = compacted_history
+                        if verbose:
+                            print(f"  ✓ 仅 Compaction 已足够，当前 tokens: {compacted_tokens}")
+            
             ***REMOVED*** 获取工具定义
             tools = self.tools.get_all_functions()
             
@@ -181,8 +267,9 @@ Final Answer: [最终答案]
             try:
                 ***REMOVED*** 尝试使用 OpenAI Function Calling API
                 ***REMOVED*** 模型名称可以通过环境变量或配置设置
+                from llm.chat import client
                 model_name = os.getenv("REACT_MODEL", "ep-20251209150604-gxb42")
-                response = ark_client.chat.completions.create(
+                response = client.chat.completions.create(
                     model=model_name,
                     messages=self.conversation_history,
                     tools=tools if tools else None,
@@ -269,7 +356,7 @@ Final Answer: [最终答案]
                     print(f"Function Calling 失败，使用文本解析模式: {e}\n")
                 
                 ***REMOVED*** 调用 LLM 进行推理（文本模式）
-                reasoning_content, content = ark_deepseek_v3_2(self.conversation_history)
+                reasoning_content, content = deepseek_v3_2(self.conversation_history)
                 
                 if verbose:
                     print(f"模型输出:\n{content}\n")

@@ -1,0 +1,188 @@
+{
+  "start_time": "2026-01-14T13:54:21.302268",
+  "scenarios": [
+    {
+      "scenario_id": "scenario_1",
+      "scenario_name": "电商-美妆-小红书-简单",
+      "complexity": "simple",
+      "timestamp": "2026-01-14T13:54:21.302365",
+      "steps": [
+        {
+          "step": "create_document",
+          "status": "success",
+          "doc_path": "/root/data/AI/creator/src/unimem/examples/test_docs_new_template/scenario_1.docx"
+        },
+        {
+          "step": "parse_document",
+          "status": "success",
+          "parsed_data": {
+            "task_memories": 8,
+            "video_type": "ecommerce",
+            "platform": "xiaohongshu"
+          }
+        },
+        {
+          "step": "search_precedents",
+          "status": "success",
+          "precedents_count": 0
+        },
+        {
+          "step": "generate_script",
+          "status": "success",
+          "script_memory_id": "dc3e4525-62f3-4bb5-bbec-cc5242fa35d6"
+        },
+        {
+          "step": "multi_round_optimization",
+          "status": "success",
+          "feedback_rounds": 3
+        },
+        {
+          "step": "reflect",
+          "status": "success",
+          "evolved_count": 1,
+          "new_experiences": 0
+        }
+      ],
+      "memory_ids": [
+        "dc3e4525-62f3-4bb5-bbec-cc5242fa35d6",
+        "d443af92-b66f-4101-affe-4da15d086406",
+        "5044b656-1b0b-444e-a8b0-679246154023",
+        "a73fb3c7-d3b3-4a85-8392-5c668d51eb3e"
+      ],
+      "decision_events": [
+        {
+          "memory_id": "dc3e4525-62f3-4bb5-bbec-cc5242fa35d6",
+          "events_count": 1,
+          "latest_event": {
+            "id": "decision_dc3e4525-62f3-4bb5-bbec-cc5242fa35d6",
+            "memory_id": "dc3e4525-62f3-4bb5-bbec-cc5242fa35d6",
+            "inputs": [
+              "推广新品春季限定口红，这是一款专为年轻女性设计的彩妆产品，适合日常通勤、约会聚会等多种场合使用",
+              "核心卖点：12小时超长持久不脱色，色彩饱满显色度高，柔雾质地高级感十足，质地舒适不拔干，包装精致适合送礼",
+              "目标受众：18-28岁年轻女性，喜欢清新自然妆容风格，追求性价比和实用性，注重产品实际效果",
+              "风格要求：清新自然，真实体验分享，避免过度美颜滤镜，保持真实感，让观众看到产品的真实状态",
+              "需要详细展示：试色效果（自然光线、室内光线、室外光线的显色度对比）、持久度测试（时间轴展示0小时、6小时、12小时后的效果对比）、多色号对比（5个色号的详细对比和不同肤色适配建议）、日常妆容搭配技巧（通勤、约会、聚会等不同场合的妆容效果）"
+            ],
+            "rules_applied": [
+              "xiaohongshu平台规则",
+              "ecommerce类型脚本规范",
+              "3秒原则（前3秒抓住注意力）",
+              "转化率优化要求"
+            ],
+            "exceptions": [],
+            "approvals": [],
+            "reasoning": "基于8条任务记忆，生成ecommerce类型脚本，适配xiaohongshu平台特点",
+            "timestamp": "2026-01-14T13:55:53.591377"
+          }
+        }
+      ],
+      "precedents_found": [],
+      "reasoning_extracted": [
+        {
+          "memory_id": "dc3e4525-62f3-4bb5-bbec-cc5242fa35d6",
+          "has_reasoning": true,
+          "reasoning_preview": "基于8条任务记忆，生成ecommerce类型脚本，适配xiaohongshu平台特点",
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ],
+          "decision_trace_type": "dict"
+        },
+        {
+          "memory_id": "d443af92-b66f-4101-affe-4da15d086406",
+          "source": "user_feedback",
+          "reasoning": "用户反馈要求：试色部分可以更详细，展示不同光线下的效果。，需要据此优化脚本",
+          "has_reasoning": true,
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ]
+        },
+        {
+          "memory_id": "5044b656-1b0b-444e-a8b0-679246154023",
+          "source": "user_feedback",
+          "reasoning": "用户反馈要求：持久度测试可以更直观，用时间轴展示。，需要据此优化脚本",
+          "has_reasoning": true,
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ]
+        },
+        {
+          "memory_id": "a73fb3c7-d3b3-4a85-8392-5c668d51eb3e",
+          "source": "user_feedback",
+          "reasoning": "用户反馈要求：整体风格很好，但可以增加一些使用技巧分享。，需要据此优化脚本",
+          "has_reasoning": true,
+          "has_decision_trace": true,
+          "decision_trace_keys": [
+            "inputs",
+            "rules_applied",
+            "exceptions",
+            "approvals",
+            "timestamp",
+            "operation_id"
+          ]
+        }
+      ],
+      "errors": [],
+      "verifications": [
+        {
+          "check": "reasoning字段覆盖率",
+          "result": "75.0% (3/4)",
+          "status": "✓"
+        },
+        {
+          "check": "decision_trace字段覆盖率",
+          "result": "100.0% (4/4)",
+          "status": "✓"
+        },
+        {
+          "check": "DecisionEvent节点创建",
+          "result": "1个事件节点",
+          "status": "✓"
+        },
+        {
+          "check": "先例搜索功能",
+          "result": "未找到先例（可能是新场景）",
+          "status": "✓"
+        }
+      ],
+      "final_script": {
+        "memory_id": "dc3e4525-62f3-4bb5-bbec-cc5242fa35d6",
+        "content": "姐妹们，找到一只可以陪你一整天的口红有多难？\n这支春季限定柔雾口红，我真的测了整整12小时。\n先看室内自然光下的试色，柔雾质地真的高级。\n五个色号都给你们试了，豆沙色通勤，正红色约会绝了。\n早上涂的，下午茶、晚饭后，颜色居然还在。\n包装也超精致，送闺蜜自用都合适。\n你们最想试试哪个色号？评论区告诉我呀！",
+        "content_preview": "姐妹们，找到一只可以陪你一整天的口红有多难？\n这支春季限定柔雾口红，我真的测了整整12小时。\n先看室内自然光下的试色，柔雾质地真的高级。\n五个色号都给你们试了，豆沙色通勤，正红色约会绝了。\n早上涂的，下午茶、晚饭后，颜色居然还在。\n包装也超精致，送闺蜜自用都合适。\n你们最想试试哪个色号？评论区告诉我呀！",
+        "keywords": [],
+        "tags": [],
+        "reasoning": null,
+        "has_decision_trace": false,
+        "source": "initial_script_no_memory"
+      }
+    }
+  ],
+  "summary": {
+    "total_scenarios": 1,
+    "successful_scenarios": 1,
+    "total_memories": 4,
+    "total_decision_events": 10,
+    "reasoning_coverage": 100.0,
+    "precedents_found": 0,
+    "common_patterns": [],
+    "improvements": []
+  },
+  "end_time": "2026-01-14T14:20:12.379339"
+}

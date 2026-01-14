@@ -1,0 +1,16 @@
+***REMOVED*** search_tool_docs
+
+**描述**: 在工具文档中搜索相关工具。当需要了解工具的详细描述、参数定义和使用方法时，使用此工具搜索工具文档。
+
+***REMOVED******REMOVED*** 参数
+
+- `query` (string)（必需）: 搜索查询，可以是工具名称、功能描述或关键词
+- `max_results` (integer)（可选）: 最多返回的结果数，默认5
+
+***REMOVED******REMOVED*** 使用示例
+
+```json
+{
+  "query": "示例值"
+}
+```

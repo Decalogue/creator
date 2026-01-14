@@ -567,6 +567,11 @@ class UniMem:
                     memory_type = MemoryType.EXPERIENCE
                     logger.debug(f"Using default memory_type: EXPERIENCE")
                 
+                ***REMOVED*** 确保memory_type在所有情况下都有值（防御性编程）
+                if not memory_type:
+                    logger.warning(f"memory_type is still None after all attempts, forcing EXPERIENCE")
+                    memory_type = MemoryType.EXPERIENCE
+                
                 ***REMOVED*** 4. 构建完整的 Memory 对象
                 ***REMOVED*** 合并context的metadata到memory的metadata
                 memory_metadata = {}
@@ -667,6 +672,10 @@ class UniMem:
                     ***REMOVED*** 更新已有记忆的内容和元数据
                     similar_memory.content = memory.content  ***REMOVED*** 使用新内容
                     similar_memory.timestamp = memory.timestamp  ***REMOVED*** 更新时间戳
+                    ***REMOVED*** 重要：更新memory_type（修复memory_type为None的问题）
+                    if memory.memory_type:
+                        similar_memory.memory_type = memory.memory_type
+                        logger.debug(f"Updated similar_memory {similar_memory.id} with memory_type: {memory.memory_type.value}")
                     ***REMOVED*** 合并metadata
                     if memory.metadata:
                         if not similar_memory.metadata:
@@ -857,10 +866,18 @@ class UniMem:
                         
                         ***REMOVED*** 确保Memory节点已存在于Neo4j（仅在非skip_storage情况下需要检查）
                         if not skip_storage:
-                            ***REMOVED*** Memory应该刚刚存储，直接创建DecisionEvent
-                            neo4j_memory = get_memory(memory.id)
+                            ***REMOVED*** Memory应该刚刚存储，尝试获取（带重试机制）
+                            neo4j_memory = None
+                            import time
+                            for retry in range(3):  ***REMOVED*** 重试3次
+                                neo4j_memory = get_memory(memory.id)
+                                if neo4j_memory:
+                                    break
+                                if retry < 2:  ***REMOVED*** 不是最后一次重试
+                                    time.sleep(0.1)  ***REMOVED*** 等待100ms
+                            
                             if not neo4j_memory:
-                                logger.warning(f"Memory {memory.id} not in Neo4j yet, will retry DecisionEvent creation later")
+                                logger.warning(f"Memory {memory.id} not in Neo4j after retries, skipping DecisionEvent creation")
                                 ***REMOVED*** 记录到待处理队列（可以后续实现重试机制）
                                 ***REMOVED*** 暂时跳过，但记录日志以便后续处理
                             else:

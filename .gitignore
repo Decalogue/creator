@@ -108,4 +108,5 @@ src/data/
 src/docs/
 src/memory/
 src/llm/result/
+src/novel_creation/outputs/
 frontend/node_modules/

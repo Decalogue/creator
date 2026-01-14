@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-01-14T14:31:16.212691",
+  "statistics": {
+    "total_memories": 3,
+    "total_decision_events": 10,
+    "decision_trace_coverage": 100.0,
+    "reasoning_coverage": 100.0,
+    "relation_count": 1
+  },
+  "issues": [],
+  "suggestions": []
+}

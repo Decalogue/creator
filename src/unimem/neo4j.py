@@ -806,12 +806,20 @@ def create_memory(memory: Memory) -> bool:
         metadata_json = json.dumps(memory.metadata, ensure_ascii=False) if memory.metadata else "{}"
         
         ***REMOVED*** 创建记忆节点
+        ***REMOVED*** 记录memory_type的存储情况
+        if memory.memory_type:
+            memory_type_value = memory.memory_type.value
+            logger.debug(f"Storing memory_type: {memory_type_value} for memory {memory.id}")
+        else:
+            logger.warning(f"Memory {memory.id} has no memory_type, storing empty string")
+            memory_type_value = ""
+        
         node = Node(
             "Memory",
             id=memory.id,
             content=memory.content,
             timestamp=memory.timestamp.isoformat() if memory.timestamp else get_current_time(),
-            memory_type=memory.memory_type.value if memory.memory_type else "",
+            memory_type=memory_type_value,
             layer=memory.layer.value if memory.layer else "ltm",
             keywords=",".join(memory.keywords) if memory.keywords else "",
             tags=",".join(memory.tags) if memory.tags else "",
