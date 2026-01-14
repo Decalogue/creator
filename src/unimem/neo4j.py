@@ -846,8 +846,21 @@ def create_memory(memory: Memory) -> bool:
             for linked_memory_id in memory.links:
                 linked_node = node_matcher.match("Memory", id=linked_memory_id).first()
                 if linked_node:
-                    rel = Relationship(node, "RELATED_TO", linked_node)
-                    graph.create(rel)
+                    ***REMOVED*** 检查关系是否已存在，避免重复创建
+                    existing_rel_query = f"""
+                    MATCH (m1:Memory {{id: '{memory.id}'}})-[r:RELATED_TO]->(m2:Memory {{id: '{linked_memory_id}'}})
+                    RETURN count(r) as count
+                    """
+                    existing_count = graph.run(existing_rel_query).data()[0]['count']
+                    if existing_count == 0:
+                        rel = Relationship(node, "RELATED_TO", linked_node)
+                        graph.create(rel)
+                        logger.debug(f"Created RELATED_TO relationship: {memory.id} -> {linked_memory_id}")
+                    else:
+                        logger.debug(f"RELATED_TO relationship already exists: {memory.id} -> {linked_memory_id}")
+                else:
+                    logger.warning(f"Linked memory {linked_memory_id} not found in Neo4j, cannot create RELATED_TO relationship from {memory.id}")
+                    ***REMOVED*** 可以记录到待处理队列，等待目标Memory创建后重试
         
         logger.debug(f"Created memory: {memory.id}")
         return True

@@ -599,18 +599,33 @@ class VideoScriptGenerator:
                 }
             )
             
+            ***REMOVED*** 在retain之前设置links，确保关系被正确建立
+            ***REMOVED*** 注意：需要在retain之前通过context.metadata传递links信息
+            if script_memory_id:
+                if not context.metadata:
+                    context.metadata = {}
+                ***REMOVED*** 将脚本Memory ID添加到metadata中，retain方法会处理
+                context.metadata["related_script_id"] = script_memory_id
+                ***REMOVED*** 同时设置links（如果retain方法支持从metadata读取）
+                if "links" not in context.metadata:
+                    context.metadata["links"] = [script_memory_id]
+            
             memory = self.unimem.retain(experience, context)
             logger.info(f"Feedback stored to UniMem: memory_id={memory.id}")
             
             ***REMOVED*** 建立与脚本Memory的关系（改进：建立Memory关系网络）
             if script_memory_id and memory.id:
                 try:
-                    ***REMOVED*** 将脚本Memory ID添加到links中
+                    ***REMOVED*** 确保links被设置
+                    if not memory.links:
+                        memory.links = set()
                     memory.links.add(script_memory_id)
                     ***REMOVED*** 更新Memory以建立RELATED_TO关系
                     if hasattr(self.unimem, 'storage') and hasattr(self.unimem.storage, 'update_memory'):
                         self.unimem.storage.update_memory(memory)
                         logger.debug(f"Established relationship: feedback memory {memory.id} -> script memory {script_memory_id}")
+                    else:
+                        logger.warning(f"Storage.update_memory not available, relationship may not be created")
                 except Exception as e:
                     logger.warning(f"Failed to establish relationship with script memory {script_memory_id}: {e}")
             

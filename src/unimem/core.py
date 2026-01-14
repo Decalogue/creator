@@ -534,9 +534,38 @@ class UniMem:
                     atomic_note.entities = entities
                 
                 ***REMOVED*** 3. 记忆分类适配器：分类记忆类型
-                self._record_adapter_call("MemoryTypeAdapter", "classify")
-                memory_type = self.memory_type_adapter.classify(atomic_note)
-                logger.debug(f"Classified memory type: {memory_type}")
+                ***REMOVED*** 优先从metadata中获取明确的类型（如FEEDBACK、SCRIPT等）
+                memory_type = None
+                if context.metadata and context.metadata.get("memory_type"):
+                    try:
+                        memory_type = MemoryType(context.metadata["memory_type"])
+                        logger.debug(f"Using memory_type from metadata: {memory_type}")
+                    except (ValueError, KeyError):
+                        pass
+                
+                ***REMOVED*** 如果metadata中没有，根据内容关键词推断类型（优先于LLM分类）
+                if not memory_type:
+                    content_lower = experience.content.lower() if experience.content else ""
+                    if "反馈" in experience.content or "feedback" in content_lower or "用户反馈" in experience.content:
+                        memory_type = MemoryType.OBSERVATION  ***REMOVED*** 反馈是观察类型
+                        logger.debug(f"Inferred memory_type as OBSERVATION from content keywords (feedback)")
+                    elif "脚本" in experience.content or "script" in content_lower or "剧本" in experience.content or "视频剧本" in experience.content:
+                        memory_type = MemoryType.EXPERIENCE  ***REMOVED*** 脚本是系统生成的经历
+                        logger.debug(f"Inferred memory_type as EXPERIENCE from content keywords (script)")
+                    elif "经验" in experience.content or "experience" in content_lower or "优化" in experience.content or "总结" in experience.content:
+                        memory_type = MemoryType.EXPERIENCE
+                        logger.debug(f"Inferred memory_type as EXPERIENCE from content keywords")
+                
+                ***REMOVED*** 如果内容推断也没有结果，使用LLM分类（Hindsight类型）
+                if not memory_type:
+                    self._record_adapter_call("MemoryTypeAdapter", "classify")
+                    memory_type = self.memory_type_adapter.classify(atomic_note)
+                    logger.debug(f"Classified memory type using LLM: {memory_type}")
+                
+                ***REMOVED*** 如果LLM分类也失败，使用默认类型
+                if not memory_type:
+                    memory_type = MemoryType.EXPERIENCE
+                    logger.debug(f"Using default memory_type: EXPERIENCE")
                 
                 ***REMOVED*** 4. 构建完整的 Memory 对象
                 ***REMOVED*** 合并context的metadata到memory的metadata
@@ -702,7 +731,27 @@ class UniMem:
                 ***REMOVED*** 7. 原子链接适配器：生成链接
                 self._record_adapter_call("AtomLinkAdapter", "generate_links")
                 links = self.network_adapter.generate_links(memory, top_k=10)
-                memory.links = links
+                
+                ***REMOVED*** 从metadata中读取预设的links（用于建立明确的关系，如反馈->脚本）
+                if memory_metadata and "links" in memory_metadata:
+                    preset_links = memory_metadata.get("links", [])
+                    if isinstance(preset_links, list):
+                        ***REMOVED*** 将预设的links添加到生成的links中
+                        links = list(set(links) | set(preset_links))
+                        logger.debug(f"Merged preset links from metadata: {preset_links}")
+                    elif isinstance(preset_links, str):
+                        ***REMOVED*** 如果是单个ID字符串
+                        links = list(set(links) | {preset_links})
+                        logger.debug(f"Added preset link from metadata: {preset_links}")
+                
+                ***REMOVED*** 如果metadata中有related_script_id，也添加到links
+                if memory_metadata and "related_script_id" in memory_metadata:
+                    related_id = memory_metadata.get("related_script_id")
+                    if related_id:
+                        links = list(set(links) | {related_id})
+                        logger.debug(f"Added related_script_id to links: {related_id}")
+                
+                memory.links = set(links)  ***REMOVED*** 确保是set类型
                 
                 ***REMOVED*** 更新向量存储中的链接信息
                 if hasattr(self.network_adapter, 'update_memory_in_vector_store'):
@@ -804,21 +853,42 @@ class UniMem:
                 ***REMOVED*** 创建DecisionEvent节点
                 if should_create_event and decision_trace_for_event:
                     try:
-                        from .neo4j import create_decision_event
-                        ***REMOVED*** 获取相关实体ID
-                        related_entity_ids = memory.entities if memory.entities else []
-                        ***REMOVED*** 调试日志：即将创建DecisionEvent
-                        logger.debug(f"RETAIN: Creating DecisionEvent for memory {memory.id} with decision_trace keys: {list(decision_trace_for_event.keys()) if isinstance(decision_trace_for_event, dict) else 'N/A'}")
-                        ***REMOVED*** 创建决策事件节点
-                        if create_decision_event(
-                            memory_id=memory.id,
-                            decision_trace=decision_trace_for_event,
-                            reasoning=reasoning_for_event,
-                            related_entity_ids=related_entity_ids
-                        ):
-                            logger.info(f"Created decision event for memory {memory.id}")
+                        from .neo4j import create_decision_event, get_memory
+                        
+                        ***REMOVED*** 确保Memory节点已存在于Neo4j（仅在非skip_storage情况下需要检查）
+                        if not skip_storage:
+                            ***REMOVED*** Memory应该刚刚存储，直接创建DecisionEvent
+                            neo4j_memory = get_memory(memory.id)
+                            if not neo4j_memory:
+                                logger.warning(f"Memory {memory.id} not in Neo4j yet, will retry DecisionEvent creation later")
+                                ***REMOVED*** 记录到待处理队列（可以后续实现重试机制）
+                                ***REMOVED*** 暂时跳过，但记录日志以便后续处理
+                            else:
+                                ***REMOVED*** Memory存在，创建DecisionEvent
+                                related_entity_ids = memory.entities if memory.entities else []
+                                logger.debug(f"RETAIN: Creating DecisionEvent for memory {memory.id} with decision_trace keys: {list(decision_trace_for_event.keys()) if isinstance(decision_trace_for_event, dict) else 'N/A'}")
+                                if create_decision_event(
+                                    memory_id=memory.id,
+                                    decision_trace=decision_trace_for_event,
+                                    reasoning=reasoning_for_event,
+                                    related_entity_ids=related_entity_ids
+                                ):
+                                    logger.info(f"Created decision event for memory {memory.id}")
+                                else:
+                                    logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
                         else:
-                            logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
+                            ***REMOVED*** skip_storage情况下，Memory是更新已有记忆，应该已经在Neo4j中
+                            related_entity_ids = memory.entities if memory.entities else []
+                            logger.debug(f"RETAIN: Creating DecisionEvent for updated memory {memory.id} with decision_trace keys: {list(decision_trace_for_event.keys()) if isinstance(decision_trace_for_event, dict) else 'N/A'}")
+                            if create_decision_event(
+                                memory_id=memory.id,
+                                decision_trace=decision_trace_for_event,
+                                reasoning=reasoning_for_event,
+                                related_entity_ids=related_entity_ids
+                            ):
+                                logger.info(f"Created decision event for memory {memory.id}")
+                            else:
+                                logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
                     except Exception as e:
                         ***REMOVED*** 决策事件创建失败不影响主流程
                         logger.warning(f"Failed to create decision event for memory {memory.id}: {e}", exc_info=True)
