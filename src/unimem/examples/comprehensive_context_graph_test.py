@@ -452,12 +452,12 @@ class ContextGraphTestFramework:
             # 步骤1: 使用新模板格式的Word需求文档
             print("【步骤1】使用新模板格式的Word需求文档...")
             # 优先使用已创建的新模板文档，否则使用旧格式创建
-            new_template_path = f"test_docs_new_template/{scenario['id']}.docx"
+            new_template_path = f"/root/data/AI/creator/src/unimem/examples/test_docs_new_template/{scenario['id']}.docx"
             if os.path.exists(new_template_path):
                 doc_path = new_template_path
                 print(f"  ✓ 使用新模板文档: {doc_path}\n")
             else:
-                doc_path = f"test_scenario_{scenario['id']}.docx"
+                doc_path = f"/root/data/AI/creator/src/unimem/examples/test_scenario_{scenario['id']}.docx"
                 self.create_word_document(scenario, doc_path)
                 print(f"  ✓ 文档创建成功: {doc_path}\n")
             
@@ -645,13 +645,30 @@ class ContextGraphTestFramework:
                             feedback_memory = get_memory(feedback_memory_id)
                             if feedback_memory:
                                 test_result["memory_ids"].append(feedback_memory_id)
-                                if feedback_memory.reasoning:
+                                # 检查reasoning和decision_trace
+                                has_reasoning = feedback_memory.reasoning is not None and feedback_memory.reasoning.strip() != ""
+                                has_decision_trace = feedback_memory.decision_trace is not None and isinstance(feedback_memory.decision_trace, dict)
+                                
+                                if has_reasoning:
                                     test_result["reasoning_extracted"].append({
                                         "memory_id": feedback_memory_id,
                                         "source": "user_feedback",
-                                        "reasoning": feedback_memory.reasoning[:100]
+                                        "reasoning": feedback_memory.reasoning[:100],
+                                        "has_reasoning": has_reasoning,
+                                        "has_decision_trace": has_decision_trace,
+                                        "decision_trace_keys": list(feedback_memory.decision_trace.keys()) if feedback_memory.decision_trace else []
                                     })
-                        except:
+                                else:
+                                    # 即使没有reasoning，也记录decision_trace信息
+                                    test_result["reasoning_extracted"].append({
+                                        "memory_id": feedback_memory_id,
+                                        "source": "user_feedback",
+                                        "has_reasoning": False,
+                                        "has_decision_trace": has_decision_trace,
+                                        "decision_trace_keys": list(feedback_memory.decision_trace.keys()) if feedback_memory.decision_trace else []
+                                    })
+                        except Exception as e:
+                            logger.warning(f"Failed to get feedback memory {feedback_memory_id}: {e}")
                             pass  # 如果获取失败，继续执行
                     
                     # 提取修改需求
@@ -810,7 +827,24 @@ class ContextGraphTestFramework:
                 if final_script_memory_id:
                     logger.info(f"Attempting to get memory from Neo4j: {final_script_memory_id}")
                     from unimem.neo4j import get_memory
-                    final_memory = get_memory(final_script_memory_id)
+                    final_memory = None
+                    
+                    # 尝试多次获取Memory（重试机制）
+                    for retry in range(3):
+                        try:
+                            final_memory = get_memory(final_script_memory_id)
+                            if final_memory:
+                                logger.info(f"Successfully retrieved memory from Neo4j (attempt {retry + 1})")
+                                break
+                            else:
+                                logger.warning(f"Memory not found in Neo4j (attempt {retry + 1}), retrying...")
+                                import time
+                                time.sleep(0.5)  # 等待0.5秒后重试
+                        except Exception as e:
+                            logger.warning(f"Error getting memory from Neo4j (attempt {retry + 1}): {e}")
+                            if retry < 2:
+                                import time
+                                time.sleep(0.5)
                     
                     # 优先使用从initial_script获取的完整脚本内容
                     if final_script_content:
@@ -827,17 +861,55 @@ class ContextGraphTestFramework:
                                 "source": "initial_script"
                             }
                         else:
-                            # 即使无法获取Memory，也保存完整脚本内容
-                            test_result["final_script"] = {
-                                "memory_id": final_script_memory_id,
-                                "content": final_script_content,
-                                "content_preview": final_script_content[:500] + "..." if len(final_script_content) > 500 else final_script_content,
-                                "keywords": [],
-                                "tags": [],
-                                "reasoning": None,
-                                "has_decision_trace": False,
-                                "source": "initial_script_no_memory"
-                            }
+                            # 即使无法获取Memory，也保存完整脚本内容，但尝试从Neo4j直接查询reasoning和decision_trace
+                            logger.warning(f"Failed to get memory object from Neo4j, trying direct query for {final_script_memory_id}")
+                            try:
+                                from py2neo import Graph
+                                graph = Graph("bolt://localhost:7680", auth=('neo4j', 'seeme_db'), name='neo4j')
+                                result = graph.run("""
+                                    MATCH (m:Memory {id: $memory_id})
+                                    RETURN m.reasoning as reasoning, m.decision_trace as decision_trace,
+                                           m.keywords as keywords, m.tags as tags
+                                """, memory_id=final_script_memory_id).data()
+                                
+                                if result and result[0]:
+                                    neo4j_data = result[0]
+                                    test_result["final_script"] = {
+                                        "memory_id": final_script_memory_id,
+                                        "content": final_script_content,
+                                        "content_preview": final_script_content[:500] + "..." if len(final_script_content) > 500 else final_script_content,
+                                        "keywords": neo4j_data.get("keywords", [])[:10] if neo4j_data.get("keywords") else [],
+                                        "tags": neo4j_data.get("tags", [])[:10] if neo4j_data.get("tags") else [],
+                                        "reasoning": neo4j_data.get("reasoning"),
+                                        "has_decision_trace": neo4j_data.get("decision_trace") is not None,
+                                        "source": "initial_script_neo4j_direct"
+                                    }
+                                    logger.info(f"Retrieved reasoning and decision_trace from Neo4j direct query")
+                                else:
+                                    # 如果直接查询也失败，保存基本信息
+                                    test_result["final_script"] = {
+                                        "memory_id": final_script_memory_id,
+                                        "content": final_script_content,
+                                        "content_preview": final_script_content[:500] + "..." if len(final_script_content) > 500 else final_script_content,
+                                        "keywords": [],
+                                        "tags": [],
+                                        "reasoning": None,
+                                        "has_decision_trace": False,
+                                        "source": "initial_script_no_memory"
+                                    }
+                                    logger.warning(f"Failed to retrieve memory metadata from Neo4j for {final_script_memory_id}")
+                            except Exception as e:
+                                logger.error(f"Failed to query Neo4j directly: {e}")
+                                test_result["final_script"] = {
+                                    "memory_id": final_script_memory_id,
+                                    "content": final_script_content,
+                                    "content_preview": final_script_content[:500] + "..." if len(final_script_content) > 500 else final_script_content,
+                                    "keywords": [],
+                                    "tags": [],
+                                    "reasoning": None,
+                                    "has_decision_trace": False,
+                                    "source": "initial_script_no_memory"
+                                }
                         print(f"  ✓ 最终剧本已获取（从测试脚本）: memory_id={final_script_memory_id}")
                         print(f"  ✓ 剧本内容长度: {len(final_script_content)} 字符")
                         sys.stdout.flush()
