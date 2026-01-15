@@ -155,19 +155,42 @@ class ReactNovelCreator:
             "total_words": 0,
         }
         
-        ***REMOVED*** 增强实体提取器
+        ***REMOVED*** 增强实体提取器（支持多模型投票）
         self.entity_extractor = None
         self.enable_enhanced_extraction = enable_enhanced_extraction
         if enable_enhanced_extraction:
             try:
-                from novel_creation.enhanced_entity_extractor import EnhancedEntityExtractor
-                from llm.chat import deepseek_v3_2
-                
-                self.entity_extractor = EnhancedEntityExtractor(
-                    llm_client=deepseek_v3_2,
-                    use_ner=False  ***REMOVED*** 可选：启用 NER 模型
-                )
-                logger.info("增强实体提取器已启用（LLM 辅助）")
+                ***REMOVED*** 尝试使用多模型投票提取器（更准确）
+                try:
+                    from novel_creation.multi_model_entity_extractor import MultiModelEntityExtractor
+                    from llm.gemini import gemini_3_flash
+                    from llm.chat import deepseek_v3_2
+                    
+                    ***REMOVED*** 使用 Gemini 和 DeepSeek 进行投票
+                    llm_clients = [gemini_3_flash, deepseek_v3_2]
+                    self.entity_extractor = MultiModelEntityExtractor(
+                        llm_clients=llm_clients,
+                        vote_threshold=2,  ***REMOVED*** 至少2个模型都提取到才保留
+                        use_ner=False
+                    )
+                    logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型）")
+                except (ImportError, Exception) as e:
+                    logger.debug(f"多模型提取器初始化失败，回退到单模型: {e}")
+                    ***REMOVED*** 回退到单模型提取器
+                    from novel_creation.enhanced_entity_extractor import EnhancedEntityExtractor
+                    try:
+                        from llm.gemini import gemini_3_flash
+                        llm_client = gemini_3_flash
+                        logger.info("增强实体提取器已启用（使用 Gemini 模型）")
+                    except ImportError:
+                        from llm.chat import deepseek_v3_2
+                        llm_client = deepseek_v3_2
+                        logger.info("增强实体提取器已启用（使用 DeepSeek 模型）")
+                    
+                    self.entity_extractor = EnhancedEntityExtractor(
+                        llm_client=llm_client,
+                        use_ner=False
+                    )
             except Exception as e:
                 logger.warning(f"增强实体提取器初始化失败，将使用基础提取: {e}")
                 self.entity_extractor = None
@@ -802,21 +825,41 @@ class ReactNovelCreator:
         ***REMOVED*** 如果启用了增强提取器，使用它
         if self.entity_extractor and self.enable_enhanced_extraction:
             try:
-                result = self.entity_extractor.extract_entities(
-                    chapter.content,
-                    chapter.chapter_number
-                )
-                
-                if result.entities:
-                    logger.info(
-                        f"第{chapter.chapter_number}章：增强提取到 {len(result.entities)} 个实体，"
-                        f"置信度: {result.confidence:.2f}"
+                ***REMOVED*** 检查是否是多模型投票提取器
+                from novel_creation.multi_model_entity_extractor import MultiModelEntityExtractor
+                if isinstance(self.entity_extractor, MultiModelEntityExtractor):
+                    ***REMOVED*** 多模型投票提取器直接返回实体列表
+                    entities = self.entity_extractor.extract_entities(
+                        chapter.content,
+                        chapter.chapter_number
+                    )
+                    if entities:
+                        logger.info(
+                            f"第{chapter.chapter_number}章：多模型投票提取到 {len(entities)} 个实体"
+                        )
+                    return entities
+                else:
+                    ***REMOVED*** 单模型提取器
+                    from novel_creation.enhanced_entity_extractor import EntityExtractionResult
+                    result = self.entity_extractor.extract_entities(
+                        chapter.content,
+                        chapter.chapter_number
                     )
                     
-                    ***REMOVED*** 处理提取到的关系（如果需要）
-                    ***REMOVED*** 目前关系由语义网格单独处理
-                    
-                    return result.entities
+                    if isinstance(result, EntityExtractionResult):
+                        if result.entities:
+                            logger.info(
+                                f"第{chapter.chapter_number}章：增强提取到 {len(result.entities)} 个实体，"
+                                f"置信度: {result.confidence:.2f}"
+                            )
+                        return result.entities
+                    else:
+                        ***REMOVED*** 如果返回的是列表，直接返回
+                        if result:
+                            logger.info(
+                                f"第{chapter.chapter_number}章：提取到 {len(result)} 个实体"
+                            )
+                        return result
             except Exception as e:
                 logger.warning(f"增强实体提取失败，回退到基础提取: {e}")
         
