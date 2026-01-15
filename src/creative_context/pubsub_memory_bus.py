@@ -71,7 +71,20 @@ class PubSubMemoryBus:
             agent_id: Agent ID
             topics: 订阅的主题列表
             callback: 回调函数（topic, data）
+            
+        Raises:
+            ValueError: 如果参数无效
+            TypeError: 如果 callback 不是可调用对象
         """
+        if not agent_id or not isinstance(agent_id, str):
+            raise ValueError("agent_id must be a non-empty string")
+        
+        if not topics or not isinstance(topics, list):
+            raise ValueError("topics must be a non-empty list")
+        
+        if not callable(callback):
+            raise TypeError("callback must be callable")
+        
         subscription = Subscription(
             agent_id=agent_id,
             topics=set(topics),
@@ -103,11 +116,24 @@ class PubSubMemoryBus:
         Args:
             topic: 主题
             entity_id: 实体 ID
-            data: 数据
+            data: 数据字典
         
         Returns:
             通知的 Agent 数量
+            
+        Raises:
+            ValueError: 如果参数无效
+            TypeError: 如果 topic 不是 Topic 类型
         """
+        if not isinstance(topic, Topic):
+            raise TypeError(f"topic must be a Topic enum, got {type(topic)}")
+        
+        if not entity_id or not isinstance(entity_id, str):
+            raise ValueError("entity_id must be a non-empty string")
+        
+        if not isinstance(data, dict):
+            raise ValueError("data must be a dictionary")
+        
         message = Message(
             topic=topic,
             entity_id=entity_id,
@@ -164,16 +190,34 @@ class PubSubMemoryBus:
         """
         检测冲突
         
-        当新内容发布时，检测是否与已有内容冲突
+        当新内容发布时，检测是否与已有内容冲突。
+        当前实现为简化版本，仅检测世界观冲突。
+        
+        TODO: 增强冲突检测逻辑
+        - 支持更多主题类型的冲突检测
+        - 使用语义相似度进行智能检测
+        - 支持自定义冲突检测规则
         
         Args:
             entity_id: 实体 ID
-            new_content: 新内容
+            new_content: 新内容字符串
             topic: 主题
         
         Returns:
-            冲突列表
+            冲突列表，每个冲突包含：
+            - entity_id: 冲突的实体 ID
+            - message: 冲突的消息数据
+            - conflict_type: 冲突类型
         """
+        if not entity_id or not isinstance(entity_id, str):
+            raise ValueError("entity_id must be a non-empty string")
+        
+        if not isinstance(new_content, str):
+            raise ValueError("new_content must be a string")
+        
+        if not isinstance(topic, Topic):
+            raise TypeError(f"topic must be a Topic enum, got {type(topic)}")
+        
         conflicts = []
         
         ***REMOVED*** 获取相关历史消息

@@ -11,7 +11,6 @@ from typing import Dict, List, Optional, Any, Set, Tuple
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -100,7 +99,18 @@ class SemanticMeshMemory:
         self.entity_index: Dict[EntityType, Set[str]] = {et: set() for et in EntityType}
     
     def add_entity(self, entity: Entity) -> None:
-        """添加实体"""
+        """
+        添加实体
+        
+        Args:
+            entity: 要添加的实体对象
+            
+        Raises:
+            ValueError: 如果实体 ID 已存在
+        """
+        if entity.id in self.entities:
+            logger.warning(f"Entity {entity.id} already exists, updating instead of adding")
+        
         self.entities[entity.id] = entity
         self.entity_index[entity.type].add(entity.id)
         logger.debug(f"Added entity: {entity.id} ({entity.type.value})")
@@ -113,10 +123,35 @@ class SemanticMeshMemory:
         strength: float = 1.0,
         metadata: Optional[Dict[str, Any]] = None
     ) -> None:
-        """添加关系"""
-        if source_id not in self.entities or target_id not in self.entities:
-            logger.warning(f"Relation skipped: entity not found")
-            return
+        """
+        添加关系
+        
+        Args:
+            source_id: 源实体 ID
+            target_id: 目标实体 ID
+            relation_type: 关系类型
+            strength: 关系强度（0-1），默认 1.0
+            metadata: 关系元数据（可选）
+            
+        Raises:
+            ValueError: 如果源实体或目标实体不存在
+        """
+        if source_id not in self.entities:
+            error_msg = f"Source entity not found: {source_id}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        if target_id not in self.entities:
+            error_msg = f"Target entity not found: {target_id}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        if source_id == target_id:
+            logger.warning(f"Self-relation detected: {source_id} -> {target_id}")
+        
+        if not 0.0 <= strength <= 1.0:
+            logger.warning(f"Relation strength {strength} out of range [0, 1], clamping")
+            strength = max(0.0, min(1.0, strength))
         
         relation = Relation(
             source_id=source_id,
@@ -139,14 +174,22 @@ class SemanticMeshMemory:
         
         Args:
             entity_id: 实体 ID
-            relation_types: 关系类型过滤（可选）
-            min_strength: 最小关系强度
+            relation_types: 关系类型过滤（可选），如果为 None 则不过滤
+            min_strength: 最小关系强度（0-1），默认 0.5
         
         Returns:
-            相关实体和关系的列表
+            相关实体和关系的列表，按关系强度降序排列
+            
+        Note:
+            如果实体不存在，返回空列表
         """
         if entity_id not in self.entities:
+            logger.debug(f"Entity not found: {entity_id}")
             return []
+        
+        if not 0.0 <= min_strength <= 1.0:
+            logger.warning(f"min_strength {min_strength} out of range [0, 1], using 0.5")
+            min_strength = 0.5
         
         related = []
         for relation in self.relations:
@@ -169,31 +212,6 @@ class SemanticMeshMemory:
         related.sort(key=lambda x: x[1].strength, reverse=True)
         
         return related
-    
-    def extract_entities_from_text(
-        self,
-        text: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> List[Entity]:
-        """
-        从文本中提取实体（简化实现，实际应使用 NER 或 LLM）
-        
-        Args:
-            text: 文本内容
-            context: 上下文信息（如章节号、位置等）
-        
-        Returns:
-            提取的实体列表
-        """
-        ***REMOVED*** 这里是一个简化实现
-        ***REMOVED*** 实际应该使用 NER 模型或 LLM 来提取实体
-        
-        entities = []
-        
-        ***REMOVED*** 简单的关键词匹配（示例）
-        ***REMOVED*** 实际应该使用更智能的方法
-        
-        return entities
     
     def trigger_related_memories(
         self,
@@ -235,11 +253,27 @@ class SemanticMeshMemory:
         
         Args:
             focus_entity_id: 焦点实体 ID
-            agent_type: Agent 类型（如 "consistency_checker", "style_editor"）
+            agent_type: Agent 类型（如 "consistency_checker", "style_editor"），默认 "general"
         
         Returns:
-            上下文字典
+            上下文字典，包含：
+            - focus_entity: 焦点实体对象（如果存在）
+            - related_entities: 相关实体列表
+            - agent_type: Agent 类型
+            - timestamp: 生成时间戳
+            
+        Note:
+            如果焦点实体不存在，focus_entity 将为 None
         """
+        if not focus_entity_id:
+            logger.warning("Empty focus_entity_id provided")
+            return {
+                "focus_entity": None,
+                "related_entities": [],
+                "agent_type": agent_type,
+                "timestamp": datetime.now().isoformat()
+            }
+        
         ***REMOVED*** 获取相关实体
         related_entities = self.trigger_related_memories(focus_entity_id)
         
@@ -261,9 +295,24 @@ class SemanticMeshMemory:
         }
     
     def from_dict(self, data: Dict[str, Any]) -> None:
-        """从字典加载（用于反序列化）"""
+        """
+        从字典加载（用于反序列化）
+        
+        Args:
+            data: 包含 entities 和 relations 的字典
+            
+        Raises:
+            ValueError: 如果数据格式不正确
+        """
+        if not isinstance(data, dict):
+            raise ValueError("Data must be a dictionary")
+        
         ***REMOVED*** 加载实体
-        for eid, edata in data.get("entities", {}).items():
+        entities_data = data.get("entities", {})
+        if not isinstance(entities_data, dict):
+            raise ValueError("'entities' must be a dictionary")
+        
+        for eid, edata in entities_data.items():
             entity = Entity(
                 id=edata["id"],
                 type=EntityType(edata["type"]),
@@ -273,14 +322,26 @@ class SemanticMeshMemory:
                 created_at=edata.get("created_at", datetime.now().isoformat()),
                 updated_at=edata.get("updated_at", datetime.now().isoformat())
             )
-            self.add_entity(entity)
+            try:
+                self.add_entity(entity)
+            except Exception as e:
+                logger.error(f"Failed to load entity {eid}: {e}")
+                raise
         
         ***REMOVED*** 加载关系
-        for rdata in data.get("relations", []):
-            self.add_relation(
-                source_id=rdata["source_id"],
-                target_id=rdata["target_id"],
-                relation_type=RelationType(rdata["relation_type"]),
-                strength=rdata.get("strength", 1.0),
-                metadata=rdata.get("metadata", {})
-            )
+        relations_data = data.get("relations", [])
+        if not isinstance(relations_data, list):
+            raise ValueError("'relations' must be a list")
+        
+        for rdata in relations_data:
+            try:
+                self.add_relation(
+                    source_id=rdata["source_id"],
+                    target_id=rdata["target_id"],
+                    relation_type=RelationType(rdata["relation_type"]),
+                    strength=rdata.get("strength", 1.0),
+                    metadata=rdata.get("metadata", {})
+                )
+            except Exception as e:
+                logger.error(f"Failed to load relation {rdata.get('source_id')} -> {rdata.get('target_id')}: {e}")
+                raise

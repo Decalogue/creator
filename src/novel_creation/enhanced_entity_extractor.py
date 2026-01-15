@@ -155,10 +155,13 @@ class EnhancedEntityExtractor:
             
             ***REMOVED*** 解析 JSON 响应
             import json
+            ***REMOVED*** deepseek_v3_2 返回 (reasoning_content, content) 元组
             if isinstance(response, tuple):
                 _, content = response
+            elif hasattr(response, 'content'):
+                content = response.content
             else:
-                content = response
+                content = str(response)
             
             ***REMOVED*** 提取 JSON 部分
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
@@ -170,20 +173,38 @@ class EnhancedEntityExtractor:
                 for e in data.get('entities', []):
                     entity_type_map = {
                         'character': EntityType.CHARACTER,
-                        'location': EntityType.LOCATION,
+                        'location': EntityType.SETTING,  ***REMOVED*** 地点使用 SETTING
+                        'setting': EntityType.SETTING,
                         'item': EntityType.SYMBOL,
-                        'concept': EntityType.CONCEPT,
+                        'symbol': EntityType.SYMBOL,
+                        'concept': EntityType.THEME,  ***REMOVED*** 概念使用 THEME
+                        'theme': EntityType.THEME,
                     }
                     entity_type = entity_type_map.get(e.get('type', 'character'), EntityType.CHARACTER)
                     
-                    entity = Entity(
-                        id=f"llm_{chapter_number}_{hash(e['name']) % 10000}",
-                        type=entity_type,
-                        name=e['name'],
-                        content=e.get('description', ''),
-                        metadata=e.get('attributes', {})
-                    )
-                    entities.append(entity)
+                    ***REMOVED*** 验证实体名称（过滤掉句子片段）
+                    entity_name = e['name'].strip()
+                    ***REMOVED*** 过滤掉包含动词、标点的片段（如"林风睁开眼"）
+                    if len(entity_name) > 1 and len(entity_name) <= 20:
+                        ***REMOVED*** 检查是否包含明显的动词或动作词
+                        action_words = ['睁开', '看到', '听到', '说道', '说道', '走来', '跑去', '想起', '想起', '感到', '觉得']
+                        if not any(word in entity_name for word in action_words):
+                            entity = Entity(
+                                id=f"llm_{chapter_number}_{hash(entity_name) % 10000}",
+                                type=entity_type,
+                                name=entity_name,
+                                content=e.get('description', ''),
+                                metadata={
+                                    "chapter": chapter_number,  ***REMOVED*** 确保设置章节号
+                                    "extraction_method": "llm",
+                                    **(e.get('attributes', {}))
+                                }
+                            )
+                            entities.append(entity)
+                        else:
+                            logger.debug(f"过滤掉动作片段实体: {entity_name}")
+                    else:
+                        logger.debug(f"过滤掉无效实体名称: {entity_name} (长度: {len(entity_name)})")
                 
                 return {
                     'entities': entities,
@@ -241,7 +262,7 @@ class EnhancedEntityExtractor:
         for loc_name in list(locations)[:5]:  ***REMOVED*** 最多5个地点
             entity = Entity(
                 id=f"loc_{chapter_number}_{hash(loc_name) % 10000}",
-                type=EntityType.LOCATION,
+                type=EntityType.SETTING,  ***REMOVED*** 地点使用 SETTING
                 name=loc_name,
                 content=f"在第{chapter_number}章中提到的地点",
                 metadata={"chapter": chapter_number, "extraction_method": "rule"}

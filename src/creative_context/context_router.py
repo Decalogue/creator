@@ -12,9 +12,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 import logging
-import time
 
-from .semantic_mesh_memory import SemanticMeshMemory, Entity
+from .semantic_mesh_memory import SemanticMeshMemory
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +91,13 @@ class ContextRouter:
         
         Args:
             behavior: 用户行为数据
+            
+        Raises:
+            TypeError: 如果 behavior 不是 UserBehavior 类型
         """
+        if not isinstance(behavior, UserBehavior):
+            raise TypeError(f"Expected UserBehavior, got {type(behavior)}")
+        
         self.behavior_history.append(behavior)
         
         ***REMOVED*** 只保留最近的行为历史（如最近1小时）
@@ -162,18 +167,18 @@ class ContextRouter:
         """
         触发预加载
         
+        根据用户行为预测可能需要的实体并加入预加载队列。
+        
+        TODO: 实现基于行为分析的实体预测逻辑
+        - 从 recent_changes 中提取实体 ID
+        - 使用语义网格查找相关实体
+        - 将相关实体加入预加载队列
+        
         Args:
             behavior: 用户行为数据
         """
-        ***REMOVED*** 根据当前光标位置和最近修改，预测可能需要的实体
-        ***REMOVED*** 这里是一个简化实现
-        
-        ***REMOVED*** 假设我们可以从行为中提取实体 ID
-        ***REMOVED*** 实际应该使用更智能的方法
-        
-        ***REMOVED*** 添加到预加载队列
-        ***REMOVED*** self.preload_queue.append(entity_id)
-        
+        ***REMOVED*** TODO: 实现预加载逻辑
+        ***REMOVED*** 当前为占位实现，待后续完善
         pass
     
     def preload_context(self, entity_id: str, agent_type: str = "general") -> Dict[str, Any]:
@@ -182,11 +187,17 @@ class ContextRouter:
         
         Args:
             entity_id: 实体 ID
-            agent_type: Agent 类型
+            agent_type: Agent 类型，默认 "general"
         
         Returns:
             上下文字典
+            
+        Raises:
+            ValueError: 如果 entity_id 为空
         """
+        if not entity_id or not isinstance(entity_id, str):
+            raise ValueError("entity_id must be a non-empty string")
+        
         ***REMOVED*** 检查缓存
         cache_key = f"{entity_id}:{agent_type}"
         if cache_key in self.context_cache:
