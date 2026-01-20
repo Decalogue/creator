@@ -2602,24 +2602,87 @@ class ReactNovelCreator:
         """
         计算悬念得分（0-1）
         
-        改进算法：结合关键词检测和情节分析
+        使用 LLM 评估章节的悬念程度，更准确地识别悬疑元素
         """
         if not chapters:
             return 0.5
         
-        suspense_keywords = ["？", "?", "...", "！", "!", "突然", "竟然", "没想到", "原来", "但是", "然而", "不过", "然而", "可是"]
+        try:
+            from llm.chat import deepseek_v3_2
+        except ImportError:
+            logger.warning("无法导入 deepseek_v3_2，回退到简单规则评估")
+            return self._calculate_suspense_score_fallback(chapters)
+        
+        suspense_scores = []
+        chapters_to_check = chapters[-5:]  ***REMOVED*** 检查最近5章
+        
+        for chapter in chapters_to_check:
+            try:
+                ***REMOVED*** 构建评估 prompt
+                prompt = f"""请评估以下小说章节的悬念程度，给出0-1之间的分数（保留2位小数）。
+
+评估标准：
+1. 情节悬念：是否有未解之谜、危险信号、紧张冲突
+2. 氛围营造：是否营造了紧张、不安、神秘的氛围
+3. 结尾设计：章节结尾是否留下悬念、疑问或转折
+4. 心理描写：是否通过心理活动增强悬念感
+5. 信息控制：是否通过信息不对称制造悬念
+
+章节标题：{chapter.title}
+章节内容：
+{chapter.content}
+
+请只返回一个0-1之间的浮点数（如0.75），不要包含其他文字。"""
+                
+                messages = [
+                    {"role": "user", "content": prompt}
+                ]
+                
+                _, response = deepseek_v3_2(messages, max_new_tokens=100)
+                
+                ***REMOVED*** 提取分数
+                score_match = re.search(r'0?\.\d+|1\.0|0\.0', response.strip())
+                if score_match:
+                    score = float(score_match.group())
+                    score = max(0.0, min(1.0, score))  ***REMOVED*** 确保在0-1范围内
+                    suspense_scores.append(score)
+                    logger.debug(f"第{chapter.chapter_number}章悬念得分（LLM评估）: {score:.2f}")
+                else:
+                    ***REMOVED*** 如果无法解析，使用默认值
+                    logger.warning(f"无法解析第{chapter.chapter_number}章的悬念得分，使用默认值0.5")
+                    suspense_scores.append(0.5)
+                    
+            except Exception as e:
+                logger.warning(f"评估第{chapter.chapter_number}章悬念得分时出错: {e}，使用默认值0.5")
+                suspense_scores.append(0.5)
+        
+        ***REMOVED*** 计算平均得分
+        if suspense_scores:
+            score = sum(suspense_scores) / len(suspense_scores)
+            logger.info(f"平均悬念得分（LLM评估）: {score:.2f} (基于{len(suspense_scores)}章)")
+            return max(0.0, min(1.0, score))
+        else:
+            return 0.5
+    
+    def _calculate_suspense_score_fallback(self, chapters: List[NovelChapter]) -> float:
+        """
+        回退方案：使用简单的关键词和规则检测
+        """
+        if not chapters:
+            return 0.5
+        
+        suspense_keywords = ["？", "?", "...", "！", "!", "突然", "竟然", "没想到", "原来", "但是", "然而", "不过", "可是"]
         suspense_scores = []
         
         for chapter in chapters[-5:]:  ***REMOVED*** 检查最近5章
             content = chapter.content
             ending = content[-200:] if len(content) > 200 else content
             
-            ***REMOVED*** 1. 关键词检测（原有逻辑）
+            ***REMOVED*** 1. 关键词检测
             keyword_count = sum(1 for keyword in suspense_keywords if keyword in ending)
             keyword_score = min(1.0, keyword_count / 3.0)  ***REMOVED*** 最多3个关键词得满分
             
-            ***REMOVED*** 2. 章节结尾分析（新增）
-            ***REMOVED*** 检查结尾是否有疑问句、转折、意外发现等
+            ***REMOVED*** 2. 章节结尾分析
             has_question = "？" in ending or "?" in ending
             has_turn = any(word in ending for word in ["但是", "然而", "不过", "可是", "原来", "竟然", "没想到"])
             has_suspense = "..." in ending or "突然" in ending
