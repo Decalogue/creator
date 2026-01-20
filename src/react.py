@@ -16,7 +16,7 @@ from typing import List, Dict, Optional, Tuple, Any
 from tools import default_registry, get_discovery
 from agent.context_manager import get_context_manager
 from agent.layered_action_space import get_layered_action_space
-from llm.chat import deepseek_v3_2
+from llm.chat import client, deepseek_v3_2
 
 
 class ReActAgent:
@@ -25,13 +25,15 @@ class ReActAgent:
     实现 Reasoning + Acting 的推理模式
     """
     
-    def __init__(self, max_iterations: int = 10, enable_context_offloading: bool = True):
+    def __init__(self, max_iterations: int = 10, enable_context_offloading: bool = True, max_new_tokens: Optional[int] = None, llm_client = None):
         """
         初始化 ReAct 代理
         
         Args:
             max_iterations: 最大迭代次数，防止无限循环
             enable_context_offloading: 是否启用上下文卸载（Context Offloading）
+            max_new_tokens: 最大生成 token 数（None = 使用模型默认值）
+            llm_client: LLM客户端函数（如gemini_3_flash、deepseek_v3_2），如果为None则使用默认的OpenAI client
         """
         self.max_iterations = max_iterations
         self.tools = default_registry
@@ -39,6 +41,8 @@ class ReActAgent:
         self.enable_context_offloading = enable_context_offloading
         self.context_manager = get_context_manager() if enable_context_offloading else None
         self.layered_action_space = get_layered_action_space()
+        self.max_new_tokens = max_new_tokens
+        self.llm_client = llm_client
     
     def _get_tools_description(self) -> str:
         """
@@ -265,22 +269,29 @@ Final Answer: [最终答案]
             
             ***REMOVED*** 调用 LLM 进行推理（尝试使用 Function Calling）
             try:
-                ***REMOVED*** 尝试使用 OpenAI Function Calling API
-                ***REMOVED*** 模型名称可以通过环境变量或配置设置
-                from llm.chat import client
-                model_name = os.getenv("REACT_MODEL", "ep-20251209150604-gxb42")
-                response = client.chat.completions.create(
-                    model=model_name,
-                    messages=self.conversation_history,
-                    tools=tools if tools else None,
-                    tool_choice="auto" if tools else None,
-                    stream=False,
-                    max_tokens=8192
-                )
-                
-                message = response.choices[0].message
-                content = message.content or ""
-                tool_calls = message.tool_calls
+                ***REMOVED*** 如果提供了自定义LLM客户端函数，使用它
+                if self.llm_client is not None:
+                    ***REMOVED*** 使用自定义LLM函数（如gemini_3_flash、deepseek_v3_2）
+                    max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
+                    reasoning_content, content = self.llm_client(self.conversation_history, max_new_tokens=max_tokens)
+                    tool_calls = None  ***REMOVED*** 自定义LLM函数可能不支持Function Calling
+                else:
+                    ***REMOVED*** 使用默认的 OpenAI Function Calling API
+                    model_name = os.getenv("REACT_MODEL", "ep-20251209150604-gxb42")
+                    ***REMOVED*** 使用 max_new_tokens 如果设置了，否则使用默认值 8192
+                    max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
+                    response = client.chat.completions.create(
+                        model=model_name,
+                        messages=self.conversation_history,
+                        tools=tools if tools else None,
+                        tool_choice="auto" if tools else None,
+                        stream=False,
+                        max_tokens=max_tokens
+                    )
+                    
+                    message = response.choices[0].message
+                    content = message.content or ""
+                    tool_calls = message.tool_calls
                 
                 ***REMOVED*** 添加到对话历史
                 assistant_message = {"role": "assistant", "content": content}
@@ -356,7 +367,10 @@ Final Answer: [最终答案]
                     print(f"Function Calling 失败，使用文本解析模式: {e}\n")
                 
                 ***REMOVED*** 调用 LLM 进行推理（文本模式）
-                reasoning_content, content = deepseek_v3_2(self.conversation_history)
+                if self.max_new_tokens is not None:
+                    reasoning_content, content = deepseek_v3_2(self.conversation_history, max_new_tokens=self.max_new_tokens)
+                else:
+                    reasoning_content, content = deepseek_v3_2(self.conversation_history)
                 
                 if verbose:
                     print(f"模型输出:\n{content}\n")

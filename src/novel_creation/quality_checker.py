@@ -115,6 +115,14 @@ class QualityChecker:
         style_issues = self.check_style_basic(chapter_content, chapter_number)
         issues.extend(style_issues)
         
+        ***REMOVED*** 7. 对话质量检查（新增）
+        dialogue_issues = self.check_dialogue_quality(chapter_content, chapter_number)
+        issues.extend(dialogue_issues)
+        
+        ***REMOVED*** 8. 描写质量检查（新增）
+        description_issues = self.check_description_quality(chapter_content, chapter_number)
+        issues.extend(description_issues)
+        
         return issues
     
     def check_character_consistency(
@@ -460,6 +468,149 @@ class QualityChecker:
         
         return issues
     
+    def check_dialogue_quality(
+        self,
+        chapter_content: str,
+        chapter_number: int
+    ) -> List[QualityIssue]:
+        """
+        检查对话质量
+        
+        Args:
+            chapter_content: 章节内容
+            chapter_number: 章节编号
+        
+        Returns:
+            对话质量问题列表
+        """
+        issues = []
+        
+        ***REMOVED*** 提取对话内容（包含引号的内容）
+        ***REMOVED*** 支持中文引号："和"（U+201C和U+201D）、'和'（U+2018和U+2019）
+        ***REMOVED*** 以及日式引号：「和」（U+300C和U+300D）、『和』（U+300E和U+300F）
+        ***REMOVED*** 以及英文引号："和"、'和'
+        ***REMOVED*** 使用Unicode转义确保正确匹配
+        dialogues = []
+        
+        ***REMOVED*** 中文双引号："和"（使用Unicode转义）
+        pattern1 = r'[\u201C]([^\u201D]+?)[\u201D]'
+        dialogues.extend(re.findall(pattern1, chapter_content))
+        
+        ***REMOVED*** 中文单引号：'和'（使用Unicode转义）
+        pattern2 = r'[\u2018]([^\u2019]+?)[\u2019]'
+        dialogues.extend(re.findall(pattern2, chapter_content))
+        
+        ***REMOVED*** 日式引号：「和」（使用Unicode转义）
+        pattern3 = r'[\u300C]([^\u300D]+?)[\u300D]'
+        dialogues.extend(re.findall(pattern3, chapter_content))
+        
+        ***REMOVED*** 日式双引号：『和』（使用Unicode转义）
+        pattern4 = r'[\u300E]([^\u300F]+?)[\u300F]'
+        dialogues.extend(re.findall(pattern4, chapter_content))
+        
+        ***REMOVED*** 英文引号："和"、'和'
+        pattern5 = r'["\']([^"\']+?)["\']'
+        dialogues.extend(re.findall(pattern5, chapter_content))
+        
+        total_length = len(chapter_content)
+        dialogue_length = sum(len(d) for d in dialogues)
+        dialogue_ratio = dialogue_length / total_length if total_length > 0 else 0
+        
+        ***REMOVED*** 检查对话占比（理想范围：20%-40%）
+        if dialogue_ratio < 0.15:
+            issues.append(QualityIssue(
+                issue_type=IssueType.STYLE_ISSUE,
+                severity=IssueSeverity.LOW,
+                description=f"对话占比过低：{dialogue_ratio*100:.1f}%（理想范围：20%-40%）",
+                location=f"第{chapter_number}章",
+                suggestion="适当增加对话，通过对话推进情节和展现人物性格",
+                metadata={"dialogue_ratio": dialogue_ratio, "dialogue_length": dialogue_length, "total_length": total_length}
+            ))
+        elif dialogue_ratio > 0.45:
+            issues.append(QualityIssue(
+                issue_type=IssueType.STYLE_ISSUE,
+                severity=IssueSeverity.LOW,
+                description=f"对话占比过高：{dialogue_ratio*100:.1f}%（理想范围：20%-40%）",
+                location=f"第{chapter_number}章",
+                suggestion="适当减少对话，增加动作描写、心理描写和环境描写",
+                metadata={"dialogue_ratio": dialogue_ratio, "dialogue_length": dialogue_length, "total_length": total_length}
+            ))
+        
+        ***REMOVED*** 检查对话是否推进情节（简单启发式：对话中包含动作词或情绪词）
+        action_words = ['说', '道', '问', '答', '喊', '叫', '笑', '哭', '怒', '想', '看', '走', '跑', '站', '坐']
+        dialogue_with_action = sum(1 for d in dialogues if any(word in d for word in action_words))
+        if len(dialogues) > 0 and dialogue_with_action / len(dialogues) < 0.3:
+            issues.append(QualityIssue(
+                issue_type=IssueType.STYLE_ISSUE,
+                severity=IssueSeverity.LOW,
+                description=f"对话缺乏动作或情绪：{dialogue_with_action}/{len(dialogues)}段对话包含动作词",
+                location=f"第{chapter_number}章",
+                suggestion="在对话中增加动作描写和情绪表达，使对话更生动",
+                metadata={"dialogue_count": len(dialogues), "dialogue_with_action": dialogue_with_action}
+            ))
+        
+        return issues
+    
+    def check_description_quality(
+        self,
+        chapter_content: str,
+        chapter_number: int
+    ) -> List[QualityIssue]:
+        """
+        检查描写质量
+        
+        Args:
+            chapter_content: 章节内容
+            chapter_number: 章节编号
+        
+        Returns:
+            描写质量问题列表
+        """
+        issues = []
+        
+        ***REMOVED*** 检查环境描写是否冗余（包含大量形容词但缺少动作）
+        paragraphs = chapter_content.split('\n\n')
+        redundant_descriptions = []
+        
+        for i, para in enumerate(paragraphs):
+            if len(para) < 50:  ***REMOVED*** 太短的段落跳过
+                continue
+            
+            ***REMOVED*** 统计形容词和动作词
+            adj_pattern = r'[的的地得]'
+            adj_count = len(re.findall(adj_pattern, para))
+            action_words = ['看', '听', '说', '走', '跑', '站', '坐', '想', '做', '拿', '放', '开', '关']
+            action_count = sum(1 for word in action_words if word in para)
+            
+            ***REMOVED*** 如果形容词多但动作少，可能是冗余的环境描写
+            if adj_count > len(para) * 0.15 and action_count < 3:
+                redundant_descriptions.append((i + 1, para[:50]))
+        
+        if len(redundant_descriptions) > 2:  ***REMOVED*** 超过2段冗余描写
+            issues.append(QualityIssue(
+                issue_type=IssueType.STYLE_ISSUE,
+                severity=IssueSeverity.LOW,
+                description=f"环境描写可能冗余：发现{len(redundant_descriptions)}段以形容词为主但缺少动作的段落",
+                location=f"第{chapter_number}章",
+                suggestion="精简环境描写，增加动作和情节推进，避免过度描写",
+                metadata={"redundant_count": len(redundant_descriptions)}
+            ))
+        
+        ***REMOVED*** 检查重复的心理活动（包含"想"、"觉得"、"认为"等词）
+        thought_pattern = r'[想觉得认为感觉]'
+        thought_sentences = re.findall(r'[^。！？]*' + thought_pattern + r'[^。！？]*[。！？]', chapter_content)
+        if len(thought_sentences) > 10:  ***REMOVED*** 心理活动句子过多
+            issues.append(QualityIssue(
+                issue_type=IssueType.STYLE_ISSUE,
+                severity=IssueSeverity.LOW,
+                description=f"心理活动描写过多：发现{len(thought_sentences)}句心理活动",
+                location=f"第{chapter_number}章",
+                suggestion="适当减少心理活动描写，通过对话和行动展现人物内心",
+                metadata={"thought_sentence_count": len(thought_sentences)}
+            ))
+        
+        return issues
+    
     ***REMOVED*** 辅助方法
     
     def _extract_characters(self, text: str) -> List[str]:
@@ -468,8 +619,31 @@ class QualityChecker:
         ***REMOVED*** 或者使用角色名称模式
         
         ***REMOVED*** 提取引号内的对话（说话者通常在前面）
-        dialogue_pattern = r'["""]([^"""]{2,50})["""]'
-        dialogues = re.findall(dialogue_pattern, text)
+        ***REMOVED*** 支持中文引号："和"（U+201C和U+201D）、'和'（U+2018和U+2019）
+        ***REMOVED*** 以及日式引号：「和」（U+300C和U+300D）、『和』（U+300E和U+300F）
+        ***REMOVED*** 以及英文引号："和"、'和'
+        ***REMOVED*** 使用Unicode转义确保正确匹配
+        dialogues = []
+        
+        ***REMOVED*** 中文双引号："和"（使用Unicode转义）
+        pattern1 = r'[\u201C]([^\u201D]{2,50})[\u201D]'
+        dialogues.extend(re.findall(pattern1, text))
+        
+        ***REMOVED*** 中文单引号：'和'（使用Unicode转义）
+        pattern2 = r'[\u2018]([^\u2019]{2,50})[\u2019]'
+        dialogues.extend(re.findall(pattern2, text))
+        
+        ***REMOVED*** 日式引号：「和」（使用Unicode转义）
+        pattern3 = r'[\u300C]([^\u300D]{2,50})[\u300D]'
+        dialogues.extend(re.findall(pattern3, text))
+        
+        ***REMOVED*** 日式双引号：『和』（使用Unicode转义）
+        pattern4 = r'[\u300E]([^\u300F]{2,50})[\u300F]'
+        dialogues.extend(re.findall(pattern4, text))
+        
+        ***REMOVED*** 英文引号："和"、'和'
+        pattern5 = r'["\']([^"\']{2,50})["\']'
+        dialogues.extend(re.findall(pattern5, text))
         
         ***REMOVED*** 提取 "XXX说道" 模式
         speaker_pattern = r'([A-Za-z\u4e00-\u9fa5]{2,10})\s*[说道说]'
