@@ -365,12 +365,33 @@ class ReactNovelCreator:
 - main_plot: 故事主线
 - key_plot_points: 关键情节节点列表
 
-重要提示：这是一个创作任务，请直接生成内容，不需要搜索工具或调用任何函数。直接返回 JSON 格式的结果。
+重要提示：
+1. 这是一个创作任务，请直接生成内容，不需要搜索工具或调用任何函数
+2. **必须只返回 JSON 格式**，不要包含任何代码、解释或其他内容
+3. JSON 格式要求：
+   - 所有字符串使用英文双引号
+   - 不要包含注释
+   - 确保 JSON 完整且有效
+
+示例格式：
+{{
+  "background": "背景设定描述",
+  "characters": [
+    {{"name": "角色名", "description": "角色描述"}}
+  ],
+  "chapter_outline": [
+    {{"chapter_number": 1, "title": "第一章标题", "summary": "章节摘要"}}
+  ],
+  "main_plot": "故事主线",
+  "key_plot_points": ["关键情节1", "关键情节2"]
+}}
+
+请严格按照上述 JSON 格式返回，不要添加任何其他内容。
 """
         
         # 使用 ReActAgent 生成大纲（限制迭代次数，避免工具搜索循环）
         original_max_iterations = self.agent.max_iterations
-        self.agent.max_iterations = 5  # 限制迭代次数，强制直接生成
+        self.agent.max_iterations = 3  # 减少迭代次数，强制直接生成JSON
         try:
             result = self.agent.run(query=prompt, verbose=False)  # 关闭详细输出以加快速度
         finally:
@@ -381,25 +402,47 @@ class ReactNovelCreator:
         json_str = None
         
         try:
-            # 提取 JSON 部分
+            # 提取 JSON 部分（优先查找JSON代码块）
+            json_str = None
+            
+            # 首先查找 ```json 代码块
             if "```json" in result:
                 json_start = result.find("```json") + 7
                 json_end = result.find("```", json_start)
                 if json_end == -1:
                     json_end = len(result)
                 json_str = result[json_start:json_end].strip()
+            # 然后查找普通 ``` 代码块
             elif "```" in result:
                 json_start = result.find("```") + 3
                 json_end = result.find("```", json_start)
                 if json_end == -1:
                     json_end = len(result)
                 json_str = result[json_start:json_end].strip()
-            elif "{" in result:
-                json_start = result.find("{")
-                json_end = result.rfind("}") + 1
-                json_str = result[json_start:json_end]
-            else:
-                json_str = result.strip()
+                # 检查是否真的是JSON（包含 { 和 }）
+                if "{" not in json_str or "}" not in json_str:
+                    json_str = None
+            
+            # 如果代码块中不是JSON，查找独立的JSON对象
+            if not json_str or "{" not in json_str:
+                # 查找第一个 { 到最后一个 }
+                if "{" in result and "}" in result:
+                    json_start = result.find("{")
+                    json_end = result.rfind("}") + 1
+                    candidate = result[json_start:json_end].strip()
+                    # 验证是否看起来像JSON（不以public class等开头）
+                    if not candidate.lower().startswith(("public", "class", "def ", "import", "package")):
+                        json_str = candidate
+                else:
+                    json_str = result.strip()
+            
+            # 如果还是没有有效的JSON，尝试查找第一个有效的JSON对象
+            if not json_str or not ("{" in json_str and "}" in json_str):
+                # 查找可能的JSON对象
+                json_matches = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', result)
+                if json_matches:
+                    # 使用最长的匹配作为候选
+                    json_str = max(json_matches, key=len)
             
             # 尝试修复常见的 JSON 格式错误
             if json_str:
@@ -893,11 +936,34 @@ class ReactNovelCreator:
         target_range_min = int(target_words * 0.9)
         target_range_max = int(target_words * 1.1)
         
+        # 检查历史字数偏差，如果偏差>20%，添加惩罚机制
+        word_control_strictness = ""
+        quality_history = self.quality_tracker.get("chapter_quality_history", [])
+        if len(quality_history) >= 3:
+            recent_deviations = [
+                m.get("word_diff_percent", 0) 
+                for m in quality_history[-3:]
+            ]
+            avg_deviation = sum(recent_deviations) / len(recent_deviations) if recent_deviations else 0
+            if avg_deviation > 20:
+                word_control_strictness = f"""
+⚠️ **字数控制紧急要求**：
+前续章节字数偏差过大（平均偏差{avg_deviation:+.1f}%），必须严格控制字数！
+- **严格执行**：字数必须控制在{target_range_min}-{target_range_max}字范围内
+- **偏差惩罚**：如果超过{target_range_max}字，将强制截断，导致情节不完整
+- **建议策略**：
+  1. 在创作过程中定期估算字数
+  2. 如果接近{target_range_max}字，立即停止添加新内容，简洁结尾
+  3. 优先删除冗余的环境描写和重复的心理活动
+  4. 保持对话占比在25-35%之间，通过对话推进情节而非增加描写
+"""
+        
         word_control_instruction = f"""
 **字数控制（基于番茄小说爆款数据统计，严格执行）**：
 - **目标字数：{target_words} 字（完美落点，必须严格控制）**
 - **理想范围：{target_range_min}-{target_range_max} 字（目标±10%）**
 - **严格上限：{max_words_allowed} 字（绝对不可超过）**
+{word_control_strictness}
 
 **字数估算方法（请严格遵循）**：
 1. **中文字数统计**：每个汉字、标点符号都算1个字
@@ -1056,12 +1122,43 @@ class ReactNovelCreator:
         # 自适应生成策略：根据质量反馈调整
         generation_strategy = self._get_adaptive_generation_strategy(chapter_number)
         
-        # 根据目标字数计算最大 token 数
-        # 中文token转换：DeepSeek模型中，中文1个字符通常需要1-1.5个tokens
-        # 策略优化：从1.2倍降低到1.1倍，更严格控制生成长度
-        # 通过后处理截断来严格控制最终字数（在目标+20%范围内）
-        # 目标 2048 字 → 约 2253 tokens（更保守，减少截断需求）
-        base_max_tokens = int(target_words * 1.1)  # 从1.2降低到1.1，更保守
+        # 根据目标字数计算最大 token 数（优化：动态调整token/字数比例）
+        # 中文token转换：根据历史数据动态调整token/字数比例
+        quality_history = self.quality_tracker.get("chapter_quality_history", [])
+        
+        # 计算历史token效率（如果有数据）
+        token_ratio = 1.1  # 默认比例
+        if len(quality_history) >= 5:
+            # 根据历史数据动态调整token/字数比例
+            # 如果历史生成的平均字数总是超过目标，说明token比例过高
+            recent_chapters = quality_history[-5:]
+            avg_actual_words = sum(m.get("word_count", target_words) for m in recent_chapters) / len(recent_chapters)
+            avg_target_words = sum(m.get("target_words", target_words) for m in recent_chapters) / len(recent_chapters)
+            
+            if avg_target_words > 0:
+                actual_ratio = avg_actual_words / avg_target_words
+                # 如果实际字数/目标字数 > 1.15，说明token比例过高，需要降低
+                if actual_ratio > 1.15:
+                    token_ratio = 1.05  # 降低token比例
+                    logger.info(f"检测到历史字数偏多（实际/目标={actual_ratio:.2f}），降低token比例到{token_ratio}")
+                elif actual_ratio < 0.95:
+                    token_ratio = 1.15  # 提高token比例
+                    logger.info(f"检测到历史字数偏少（实际/目标={actual_ratio:.2f}），提高token比例到{token_ratio}")
+        
+        base_max_tokens = int(target_words * token_ratio)
+        
+        # 根据章节摘要长度预测所需字数（字数预测模型）
+        summary_length = len(chapter_summary) if chapter_summary else 0
+        if summary_length > 0:
+            # 摘要越长，通常需要的字数越多
+            # 经验公式：摘要长度 * 15-20 ≈ 章节字数
+            predicted_words = summary_length * 17  # 经验值
+            if abs(predicted_words - target_words) > target_words * 0.2:  # 预测值与目标差异>20%
+                # 根据预测值微调token限制
+                if predicted_words > target_words * 1.2:
+                    # 预测字数明显大于目标，可能需要更多token
+                    base_max_tokens = int(base_max_tokens * 0.95)  # 稍微降低，因为我们想控制字数
+                    logger.debug(f"根据摘要长度预测字数{predicted_words}，目标{target_words}，略微降低token限制")
         
         # 根据自适应策略和历史生成情况调整token限制
         if generation_strategy.get("strict_word_control", False):
@@ -1070,7 +1167,6 @@ class ReactNovelCreator:
             logger.info(f"启用严格字数控制模式，token限制: {max_tokens_for_generation}")
         else:
             # 根据历史平均字数动态调整（更细粒度）
-            quality_history = self.quality_tracker.get("chapter_quality_history", [])
             if len(quality_history) >= 3:
                 # 计算最近3章的平均字数偏差
                 recent_deviations = [
@@ -1081,13 +1177,13 @@ class ReactNovelCreator:
                 
                 # 根据平均偏差动态调整（更细粒度）
                 if avg_deviation > 40:  # 偏差>40%，非常严格
-                    max_tokens_for_generation = int(base_max_tokens * 0.85)
-                    logger.info(f"检测到高偏差（{avg_deviation:.1f}%），使用严格token限制: {max_tokens_for_generation}")
+                    max_tokens_for_generation = int(base_max_tokens * 0.80)  # 更严格
+                    logger.info(f"检测到高偏差（{avg_deviation:.1f}%），使用非常严格token限制: {max_tokens_for_generation}")
                 elif avg_deviation > 30:  # 偏差>30%，较严格
-                    max_tokens_for_generation = int(base_max_tokens * 0.90)
+                    max_tokens_for_generation = int(base_max_tokens * 0.85)  # 更严格
                     logger.info(f"检测到中等偏差（{avg_deviation:.1f}%），使用较严格token限制: {max_tokens_for_generation}")
                 elif avg_deviation > 20:  # 偏差>20%，稍微严格
-                    max_tokens_for_generation = int(base_max_tokens * 0.95)
+                    max_tokens_for_generation = int(base_max_tokens * 0.90)  # 稍微严格
                     logger.info(f"检测到轻微偏差（{avg_deviation:.1f}%），使用稍微严格token限制: {max_tokens_for_generation}")
                 else:
                     # 偏差<=20%，使用基础限制
@@ -1219,14 +1315,13 @@ class ReactNovelCreator:
                         f"(严重: {high_severity})"
                     )
                 
-                # 判断是否需要重写
-                # 触发条件：1) 严重问题数 >= 1，或 2) 总问题数 >= 3
-                if high_severity >= 1 or total_issues >= 3:
-                    should_rewrite = True
-                    logger.info(
-                        f"第{chapter_number}章质量问题较多（严重:{high_severity}, 总计:{total_issues}），"
-                        f"将基于反馈进行重写"
-                    )
+                # 判断是否需要重写（优化后的触发条件）
+                should_rewrite = self._should_rewrite_chapter(quality_result, chapter_number)
+                
+                # 🔴 额外安全检查：如果问题数为0，强制不重写
+                if quality_result.get('total_issues', 0) == 0:
+                    should_rewrite = False
+                    logger.debug(f"第{chapter_number}章问题数为0，强制不触发重写")
                 
                 # 记录单章质量指标
                 try:
@@ -1237,57 +1332,158 @@ class ReactNovelCreator:
                 logger.warning(f"第{chapter_number}章质量检查失败: {e}，跳过质量检查")
                 chapter.metadata['quality_check'] = {"total_issues": 0, "error": str(e)}
         
-        # 基于反馈重写（如果质量问题较多）
+        # 基于反馈重写（如果质量问题较多）- 支持多轮重写
         if should_rewrite and quality_result:
             try:
                 logger.info(f"开始重写第{chapter_number}章...")
-                rewritten_content = self._rewrite_chapter_with_feedback(
-                    chapter_number=chapter_number,
-                    chapter_title=chapter_title,
-                    chapter_summary=chapter_summary,
-                    original_content=content,
-                    quality_result=quality_result,
-                    previous_chapters_summary=previous_chapters_summary,
-                    target_words=target_words,
-                    semantic_entities_context=semantic_entities_context,
-                    unimem_context=unimem_context
-                )
+                original_issue_count = quality_result.get('total_issues', 0)
+                original_content_for_rewrite = content
+                original_content_for_save = content  # 在重写循环开始前初始化，确保总是有值
+                current_quality_result = quality_result
+                max_rewrite_rounds = 3  # 最多重写3轮
+                rewrite_round = 0
+                rewrite_history = []
                 
-                if rewritten_content and len(rewritten_content) > min_words:
+                for rewrite_round in range(1, max_rewrite_rounds + 1):
+                    logger.info(f"第{chapter_number}章第{rewrite_round}轮重写...")
+                    
+                    rewritten_content = self._rewrite_chapter_with_feedback(
+                        chapter_number=chapter_number,
+                        chapter_title=chapter_title,
+                        chapter_summary=chapter_summary,
+                        original_content=original_content_for_rewrite if rewrite_round == 1 else content,
+                        quality_result=current_quality_result,
+                        previous_chapters_summary=previous_chapters_summary,
+                        target_words=target_words,
+                        semantic_entities_context=semantic_entities_context,
+                        unimem_context=unimem_context,
+                        rewrite_round=rewrite_round,
+                        rewrite_history=rewrite_history
+                    )
+                    
+                    if not rewritten_content or len(rewritten_content) < min_words:
+                        logger.warning(f"第{chapter_number}章第{rewrite_round}轮重写失败或内容过短")
+                        if rewrite_round == 1:
+                            # 第一轮就失败，保留原始内容
+                            break
+                        # 使用上一轮的重写结果
+                        break
+                    
                     # 更新章节内容
-                    original_content = content
                     content = rewritten_content
                     actual_words = len(content)
-                    word_diff = actual_words - target_words
-                    word_diff_percent = (word_diff / target_words * 100) if target_words > 0 else 0
                     
-                    # 更新章节对象
+                    # 更新章节对象（临时，用于质量检查）
                     chapter.content = content
-                    chapter.metadata['rewritten'] = True
-                    chapter.metadata['original_word_count'] = len(original_content)
-                    chapter.metadata['rewritten_word_count'] = actual_words
-                    chapter.metadata['actual_words'] = actual_words
-                    chapter.metadata['word_diff'] = word_diff
-                    chapter.metadata['word_diff_percent'] = round(word_diff_percent, 1)
-                    
-                    logger.info(
-                        f"第{chapter_number}章重写完成："
-                        f"原始 {len(original_content)} 字 → 重写后 {actual_words} 字"
-                    )
                     
                     # 重新进行质量检查
                     try:
                         quality_result_after_rewrite = self._check_chapter_quality(chapter, previous_chapters_summary)
-                        chapter.metadata['quality_check_after_rewrite'] = quality_result_after_rewrite
-                        chapter.metadata['quality_check'] = quality_result_after_rewrite  # 更新为重写后的结果
-                        
                         total_issues_after = quality_result_after_rewrite.get('total_issues', 0)
+                        improvement = original_issue_count - total_issues_after
+                        
+                        rewrite_history.append({
+                            'round': rewrite_round,
+                            'issue_count': total_issues_after,
+                            'improvement': improvement
+                        })
+                        
                         logger.info(
-                            f"第{chapter_number}章重写后质量检查："
-                            f"{total_issues_after} 个问题（重写前：{quality_result.get('total_issues', 0)} 个）"
+                            f"第{chapter_number}章第{rewrite_round}轮重写后质量检查："
+                            f"{total_issues_after} 个问题（原始：{original_issue_count}，改善：{improvement:+d}）"
                         )
+                        
+                        # 🔴 质量保护：如果重写后问题数增加，回退到原始内容
+                        if improvement < 0:
+                            logger.warning(
+                                f"第{chapter_number}章第{rewrite_round}轮重写后问题数增加（{original_issue_count} -> {total_issues_after}），"
+                                f"回退到原始内容"
+                            )
+                            # 回退到原始内容
+                            if rewrite_round == 1:
+                                content = original_content_for_save
+                            else:
+                                # 使用上一轮的结果（如果存在）
+                                break
+                            current_quality_result = quality_result
+                            break
+                        
+                        # 判断是否需要继续重写（优化后的停止条件）
+                        # 1. 如果问题数减少超过50%，或者问题数<=1，则停止重写（成功）
+                        if improvement >= original_issue_count * 0.5 or total_issues_after <= 1:
+                            logger.info(
+                                f"第{chapter_number}章重写效果优秀（改善{improvement}个问题，{improvement/original_issue_count*100:.1f}%），停止重写"
+                            )
+                            current_quality_result = quality_result_after_rewrite
+                            break
+                        
+                        # 2. 如果问题数减少超过30%，且已经是第2轮，可以考虑停止
+                        if improvement >= original_issue_count * 0.3 and rewrite_round >= 2:
+                            logger.info(
+                                f"第{chapter_number}章重写效果良好（改善{improvement}个问题，{improvement/original_issue_count*100:.1f}%），停止重写"
+                            )
+                            current_quality_result = quality_result_after_rewrite
+                            break
+                        
+                        # 3. 如果问题数没有减少，且已经是第3轮，停止重写（避免无效循环）
+                        if improvement <= 0 and rewrite_round >= 3:
+                            logger.warning(
+                                f"第{chapter_number}章第{rewrite_round}轮重写仍无改善，已尝试3轮，停止重写"
+                            )
+                            current_quality_result = quality_result_after_rewrite
+                            break
+                        
+                        # 4. 如果问题数没有减少，且是第2轮，继续尝试第3轮（使用更激进的策略）
+                        if improvement <= 0 and rewrite_round == 2:
+                            logger.warning(
+                                f"第{chapter_number}章第{rewrite_round}轮重写未改善问题数，将在第3轮使用更激进的策略"
+                            )
+                            # 继续下一轮重写，使用aggressive策略
+                            current_quality_result = quality_result_after_rewrite
+                            continue
+                        
+                        # 5. 如果问题数有所减少但不够，继续重写
+                        if 0 < improvement < original_issue_count * 0.3:
+                            logger.info(
+                                f"第{chapter_number}章第{rewrite_round}轮重写有改善（改善{improvement}个问题），继续重写以进一步改进"
+                            )
+                            current_quality_result = quality_result_after_rewrite
+                            continue
+                        
+                        # 默认继续下一轮重写
+                        current_quality_result = quality_result_after_rewrite
+                        
                     except Exception as e:
-                        logger.warning(f"重写后质量检查失败: {e}")
+                        logger.warning(f"第{chapter_number}章第{rewrite_round}轮重写后质量检查失败: {e}")
+                        # 如果质量检查失败，但内容有效，使用当前内容
+                        if rewrite_round == 1:
+                            break
+                
+                # 最终更新章节对象和元数据
+                if rewrite_round >= 1 and content != original_content_for_save:
+                    actual_words = len(content)
+                    word_diff = actual_words - target_words
+                    word_diff_percent = (word_diff / target_words * 100) if target_words > 0 else 0
+                    
+                    chapter.content = content
+                    chapter.metadata['rewritten'] = True
+                    chapter.metadata['rewrite_rounds'] = rewrite_round
+                    chapter.metadata['rewrite_history'] = rewrite_history
+                    chapter.metadata['original_word_count'] = len(original_content_for_save)
+                    chapter.metadata['rewritten_word_count'] = actual_words
+                    chapter.metadata['actual_words'] = actual_words
+                    chapter.metadata['word_diff'] = word_diff
+                    chapter.metadata['word_diff_percent'] = round(word_diff_percent, 1)
+                    chapter.metadata['original_issue_count'] = original_issue_count
+                    chapter.metadata['final_issue_count'] = current_quality_result.get('total_issues', 0)
+                    chapter.metadata['quality_check_after_rewrite'] = current_quality_result
+                    chapter.metadata['quality_check'] = current_quality_result  # 更新为重写后的结果
+                    
+                    logger.info(
+                        f"第{chapter_number}章重写完成（{rewrite_round}轮）："
+                        f"原始 {len(original_content_for_save)} 字 → 重写后 {actual_words} 字，"
+                        f"问题数：{original_issue_count} → {current_quality_result.get('total_issues', 0)}"
+                    )
                     
                     # 重新保存章节（包含重写信息）
                     try:
@@ -1296,7 +1492,7 @@ class ReactNovelCreator:
                     except Exception as e:
                         logger.warning(f"保存重写后的章节失败: {e}")
                 else:
-                    logger.warning(f"第{chapter_number}章重写失败或内容过短，保留原始内容")
+                    logger.warning(f"第{chapter_number}章重写失败，保留原始内容")
             except Exception as e:
                 logger.warning(f"第{chapter_number}章重写过程出错: {e}，保留原始内容", exc_info=True)
         
@@ -2304,6 +2500,219 @@ class ReactNovelCreator:
             logger.error(f"质量检查失败: {e}", exc_info=True)
             return {"total_issues": 0, "issues": [], "error": str(e)}
     
+    def _should_rewrite_chapter(self, quality_result: Dict[str, Any], chapter_number: int) -> bool:
+        """
+        判断是否需要重写章节（优化后的触发条件）
+        
+        根据问题类型和严重程度更精细的触发策略：
+        - 严重问题（一致性、对话占比过低）>= 1：立即触发
+        - 对话问题 >= 2：触发
+        - 心理活动问题 >= 1（严重）：触发
+        - 总问题数 >= 4：触发
+        - 中等严重度问题 >= 3：触发
+        
+        Args:
+            quality_result: 质量检查结果
+            chapter_number: 章节编号
+        
+        Returns:
+            是否需要重写
+        """
+        # 安全检查：如果质量检查失败或没有结果，不重写
+        if not quality_result or quality_result.get('error'):
+            logger.debug(f"第{chapter_number}章质量检查失败或无结果，不触发重写")
+            return False
+        
+        total_issues = quality_result.get('total_issues', 0)
+        
+        # 🔴 关键修复：如果问题数为0，绝对不重写
+        if total_issues == 0:
+            logger.debug(f"第{chapter_number}章无质量问题（问题数=0），不触发重写")
+            return False
+        
+        issues = quality_result.get('issues', [])
+        
+        # 如果 issues 为空但 total_issues > 0，说明数据结构有问题，不重写
+        if not issues and total_issues > 0:
+            logger.warning(f"第{chapter_number}章质量检查结果格式异常（total_issues={total_issues}但issues为空），不触发重写")
+            return False
+        
+        # 确保 by_severity 和 by_type 字段存在，如果不存在则从 issues 中统计
+        by_severity = quality_result.get('by_severity', {})
+        by_type = quality_result.get('by_type', {})
+        
+        if not by_severity or not by_type:
+            # 从 issues 中统计
+            by_severity = {'high': 0, 'medium': 0, 'low': 0}
+            by_type = {}
+            for issue in issues:
+                severity = issue.get('severity', 'low')
+                by_severity[severity] = by_severity.get(severity, 0) + 1
+                issue_type = issue.get('type', 'unknown')
+                by_type[issue_type] = by_type.get(issue_type, 0) + 1
+        
+        high_severity = by_severity.get('high', 0)
+        medium_severity = by_severity.get('medium', 0)
+        
+        # 1. 严重问题 >= 1：立即触发
+        if high_severity >= 1:
+            logger.info(
+                f"第{chapter_number}章检测到严重问题（{high_severity}个），触发重写"
+            )
+            return True
+        
+        # 2. 统计各类问题数量
+        from novel_creation.quality_checker import IssueType
+        
+        # 对话相关问题
+        dialogue_issues = [
+            issue for issue in issues
+            if '对话' in issue.get('description', '') or 
+               'dialogue' in issue.get('description', '').lower() or
+               issue.get('type') == IssueType.STYLE_ISSUE.value
+        ]
+        dialogue_issue_count = len(dialogue_issues)
+        
+        # 心理活动问题
+        thought_issues = [
+            issue for issue in issues
+            if '心理活动' in issue.get('description', '') or
+               'thought' in issue.get('description', '').lower() or
+               'thought_sentence_count' in issue.get('metadata', {})
+        ]
+        thought_issue_count = len(thought_issues)
+        
+        # 一致性问题
+        consistency_issues = [
+            issue for issue in issues
+            if issue.get('type') in [
+                IssueType.CHARACTER_INCONSISTENCY.value,
+                IssueType.WORLDVIEW_INCONSISTENCY.value,
+                IssueType.TIMELINE_INCONSISTENCY.value,
+                IssueType.PLOT_INCONSISTENCY.value
+            ]
+        ]
+        consistency_issue_count = len(consistency_issues)
+        
+        # 3. 对话问题 >= 2：触发
+        if dialogue_issue_count >= 2:
+            logger.info(
+                f"第{chapter_number}章检测到对话问题较多（{dialogue_issue_count}个），触发重写"
+            )
+            return True
+        
+        # 4. 心理活动问题 >= 1（严重）或 >= 2（中等）：触发
+        thought_severe = sum(1 for issue in thought_issues if issue.get('severity') == 'high')
+        if thought_severe >= 1 or thought_issue_count >= 2:
+            logger.info(
+                f"第{chapter_number}章检测到心理活动问题（{thought_issue_count}个，严重{thought_severe}个），触发重写"
+            )
+            return True
+        
+        # 5. 一致性问题 >= 1（任何严重程度）：触发
+        if consistency_issue_count >= 1:
+            logger.info(
+                f"第{chapter_number}章检测到一致性问题（{consistency_issue_count}个），触发重写"
+            )
+            return True
+        
+        # 6. 总问题数 >= 4：触发
+        if total_issues >= 4:
+            logger.info(
+                f"第{chapter_number}章质量问题较多（总计{total_issues}个），触发重写"
+            )
+            return True
+        
+        # 7. 中等严重度问题 >= 3：触发
+        if medium_severity >= 3:
+            logger.info(
+                f"第{chapter_number}章中等问题较多（{medium_severity}个），触发重写"
+            )
+            return True
+        
+        return False
+    
+    def _format_rewrite_history(self, rewrite_history: Optional[List[Dict[str, Any]]]) -> str:
+        """格式化重写历史信息"""
+        if not rewrite_history:
+            return ""
+        history_lines = ["**重写历史**："]
+        for h in rewrite_history:
+            history_lines.append(f"- 第{h['round']}轮：问题数 {h['issue_count']}（改善 {h['improvement']:+d}）")
+        return "\n".join(history_lines)
+    
+    def _format_rewrite_round_warning(self, rewrite_round: int) -> str:
+        """格式化重写轮次警告信息"""
+        if rewrite_round <= 1:
+            return ""
+        return f"\n⚠️ **重要**：这是第{rewrite_round}轮重写。如果上一轮重写效果不佳，请尝试不同的改进策略。特别关注仍未解决的问题。"
+    
+    def _build_rewrite_few_shot_examples(
+        self,
+        issue_groups: Dict[str, List[Dict[str, Any]]],
+        rewrite_strategy: str
+    ) -> str:
+        """构建few-shot示例，帮助LLM更好地理解如何改进"""
+        examples = []
+        
+        # 对话问题示例
+        if issue_groups.get('dialogue'):
+            examples.append("""
+**改进示例（对话问题）**：
+❌ 不好（对话占比过低）：
+他感到困惑。这到底是怎么回事？他想不明白。他觉得有什么地方不对。
+
+✅ 好（增加对话，达到25-35%占比）：
+他皱起眉头，看向对方："这到底是怎么回事？"
+"我也觉得有什么地方不对。"对方回答，语气中带着同样的困惑。
+"我们得弄清楚。"他站起身，走向门口。
+""")
+        
+        # 心理活动问题示例
+        if issue_groups.get('description'):
+            has_thought_issue = any('心理活动' in issue.get('description', '') 
+                                  for issue in issue_groups['description'])
+            if has_thought_issue:
+                examples.append("""
+**改进示例（心理活动过多）**：
+❌ 不好（重复心理活动）：
+他想，这不对劲。他觉得有问题。他认为应该离开。他感觉危险正在靠近。他想到了之前的警告。
+
+✅ 好（通过对话和行动展现内心）：
+"这不对劲。"他停下脚步，警惕地环顾四周。
+"我也觉得有问题。"艾薇跟上来，压低声音，"我们是不是应该——"
+"离开。"他打断她，已经转身向门口走去。
+之前的警告在脑海中闪现，让他加快了脚步。
+""")
+            
+            has_env_issue = any('环境描写' in issue.get('description', '') 
+                              for issue in issue_groups['description'])
+            if has_env_issue:
+                examples.append("""
+**改进示例（环境描写冗余）**：
+❌ 不好（大段纯形容词）：
+房间很宽敞。墙壁是白色的。地面是木质的。天花板很高。窗户很大。阳光从窗户照进来。
+
+✅ 好（结合动作推进情节）：
+他推开房门，宽敞的空间让他停下脚步。白色的墙壁在阳光下显得刺眼，他眯起眼睛，目光扫过木质的地板，最后落在远处的大窗户上。阳光透过窗户洒进来，在地板上投下斑驳的光影。他缓步走过去，每一步都在空旷的房间里回响。
+""")
+        
+        # 一致性问题示例
+        if issue_groups.get('consistency'):
+            examples.append("""
+**改进示例（一致性问题）**：
+❌ 不好（人物性格不一致）：
+林墨性格开朗，总是笑嘻嘻地和同事打招呼。（但在前面章节中，林墨是孤僻的天才）
+
+✅ 好（保持人物性格一致）：
+林墨面无表情地从人群中穿过，对同事的招呼只是轻微点头，完全符合他孤僻天才的性格。只有在独自一人时，他的眼中才会闪过一丝对失踪父母的担忧。
+""")
+        
+        if not examples:
+            return ""
+        
+        return "\n" + "="*60 + "\n" + "**Few-Shot改进示例**（请参考以下方式改进）：\n" + "="*60 + "\n".join(examples) + "\n" + "="*60 + "\n"
+    
     def _rewrite_chapter_with_feedback(
         self,
         chapter_number: int,
@@ -2314,7 +2723,9 @@ class ReactNovelCreator:
         previous_chapters_summary: Optional[str] = None,
         target_words: int = 2048,
         semantic_entities_context: str = "",
-        unimem_context: str = ""
+        unimem_context: str = "",
+        rewrite_round: int = 1,
+        rewrite_history: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[str]:
         """
         基于质量检查反馈重写章节
@@ -2329,47 +2740,221 @@ class ReactNovelCreator:
             target_words: 目标字数
             semantic_entities_context: 语义实体上下文
             unimem_context: UniMem上下文
+            rewrite_round: 重写轮次（1, 2, 3...）
+            rewrite_history: 重写历史记录
         
         Returns:
             重写后的内容，如果失败则返回None
         """
         try:
-            # 构建反馈信息
+            # 按问题类型分组
             issues = quality_result.get('issues', [])
-            feedback_summary = []
+            from novel_creation.quality_checker import IssueType
             
-            for issue in issues[:5]:  # 最多列出5个问题
-                feedback_summary.append(
-                    f"- {issue.get('description', '')} "
-                    f"（{issue.get('severity', 'unknown')}严重度）"
-                )
+            # 按类型和严重程度分组问题
+            issue_groups = {
+                'consistency': [],  # 一致性问题（最严重）
+                'dialogue': [],     # 对话问题
+                'description': [],  # 描述问题
+                'other': []         # 其他问题
+            }
             
-            if not feedback_summary:
-                feedback_summary = ["检测到质量问题，需要改进"]
+            for issue in issues:
+                issue_type = issue.get('type', '')
+                description = issue.get('description', '')
+                severity = issue.get('severity', 'medium')
+                
+                # 一致性问题（最优先）
+                if issue_type in [
+                    IssueType.CHARACTER_INCONSISTENCY.value,
+                    IssueType.WORLDVIEW_INCONSISTENCY.value,
+                    IssueType.TIMELINE_INCONSISTENCY.value,
+                    IssueType.PLOT_INCONSISTENCY.value
+                ]:
+                    issue_groups['consistency'].append(issue)
+                # 对话问题
+                elif '对话' in description or 'dialogue' in description.lower():
+                    issue_groups['dialogue'].append(issue)
+                # 描述问题
+                elif '心理活动' in description or '环境描写' in description or 'thought' in description.lower():
+                    issue_groups['description'].append(issue)
+                else:
+                    issue_groups['other'].append(issue)
             
-            feedback_text = "\n".join(feedback_summary)
+            # 构建分组反馈
+            feedback_sections = []
             
-            # 构建重写提示词
+            # 1. 一致性问题（最严重，必须优先解决）
+            if issue_groups['consistency']:
+                consistency_text = "【严重问题：一致性问题】\n"
+                for issue in issue_groups['consistency']:
+                    consistency_text += f"- {issue.get('description', '')}\n"
+                    if issue.get('suggestion'):
+                        consistency_text += f"  建议：{issue.get('suggestion')}\n"
+                consistency_text += "\n⚠️ 必须修正：这些问题会导致读者混淆，必须完全修正。"
+                feedback_sections.append(consistency_text)
+            
+            # 2. 对话问题
+            if issue_groups['dialogue']:
+                dialogue_text = "【对话质量问题】\n"
+                for issue in issue_groups['dialogue']:
+                    desc = issue.get('description', '')
+                    dialogue_text += f"- {desc}\n"
+                    if '对话占比过低' in desc:
+                        metadata = issue.get('metadata', {})
+                        dialogue_ratio = metadata.get('dialogue_ratio', 0) * 100
+                        dialogue_text += f"  当前对话占比：{dialogue_ratio:.1f}%\n"
+                        dialogue_text += "  目标：对话占比必须达到20-40%，理想范围为25-35%\n"
+                        dialogue_text += "  改进示例：\n"
+                        dialogue_text += "    不好：'他感到困惑。'（纯叙述，无对话）\n"
+                        dialogue_text += "    好：'他皱着眉头问道：\\\"这是什么意思？\\\"（对话推进情节）\n"
+                    elif '对话占比过高' in desc:
+                        dialogue_text += "  目标：对话占比不应超过40%，需要增加动作、心理、环境描写\n"
+                feedback_sections.append(dialogue_text)
+            
+            # 3. 描述问题
+            if issue_groups['description']:
+                description_text = "【描述质量问题】\n"
+                for issue in issue_groups['description']:
+                    desc = issue.get('description', '')
+                    description_text += f"- {desc}\n"
+                    if '心理活动' in desc:
+                        metadata = issue.get('metadata', {})
+                        thought_count = metadata.get('thought_sentence_count', 0)
+                        description_text += f"  当前心理活动句子数：{thought_count}（限制：10句）\n"
+                        description_text += "  改进示例：\n"
+                        description_text += "    不好：'他想...他觉得...他认为...'（重复心理活动）\n"
+                        description_text += "    好：通过对话和行动展现人物内心，减少'想'、'觉得'等词语\n"
+                    elif '环境描写' in desc:
+                        description_text += "  改进示例：\n"
+                        description_text += "    不好：'房间很宽敞。墙壁是白色的。地面是木质的...'（大段纯形容词）\n"
+                        description_text += "    好：'他推开房门，宽敞的空间让他停下脚步，目光扫过白色的墙壁和木质的地板...'（结合动作）\n"
+                feedback_sections.append(description_text)
+            
+            # 4. 其他问题（只关注最重要的，次要问题可以容忍）
+            critical_other_issues = [
+                issue for issue in issue_groups['other']
+                if issue.get('severity') == 'high' or '节奏' in issue.get('description', '')
+            ]
+            if critical_other_issues:
+                other_text = "【其他重要质量问题】\n"
+                for issue in critical_other_issues[:2]:  # 最多2个关键问题
+                    other_text += f"- {issue.get('description', '')}\n"
+                    if issue.get('suggestion'):
+                        other_text += f"  建议：{issue.get('suggestion')}\n"
+                feedback_sections.append(other_text)
+            
+            if not feedback_sections:
+                feedback_sections = ["检测到质量问题，需要改进"]
+            
+            feedback_text = "\n\n".join(feedback_sections)
+            
+            # 确定质量目标
+            quality_targets = []
+            if issue_groups['dialogue']:
+                dialogue_issues = issue_groups['dialogue']
+                for issue in dialogue_issues:
+                    if '对话占比过低' in issue.get('description', ''):
+                        quality_targets.append("**对话占比必须达到25%以上**（硬性要求）")
+                    elif '对话占比过高' in issue.get('description', ''):
+                        quality_targets.append("**对话占比控制在35%以下**")
+            if issue_groups['description']:
+                quality_targets.append("**心理活动句子不超过10句**（硬性限制）")
+            if issue_groups['consistency']:
+                quality_targets.append("**所有一致性问题必须完全修正**")
+            
+            quality_targets_text = "\n".join(quality_targets) if quality_targets else "解决所有上述质量问题"
+            
+            # 根据重写轮次和问题类型选择不同的重写策略
+            if rewrite_round > 1 and rewrite_history:
+                # 如果上一轮重写无效，使用更激进的策略
+                last_round = rewrite_history[-1]
+                if last_round.get('improvement', 0) <= 0:
+                    rewrite_strategy = "aggressive"  # 激进策略
+                else:
+                    rewrite_strategy = "focused"  # 聚焦策略
+            else:
+                rewrite_strategy = "standard"  # 标准策略
+            
+            # 构建针对性的few-shot示例
+            few_shot_examples = self._build_rewrite_few_shot_examples(
+                issue_groups, rewrite_strategy
+            )
+            
+            # 从quality_result获取原始问题数
+            original_issue_count = quality_result.get('total_issues', 0)
+            
+            # 🔴 质量保护：如果原始问题数为0，不应该重写（但这里已经通过了检查，添加额外提示）
+            if original_issue_count == 0:
+                logger.warning(f"第{chapter_number}章原始问题数为0，但触发了重写，这不应该发生")
+                return None
+            
+            # 构建重写提示词（增强版）
             rewrite_prompt = f"""请重写小说《{self.novel_title}》的第{chapter_number}章。
 
 **章节信息**：
 - 标题：{chapter_title}
 - 摘要：{chapter_summary}
-- 目标字数：{target_words}字
+- 目标字数：{target_words}字（允许±10%，即{int(target_words*0.9)}-{int(target_words*1.1)}字）
 
 **原始内容**（存在以下质量问题，需要改进）：
-{original_content[:2000]}...
+{original_content[:2500]}...
 
-**质量检查反馈**：
+**质量检查反馈**（按优先级分组）：
 {feedback_text}
 
-**改进要求**：
-1. 必须解决上述质量问题
-2. 保持章节的核心情节和主要事件不变
-3. 确保字数控制在目标范围内（{target_words}字，允许±10%）
-4. 保持与前面章节的连贯性
-5. 确保对话占比在20-40%之间
-6. 避免冗余的环境描写和过度的心理活动
+**重写后的质量目标**：
+{quality_targets_text}
+
+{few_shot_examples}
+
+**重写策略**（当前使用：{rewrite_strategy}策略）：
+{f"**{rewrite_strategy.upper()}策略**：" if rewrite_strategy != "standard" else ""}
+{f"- 这是第{rewrite_round}轮重写，上一轮重写效果不佳（改善{last_round.get('improvement', 0)}个问题）" if rewrite_strategy == "aggressive" and rewrite_history else ""}
+{f"- 需要**更彻底地重构**，不仅仅是表面修改，而是重新组织内容结构" if rewrite_strategy == "aggressive" else ""}
+{f"- 聚焦解决最关键的问题，次要问题可以先忽略" if rewrite_strategy == "focused" else ""}
+
+**重写要求**：
+1. **必须解决上述所有质量问题**，特别是标记为"严重"的问题
+   - 一致性问题：必须完全修正，不能有任何矛盾
+   - 对话问题：对话占比必须达到目标范围（20-40%）
+   - 描述问题：精简冗余描写，控制心理活动
+
+2. **⚠️ 重要：不要引入新问题**
+   - 只修改检测到的具体问题，不要"优化"没有问题的内容
+   - 保持核心情节、人物性格、世界观设定完全不变
+   - 如果某个部分没有问题，保持原样，不要修改
+   - 重写后的问题数必须 ≤ 原始问题数，不能增加
+
+3. **保持章节的核心情节和主要事件不变**，只改进表达方式
+   - 核心情节：{chapter_summary[:100]}...
+   - 主要人物：保持性格和说话方式一致
+   - 关键事件：不能删除或改变主要事件
+
+3. **确保字数控制在目标范围内**（{target_words}字，允许±10%）
+   - 当前字数：{len(original_content)}字
+   - 目标范围：{int(target_words*0.9)}-{int(target_words*1.1)}字
+   - 如果超出，优先删除冗余描写，保留核心情节
+
+4. **保持与前面章节的连贯性**，确保人物、世界观、时间线一致
+   - 人物性格：不能突然改变
+   - 世界观：不能出现矛盾设定
+   - 时间线：不能混乱或跳跃
+
+5. **对话占比必须达到20-40%**（理想范围25-35%）
+   - 每1000字至少包含3-5段对话
+   - 对话必须推进情节，不能只是寒暄
+   - 对话要配合动作描写，避免纯对话
+
+6. **避免冗余的环境描写**
+   - 环境描写应简洁有力，结合动作推进情节
+   - 避免超过2段以形容词为主但缺少动作的段落
+   - 每段环境描写后必须有动作、对话或心理活动
+
+7. **控制心理活动描写**
+   - 全章"想"、"觉得"、"认为"、"感觉"等心理活动句子不超过10句
+   - 优先使用对话和行动展现人物内心
+   - 避免重复的心理活动描写
 
 **前面章节摘要**（用于保持连贯性）：
 {previous_chapters_summary if previous_chapters_summary else "无"}
@@ -2378,7 +2963,16 @@ class ReactNovelCreator:
 
 {unimem_context}
 
-**重要提示**：请直接生成改进后的完整章节内容，不需要说明或注释。确保内容质量明显优于原始版本。"""
+**重写轮次信息**：
+- 当前重写轮次：第{rewrite_round}轮（最多3轮）
+{self._format_rewrite_history(rewrite_history) if rewrite_history else ""}
+{self._format_rewrite_round_warning(rewrite_round) if rewrite_round > 1 else ""}
+
+**重要提示**：
+- 请直接生成改进后的完整章节内容，不需要说明或注释
+- 确保内容质量**明显优于**原始版本，问题数必须减少
+- 重写后必须满足上述所有质量目标，特别是对话占比和心理活动限制
+- {f"**这是第{rewrite_round}轮重写，请使用更彻底的改进方法**" if rewrite_round > 1 else "**这是第一次重写，请全面改进**"}"""
 
             # 生成重写内容
             original_max_iterations = self.agent.max_iterations

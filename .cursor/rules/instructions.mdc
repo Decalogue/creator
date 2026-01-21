@@ -1,7 +1,7 @@
 ---
-description: 
-globs: 
+description: 如果项目根目录下存在Instructions目录，则浏览其中所有文件作为上下文
+globs: []
 alwaysApply: true
 ---
-If there is a directory called Instructions in the root directory of the project, browse all the files in it and use them as context.
-如果项目根目录下存在目录Instructions，则浏览其中所有文件，将它们用作上下文。
+If there is a directory called Instructions in the root directory of the project, browse all the files as context.
+如果项目根目录下存在目录Instructions，则浏览其中所有文件作为上下文。

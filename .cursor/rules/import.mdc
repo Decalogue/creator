@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description: Python代码导入库的优先级规则
+globs: []
 alwaysApply: true
 ---
 python 代码导入库时，优先 import，然后 from xxx import xxx。优先系统基础库，然后AI基础库，然后自定义库。
