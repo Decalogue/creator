@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description: 迁移和复制功能时，请严格遵循原来的接口和参数定义，以及使用原来的URL请求
+globs: []
 alwaysApply: true
 ---
 When migrating and copying functions, please strictly follow the original interface and parameter definitions, and use the original URL requests.

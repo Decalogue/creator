@@ -109,20 +109,46 @@ class MultiModelEntityExtractor:
         Returns:
             实体字典列表 [{"name": "...", "type": "...", "description": "...", ...}, ...]
         """
-        prompt = f"""请从以下小说章节中提取实体。**重要：只提取真正的实体名称，不要提取句子片段或描述性短语。**
+        prompt = f"""请从以下小说章节中提取实体，**按类别完整提取所有类型的实体**。
 
 章节内容：
 {text[:2000]}...
 
-请提取以下类型的实体：
-1. **角色（Character）**：人物姓名、称呼（如"林修"、"三长老"），**不要提取**动作描述（如"说道"、"睁开眼"）
-2. **地点（Location）**：地点名称、场所（如"青阳镇"、"演武场"），**不要提取**位置描述（如"在...上"、"从...中"）
-3. **物品（Item/Symbol）**：重要物品、道具名称（如"测灵玉"、"青阳诀"），**不要提取**抽象概念或描述
+请提取以下类型的实体（**必须完整提取所有类型**）：
+
+1. **人物实体（Character）**：人物姓名、称呼、角色身份
+   - 示例：林鸦（主角，废楼回收员＋无证驱妖人）
+   - 注意：包含角色的身份、职业等关键信息
+
+2. **组织/机构（Organization）**：组织名称、机构名称
+   - 示例：白夜当铺（典当"情绪"与肢体的机构）
+   - 注意：包含组织的性质和功能
+
+3. **地点实体（Location）**：地点名称、场所、建筑
+   - 示例：73层烂尾楼、第七廊桥（旧书集市）
+   - 注意：包含地点的特征或用途
+
+4. **物品/装备（Item）**：重要物品、道具、装备
+   - 示例：黑鲨·静刃电锯（掺银附魔）
+   - 注意：包含物品的特征或属性
+
+5. **生物/妖怪（Creature）**：生物种类、妖怪亚种
+   - 示例：鬣狗妖（犬型妖怪，缺尾）
+   - 注意：包含生物的特征或分类
+
+6. **概念/规则（Concept）**：规则、法律、概念
+   - 示例：当票法（含附件300页）、尾巴债（同类代偿条款3.2）
+   - 注意：包含规则的内容或说明
+
+7. **时间/期限（Time）**：时间点、期限、时间范围
+   - 示例：三年期（林鸦当票原始期限）、明晚零点（浮空艇升空巡航窗口）
+   - 注意：包含时间的含义或用途
 
 **提取规则**：
-- 实体名称必须是**完整的名词或名词短语**（2-10个字符）
+- 实体名称必须是**完整的名词或名词短语**（2-20个字符）
+- 描述应包含实体的关键特征、属性或说明（类似括号内的补充信息）
 - **不要提取**包含动词的片段（如"苦涩地说"、"但林修知"）
-- **不要提取**包含介词的位置描述（如"指尖接触的瞬间"、"在手中的名册上"）
+- **不要提取**包含介词的位置描述（如"指尖接触的瞬间"）
 - **不要提取**句子片段或描述性短语
 
 请以 JSON 格式返回，格式如下：
@@ -130,16 +156,17 @@ class MultiModelEntityExtractor:
   "entities": [
     {{
       "name": "实体名称（必须是完整的名词）",
-      "type": "character|location|item",
-      "description": "实体描述（1-2句话）"
+      "type": "character|organization|location|item|creature|concept|time",
+      "description": "实体描述（包含关键特征、属性或说明，类似括号内的补充信息）"
     }}
   ]
 }}
 
 **示例**：
-正确：{{"name": "林修", "type": "character", "description": "小说主角，林家年轻子弟"}}
+正确：{{"name": "林鸦", "type": "character", "description": "主角，废楼回收员＋无证驱妖人"}}
+正确：{{"name": "白夜当铺", "type": "organization", "description": "典当'情绪'与肢体的机构"}}
+正确：{{"name": "当票法", "type": "concept", "description": "含附件300页"}}
 错误：{{"name": "但林修知", "type": "character", "description": "..."}}  （这是句子片段）
-错误：{{"name": "指尖接触的瞬间", "type": "location", "description": "..."}}  （这是位置描述）
 """
         
         try:
@@ -259,13 +286,17 @@ class MultiModelEntityExtractor:
                 name = entity_dict['name']
                 normalized = self._normalize_entity_name(name)
                 
-                ***REMOVED*** 类型映射
+                ***REMOVED*** 类型映射（扩展支持新类型）
                 type_map = {
                     'character': EntityType.CHARACTER,
-                    'location': EntityType.SETTING,
-                    'setting': EntityType.SETTING,
-                    'item': EntityType.SYMBOL,
-                    'symbol': EntityType.SYMBOL,
+                    'organization': EntityType.ORGANIZATION,
+                    'location': EntityType.LOCATION,
+                    'setting': EntityType.SETTING,  ***REMOVED*** 兼容旧格式
+                    'item': EntityType.ITEM,
+                    'symbol': EntityType.SYMBOL,  ***REMOVED*** 兼容旧格式
+                    'creature': EntityType.CREATURE,
+                    'concept': EntityType.CONCEPT,
+                    'time': EntityType.TIME,
                 }
                 entity_type = type_map.get(entity_dict.get('type', 'character'), EntityType.CHARACTER)
                 

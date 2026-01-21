@@ -25,7 +25,7 @@ class ReActAgent:
     实现 Reasoning + Acting 的推理模式
     """
     
-    def __init__(self, max_iterations: int = 10, enable_context_offloading: bool = True, max_new_tokens: Optional[int] = None, llm_client = None):
+    def __init__(self, max_iterations: int = 10, enable_context_offloading: bool = True, max_new_tokens: Optional[int] = None, llm_client = None, enable_observability: bool = True):
         """
         初始化 ReAct 代理
         
@@ -34,6 +34,7 @@ class ReActAgent:
             enable_context_offloading: 是否启用上下文卸载（Context Offloading）
             max_new_tokens: 最大生成 token 数（None = 使用模型默认值）
             llm_client: LLM客户端函数（如gemini_3_flash、deepseek_v3_2），如果为None则使用默认的OpenAI client
+            enable_observability: 是否启用可观测性（指标收集）
         """
         self.max_iterations = max_iterations
         self.tools = default_registry
@@ -43,6 +44,18 @@ class ReActAgent:
         self.layered_action_space = get_layered_action_space()
         self.max_new_tokens = max_new_tokens
         self.llm_client = llm_client
+        
+        ***REMOVED*** 可观测性（可选）
+        self.enable_observability = enable_observability
+        if enable_observability:
+            try:
+                from agent.infra.observability import get_agent_observability
+                self.observability = get_agent_observability()
+            except ImportError:
+                self.observability = None
+                self.enable_observability = False
+        else:
+            self.observability = None
     
     def _get_tools_description(self) -> str:
         """
@@ -130,6 +143,54 @@ class ReActAgent:
         except Exception as e:
             return f"执行出错: {str(e)}"
     
+    def _execute_tool_with_metrics(
+        self,
+        tool_name: str,
+        tool_args: Dict[str, Any],
+        tools_called: int
+    ) -> tuple[str, int]:
+        """
+        执行工具并收集指标（简化嵌套）
+        
+        Args:
+            tool_name: 工具名称
+            tool_args: 工具参数
+            tools_called: 当前工具调用计数
+        
+        Returns:
+            (观察结果, 更新后的工具调用计数)
+        
+        Raises:
+            工具执行异常
+        """
+        tool_start_time = time.time()
+        try:
+            observation = self._execute_action(tool_name, tool_args)
+            tool_latency = time.time() - tool_start_time
+            tools_called += 1
+            
+            ***REMOVED*** 记录工具调用成功
+            if self.enable_observability and self.observability:
+                self.observability.record_tool_call(
+                    tool_name=tool_name,
+                    success=True,
+                    latency=tool_latency
+                )
+            return observation, tools_called
+        except Exception as e:
+            tool_latency = time.time() - tool_start_time
+            tools_called += 1
+            
+            ***REMOVED*** 记录工具调用失败
+            if self.enable_observability and self.observability:
+                self.observability.record_tool_call(
+                    tool_name=tool_name,
+                    success=False,
+                    latency=tool_latency,
+                    error_type=type(e).__name__
+                )
+            raise  ***REMOVED*** 重新抛出异常
+    
     def _extract_final_answer(self, content: str) -> Optional[str]:
         """从内容中提取最终答案"""
         if not content:
@@ -199,6 +260,18 @@ Final Answer: [最终答案]
         Returns:
             最终答案
         """
+        import time
+        import uuid
+        
+        ***REMOVED*** 生成查询ID用于追踪
+        query_id = str(uuid.uuid4())[:8]
+        start_time = time.time()
+        iterations = 0
+        tools_called = 0
+        tokens_used = 0
+        error_type = None
+        error_message = None
+        
         ***REMOVED*** 初始化对话历史
         self.conversation_history = [
             {"role": "system", "content": self._build_system_prompt()},
@@ -330,8 +403,16 @@ Final Answer: [最终答案]
                             print(f"执行行动: {func_name}")
                             print(f"行动参数: {func_args}")
                         
-                        ***REMOVED*** 执行行动
-                        observation = self._execute_action(func_name, func_args)
+                        ***REMOVED*** 执行行动（带指标收集）- 使用提取的方法简化嵌套
+                        try:
+                            observation, tools_called = self._execute_tool_with_metrics(
+                                tool_name=func_name,
+                                tool_args=func_args,
+                                tools_called=tools_called
+                            )
+                        except Exception as e:
+                            observation = f"错误: {str(e)}"
+                            raise  ***REMOVED*** 重新抛出异常
                         
                         if verbose:
                             print(f"观察结果: {observation}\n")
@@ -353,12 +434,38 @@ Final Answer: [最终答案]
                     if verbose:
                         print("=" * 60)
                         print(f"\n最终答案: {final_answer}")
+                    
+                    ***REMOVED*** 记录指标
+                    latency = time.time() - start_time
+                    if self.enable_observability and self.observability:
+                        self.observability.record_query(
+                            query_id=query_id,
+                            success=True,
+                            latency=latency,
+                            iterations=iterations + 1,
+                            tokens_used=tokens_used,
+                            tools_called=tools_called
+                        )
+                    
                     return final_answer
                 
                 ***REMOVED*** 如果只有内容没有工具调用，可能是最终答案
                 if content and not tool_calls:
                     if verbose:
                         print("模型返回了最终答案")
+                    
+                    ***REMOVED*** 记录指标
+                    latency = time.time() - start_time
+                    if self.enable_observability and self.observability:
+                        self.observability.record_query(
+                            query_id=query_id,
+                            success=True,
+                            latency=latency,
+                            iterations=iterations + 1,
+                            tokens_used=tokens_used,
+                            tools_called=tools_called
+                        )
+                    
                     return content
                     
             except Exception as e:
@@ -393,6 +500,19 @@ Final Answer: [最终答案]
                         if verbose:
                             print("=" * 60)
                             print(f"\n最终答案: {final_answer}")
+                        
+                        ***REMOVED*** 记录指标
+                        latency = time.time() - start_time
+                        if self.enable_observability and self.observability:
+                            self.observability.record_query(
+                                query_id=query_id,
+                                success=True,
+                                latency=latency,
+                                iterations=iterations + 1,
+                                tokens_used=tokens_used,
+                                tools_called=tools_called
+                            )
+                        
                         return final_answer
                 
                 ***REMOVED*** 解析行动
@@ -410,8 +530,16 @@ Final Answer: [最终答案]
                     print(f"执行行动: {action_name}")
                     print(f"行动参数: {action_input}")
                 
-                ***REMOVED*** 执行行动
-                observation = self._execute_action(action_name, action_input)
+                ***REMOVED*** 执行行动（带指标收集）- 使用提取的方法简化嵌套
+                try:
+                    observation, tools_called = self._execute_tool_with_metrics(
+                        tool_name=action_name,
+                        tool_args=action_input,
+                        tools_called=tools_called
+                    )
+                except Exception as e:
+                    observation = f"错误: {str(e)}"
+                    raise  ***REMOVED*** 重新抛出异常
                 
                 if verbose:
                     print(f"观察结果: {observation}")
@@ -426,6 +554,20 @@ Final Answer: [最终答案]
         ***REMOVED*** 如果达到最大迭代次数
         if verbose:
             print("\n达到最大迭代次数，返回最后的内容")
+        
+        ***REMOVED*** 记录指标（失败）
+        latency = time.time() - start_time
+        if self.enable_observability and self.observability:
+            self.observability.record_query(
+                query_id=query_id,
+                success=False,
+                latency=latency,
+                iterations=iterations,
+                tokens_used=tokens_used,
+                tools_called=tools_called,
+                error_type="MaxIterationsReached",
+                error_message="达到最大迭代次数"
+            )
         
         ***REMOVED*** 尝试从最后一条消息中提取内容
         if self.conversation_history:

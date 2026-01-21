@@ -1,14 +1,14 @@
 from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://sg.uiuiapi.com/v1",
-    api_key="sk-y1LF0rYKtvVGgc4ZtBZZRG7NzPnAAtX9llZWHl0HsnvU5r3z",
+    base_url="https://api.moonshot.cn/v1",
+    api_key="sk-AvWECfM7rRqv7kT2dwPPNpr95QdNLQZXkyeUhFNqssHnq04Z",
 )
 
 
-def gemini_3_flash(messages, max_new_tokens=8192):
+def kimi_k2(messages, max_new_tokens=8192):
     response = client.chat.completions.create(
-        model="gemini-3-flash-preview",
+        model="kimi-k2-0905-preview",
         messages=messages,
         stream=False,
         max_tokens=max_new_tokens,
@@ -17,7 +17,7 @@ def gemini_3_flash(messages, max_new_tokens=8192):
     return '', content
 
 
-def gemini_3_flash_stream(messages, max_new_tokens=8192, buffer_size=10):
+def kimi_k2_stream(messages, max_new_tokens=8192, buffer_size=10):
     """
     流式生成响应，支持缓冲以提升前端显示流畅度
     
@@ -27,7 +27,7 @@ def gemini_3_flash_stream(messages, max_new_tokens=8192, buffer_size=10):
         buffer_size: 缓冲大小（字符数），累积到该大小或遇到换行符时发送
     """
     response = client.chat.completions.create(
-        model="gemini-3-flash-preview",
+        model="kimi-k2-0905-preview",
         messages=messages,
         stream=True,
         max_tokens=max_new_tokens,
@@ -63,11 +63,11 @@ if __name__ == "__main__":
     ]
     
     print("=== 测试非流式 ===")
-    reasoning_content, content = gemini_3_flash(messages)
+    reasoning_content, content = kimi_k2(messages)
     print(f'reasoning_content:\n{reasoning_content}\ncontent:\n{content}')
 
     print("\n=== 测试流式 ===")
-    stream_res = gemini_3_flash_stream(messages)
+    stream_res = kimi_k2_stream(messages)
     full_content = ''
     for chunk in stream_res:
         full_content += chunk

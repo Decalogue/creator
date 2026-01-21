@@ -60,7 +60,7 @@ def test_novel_creation(
     
     ***REMOVED*** 选择LLM客户端（可通过环境变量或参数控制）
     import os
-    llm_model = os.getenv("NOVEL_LLM_MODEL", "deepseek_v3_2")  ***REMOVED*** 默认使用deepseek_v3_2
+    llm_model = os.getenv("NOVEL_LLM_MODEL", "gemini_3_flash")  ***REMOVED*** 默认使用gemini_3_flash（基于对比测试结果）
     
     if llm_model == "gemini_3_flash":
         from llm.chat import gemini_3_flash

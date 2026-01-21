@@ -20,7 +20,13 @@ class EntityType(Enum):
     """实体类型"""
     CHAPTER = "chapter"  ***REMOVED*** 章节
     CHARACTER = "character"  ***REMOVED*** 角色
-    SETTING = "setting"  ***REMOVED*** 设定
+    ORGANIZATION = "organization"  ***REMOVED*** 组织/机构
+    LOCATION = "location"  ***REMOVED*** 地点（与 SETTING 同义，但更明确）
+    SETTING = "setting"  ***REMOVED*** 设定（保留兼容性）
+    ITEM = "item"  ***REMOVED*** 物品/装备
+    CREATURE = "creature"  ***REMOVED*** 生物/妖怪
+    CONCEPT = "concept"  ***REMOVED*** 概念/规则
+    TIME = "time"  ***REMOVED*** 时间/期限
     PLOT_POINT = "plot_point"  ***REMOVED*** 情节节点
     FORESHADOWING = "foreshadowing"  ***REMOVED*** 伏笔
     DIALOGUE = "dialogue"  ***REMOVED*** 对话

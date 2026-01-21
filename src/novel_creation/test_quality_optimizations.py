@@ -58,16 +58,24 @@ def test_quality_optimizations(
     
     ***REMOVED*** 选择LLM客户端（可通过环境变量或参数控制）
     import os
-    llm_model = os.getenv("NOVEL_LLM_MODEL", "deepseek_v3_2")  ***REMOVED*** 默认使用deepseek_v3_2
+    llm_model = os.getenv("NOVEL_LLM_MODEL", "gemini_3_flash")  ***REMOVED*** 默认使用gemini_3_flash（基于对比测试结果）
     
     if llm_model == "gemini_3_flash":
         from llm.chat import gemini_3_flash
         llm_client = gemini_3_flash
         logger.info(f"使用LLM模型: gemini_3_flash")
-    else:
+    elif llm_model == "kimi_k2":
+        from llm.chat import kimi_k2
+        llm_client = kimi_k2
+        logger.info(f"使用LLM模型: kimi_k2")
+    elif llm_model == "deepseek_v3_2":
         from llm.chat import deepseek_v3_2
         llm_client = deepseek_v3_2
         logger.info(f"使用LLM模型: deepseek_v3_2")
+    else:
+        from llm.chat import deepseek_v3_2
+        llm_client = deepseek_v3_2
+        logger.info(f"使用LLM模型: deepseek_v3_2 (默认)")
     
     ***REMOVED*** 创建创作器（使用test_title作为输出目录，novel_title作为小说标题）
     creator = ReactNovelCreator(
