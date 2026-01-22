@@ -1,6 +1,6 @@
 ***REMOVED*** Agent Infrastructure Layer
 
-Agent 基础设施层，提供可观测性、实验管理、性能优化和容错恢复功能。
+Agent 基础设施层，提供可观测性、实验管理和缓存系统。
 
 ***REMOVED******REMOVED*** 快速开始
 
@@ -81,24 +81,6 @@ def get_entity_context(entities: List[str]) -> str:
     return generate_context(entities)
 ```
 
-***REMOVED******REMOVED******REMOVED*** 4. 容错（Resilience）
-
-自动重试和熔断：
-
-```python
-from agent.infra.resilience import ResilienceManager, CircuitBreaker, RetryStrategy
-
-resilience = ResilienceManager(
-    circuit_breaker=CircuitBreaker(failure_threshold=5),
-    retry_strategy=RetryStrategy(max_retries=3)
-)
-
-***REMOVED*** 带容错的函数调用
-def call_llm(prompt: str):
-    return llm_client(prompt)
-
-result = resilience.execute(call_llm, prompt="Hello")
-```
 
 ***REMOVED******REMOVED*** 前端集成
 
@@ -130,14 +112,10 @@ Agent Infra Layer
 │   ├── A/B 测试
 │   ├── 结果对比
 │   └── 实验历史
-├── Cache (缓存)
-│   ├── 实体上下文缓存
-│   ├── 质量检查缓存
-│   └── Prompt 缓存
-└── Resilience (容错)
-    ├── Circuit Breaker
-    ├── Retry Strategy
-    └── 优雅降级
+└── Cache (缓存)
+    ├── 实体上下文缓存
+    ├── 质量检查缓存
+    └── Prompt 缓存
 ```
 
 ***REMOVED******REMOVED*** 优势

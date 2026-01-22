@@ -39,7 +39,6 @@ try:
         EntityType,
         RelationType,
         ContextRouter,
-        UserBehavior,
         PubSubMemoryBus,
         Topic
     )
@@ -160,6 +159,7 @@ class ReactNovelCreator:
             "created_at": datetime.now().isoformat(),
             "total_chapters": 0,
             "total_words": 0,
+            "target_chapters": 0,  ***REMOVED*** 目标章节数（用于节奏控制）
         }
         
         ***REMOVED*** 质量指标追踪器
@@ -172,8 +172,34 @@ class ReactNovelCreator:
                 "plot_rhythm": [],
                 "worldview_consistency": [],
                 "suspense": []
+            },
+            "issue_patterns": {  ***REMOVED*** Phase 6: 问题模式追踪
+                "common_issues": {},  ***REMOVED*** 常见问题类型统计
+                "issue_frequency": {},  ***REMOVED*** 问题频率统计
+                "prevention_success": {}  ***REMOVED*** 预防成功记录
+            },
+            "long_term_coherence": {  ***REMOVED*** Phase 7: 长期连贯性追踪
+                "character_profiles": {},  ***REMOVED*** 人物档案
+                "worldview_profiles": {},  ***REMOVED*** 世界观档案
+                "coherence_reports": [],  ***REMOVED*** 连贯性报告
+                "key_node_reviews": []  ***REMOVED*** 关键节点回顾
             }
         }
+        
+        ***REMOVED*** 修复策略库和验证器（Phase 1: 改进重写机制）
+        try:
+            from novel_creation.fix_strategy_library import FixStrategyLibrary
+            from novel_creation.fix_validator import FixValidator
+            from novel_creation.fix_outcome_predictor import FixOutcomePredictor
+            self.fix_strategy_library = FixStrategyLibrary()
+            self.fix_validator = FixValidator()
+            self.fix_outcome_predictor = FixOutcomePredictor(self.fix_strategy_library)
+            logger.info("修复策略库、验证器和预测器已启用（Phase 1 & 2）")
+        except ImportError as e:
+            logger.warning(f"无法导入修复策略库、验证器或预测器: {e}")
+            self.fix_strategy_library = None
+            self.fix_validator = None
+            self.fix_outcome_predictor = None
         
         ***REMOVED*** 增强实体提取器（支持多模型投票）
         self.entity_extractor = None
@@ -184,14 +210,16 @@ class ReactNovelCreator:
                 try:
                     from novel_creation.multi_model_entity_extractor import MultiModelEntityExtractor
                     from llm.gemini import gemini_3_flash
-                    from llm.chat import deepseek_v3_2
+                    from llm.chat import kimi_k2
                     
-                    ***REMOVED*** 使用 Gemini 和 DeepSeek 进行投票
-                    llm_clients = [gemini_3_flash, deepseek_v3_2]
+                    ***REMOVED*** 使用 Kimi K2 和 Gemini 进行投票（推荐配置：Kimi 实体提取最强，Gemini 作为验证）
+                    ***REMOVED*** 优先保留 Kimi 的所有结果，Gemini 作为补充
+                    llm_clients = [kimi_k2, gemini_3_flash]
                     self.entity_extractor = MultiModelEntityExtractor(
                         llm_clients=llm_clients,
-                        vote_threshold=2,  ***REMOVED*** 至少2个模型都提取到才保留
-                        use_ner=False
+                        vote_threshold=2,  ***REMOVED*** 投票阈值（但主模型结果优先保留）
+                        use_ner=False,
+                        primary_model_index=0  ***REMOVED*** Kimi K2 作为主模型（索引0），优先保留其所有结果
                     )
                     logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型）")
                 except (ImportError, Exception) as e:
@@ -845,6 +873,164 @@ class ReactNovelCreator:
         
         return phase_outline
     
+    def _determine_chapter_position(self, chapter_number: int, total_chapters: int) -> str:
+        """
+        确定章节在整个小说中的位置（Phase 5: 节奏优化）
+        
+        Args:
+            chapter_number: 章节编号
+            total_chapters: 总章节数
+        
+        Returns:
+            位置类型：'opening'（开头，前25%）、'development'（发展，25%-75%）、
+                     'climax'（高潮，75%-90%）、'ending'（结尾，后10%）
+        """
+        if total_chapters == 0:
+            return 'development'  ***REMOVED*** 默认
+        
+        position_ratio = chapter_number / total_chapters
+        
+        if position_ratio <= 0.25:
+            return 'opening'
+        elif position_ratio <= 0.75:
+            return 'development'
+        elif position_ratio <= 0.90:
+            return 'climax'
+        else:
+            return 'ending'
+    
+    def _get_rhythm_adjusted_target_words(
+        self, 
+        base_target_words: int, 
+        chapter_position: str,
+        recent_rhythm_data: Optional[List[float]] = None
+    ) -> int:
+        """
+        根据章节位置和节奏历史数据调整目标字数（Phase 5: 节奏优化）
+        
+        Args:
+            base_target_words: 基础目标字数
+            chapter_position: 章节位置（'opening'/'development'/'climax'/'ending'）
+            recent_rhythm_data: 最近章节的字数列表（用于节奏变化）
+        
+        Returns:
+            调整后的目标字数
+        """
+        ***REMOVED*** 根据位置调整字数（±15%）
+        position_adjustments = {
+            'opening': 0.95,    ***REMOVED*** 开头章节稍短，快速进入
+            'development': 1.0,  ***REMOVED*** 发展章节保持标准
+            'climax': 1.15,     ***REMOVED*** 高潮章节允许更长
+            'ending': 0.90      ***REMOVED*** 结尾章节稍短，简洁收尾
+        }
+        
+        adjusted_words = int(base_target_words * position_adjustments.get(chapter_position, 1.0))
+        
+        ***REMOVED*** 根据历史节奏数据进一步调整（避免连续相同长度）
+        if recent_rhythm_data and len(recent_rhythm_data) >= 2:
+            avg_recent = sum(recent_rhythm_data[-3:]) / len(recent_rhythm_data[-3:])
+            ***REMOVED*** 如果最近章节长度变化很小（<5%），增加变化
+            if abs(avg_recent - base_target_words) / base_target_words < 0.05:
+                ***REMOVED*** 根据位置增加变化
+                if chapter_position == 'climax':
+                    adjusted_words = int(adjusted_words * 1.10)  ***REMOVED*** 高潮章节更长
+                elif chapter_position == 'ending':
+                    adjusted_words = int(adjusted_words * 0.95)  ***REMOVED*** 结尾章节更短
+        
+        ***REMOVED*** 确保在合理范围内（基础字数的80%-120%）
+        min_words = int(base_target_words * 0.8)
+        max_words = int(base_target_words * 1.2)
+        return max(min_words, min(max_words, adjusted_words))
+    
+    def _get_enhanced_rhythm_instruction(
+        self,
+        chapter_position: str,
+        recent_rhythm_score: Optional[float] = None
+    ) -> str:
+        """
+        生成增强的节奏控制提示词（Phase 5: 节奏优化）
+        
+        Args:
+            chapter_position: 章节位置
+            recent_rhythm_score: 最近的节奏得分（用于动态调整）
+        
+        Returns:
+            增强的节奏控制提示词
+        """
+        ***REMOVED*** 基础节奏结构
+        base_instruction = """
+**情节节奏控制（重要）**：
+请按照以下节奏结构创作章节，确保情节推进有起有伏：
+1. **开头（约25%篇幅）**：快速进入情节，引入本章核心冲突或推进主线
+   - 避免冗长的铺垫，直接进入情节
+   - 可以承接上一章的结尾，或开启新的冲突
+2. **发展（约40%篇幅）**：展开情节，推进冲突，展现人物
+   - 通过对话、行动、心理描写推进情节
+   - 展现人物性格和关系变化
+   - 逐步提升紧张感或冲突强度
+3. **高潮（约25%篇幅）**：冲突达到顶点或出现转折
+   - 本章的核心冲突达到高潮
+   - 可以是激烈的对抗、重要的发现、关键的转折
+   - 给读者带来情绪冲击
+4. **结尾（约10%篇幅）**：自然过渡，为下一章埋下伏笔
+   - 解决或部分解决本章冲突
+   - 留下悬念或伏笔，吸引读者继续阅读
+   - 为下一章的情节发展做铺垫
+
+**节奏变化要求**：
+- 确保对话、动作、描写交替出现，避免长时间单一类型的内容
+- 在紧张的情节中适当加入对话或心理描写，在平静的情节中适当加入动作或冲突
+- 避免连续多段都是环境描写或心理活动，保持节奏的流动性
+"""
+        
+        ***REMOVED*** 根据章节位置添加特定指导
+        position_specific = {
+            'opening': f"""
+**开头阶段节奏要求**（第{chapter_number}章位于小说开头部分）：
+- **快速进入**：前200字内必须出现核心冲突或关键事件
+- **节奏紧凑**：减少环境描写，优先使用对话和动作推进情节
+- **建立悬念**：在开头就埋下吸引读者的钩子
+- **人物登场**：快速引入主要角色，通过行动而非描述展现性格
+""",
+            'development': f"""
+**发展阶段节奏要求**（第{chapter_number}章位于小说发展部分）：
+- **节奏变化**：在快节奏和慢节奏之间交替，避免单调
+- **情节推进**：每章必须有明确的情节进展，不能原地踏步
+- **人物深化**：通过对话和心理描写深化人物形象
+- **冲突升级**：逐步提升冲突强度，为高潮做准备
+""",
+            'climax': f"""
+**高潮阶段节奏要求**（第{chapter_number}章位于小说高潮部分）：
+- **节奏加快**：使用短句、快节奏的对话和动作描写
+- **情绪冲击**：通过激烈的冲突和转折给读者带来情绪冲击
+- **关键转折**：本章应包含重要的情节转折或关键发现
+- **紧张感**：保持高紧张感，避免拖沓
+""",
+            'ending': f"""
+**结尾阶段节奏要求**（第{chapter_number}章位于小说结尾部分）：
+- **节奏收束**：逐步放缓节奏，为结局做准备
+- **线索收拢**：开始收拢前面的伏笔和线索
+- **情绪沉淀**：在紧张后适当加入情绪沉淀和反思
+- **为结局铺垫**：为最终结局做好铺垫
+"""
+        }
+        
+        position_instruction = position_specific.get(chapter_position, "")
+        
+        ***REMOVED*** 根据历史节奏得分添加调整建议
+        rhythm_adjustment = ""
+        if recent_rhythm_score is not None and recent_rhythm_score < 0.7:
+            rhythm_adjustment = f"""
+⚠️ **节奏优化提醒**：
+前续章节节奏得分较低（{recent_rhythm_score:.2f}），请特别注意：
+1. **增加节奏变化**：确保章节长度有适当变化（±15%）
+2. **对话占比**：确保对话占比在25-35%之间
+3. **内容交替**：每200-300字必须切换内容类型（对话/动作/描写）
+4. **避免单调**：不要连续多段都是相同类型的内容
+"""
+        
+        return base_instruction + position_instruction + rhythm_adjustment
+    
     def create_chapter(
         self,
         chapter_number: int,
@@ -901,7 +1087,9 @@ class ReactNovelCreator:
 - 重要物品和设定
 """
                     newline_count = len(previous_entities.split('\n'))
-                logger.info(f"从语义网格检索到 {newline_count} 条实体信息")
+                    logger.info(f"从语义网格检索到 {newline_count} 条实体信息")
+                else:
+                    logger.debug(f"第{chapter_number}章：未检索到前面章节的实体信息")
             except Exception as e:
                 logger.warning(f"语义网格实体检索失败: {e}")
         
@@ -959,68 +1147,52 @@ class ReactNovelCreator:
 """
         
         word_control_instruction = f"""
-**字数控制（基于番茄小说爆款数据统计，严格执行）**：
-- **目标字数：{target_words} 字（完美落点，必须严格控制）**
-- **理想范围：{target_range_min}-{target_range_max} 字（目标±10%）**
-- **严格上限：{max_words_allowed} 字（绝对不可超过）**
-{word_control_strictness}
+**字数控制原则（质量优先）**：
+1. **核心原则**：**质量优先，字数控制是次要的**
+   - 如果内容优质，字数可以适当浮动（±20%以内都可以接受）
+   - 优先保证情节完整、人物生动、文笔流畅
+   - 不要为了字数而牺牲内容质量
 
-**字数估算方法（请严格遵循）**：
-1. **中文字数统计**：每个汉字、标点符号都算1个字
-2. **估算技巧**：
-   - 一段对话（含引号、标点）约20-30字
-   - 一段动作描写约50-80字
-   - 一段心理描写约40-60字
-   - 一段环境描写约60-100字
-3. **创作过程中持续估算**：
-   - 每写完一段，立即估算当前总字数
-   - 如果接近 {target_range_max} 字，立即停止展开新情节
-   - 如果超过 {target_range_max} 字，删除冗余内容
+2. **字数目标**：
+   - **理想字数**：{target_words} 字（目标范围：{target_range_min}-{target_range_max} 字）
+   - **可接受范围**：如果内容优质，{int(target_words*0.8)}-{int(target_words*1.2)} 字都可以接受
+   - **上限**：不超过 {max_words_allowed} 字（超过将被智能截断）
 
-**重要提示（必须严格执行）**：
-1. **优先控制在 {target_words} 字左右**（最好在 {target_range_min}-{target_range_max} 字范围内）
-2. **绝对禁止超过 {max_words_allowed} 字**，超过将被截断
-3. **字数检查点**：
-   - 开头部分（25%）：约 {int(target_words * 0.25)} 字时检查
-   - 发展部分（40%）：约 {int(target_words * 0.65)} 字时检查
-   - 高潮部分（25%）：约 {int(target_words * 0.90)} 字时检查
-   - 结尾部分（10%）：约 {target_range_max} 字时必须结束
-4. **字数统计方式**：请在实际创作时估算字数，严格控制在 {target_range_min}-{target_range_max} 字范围内
+3. **字数控制技巧**（在保证质量的前提下）：
+   - **如果内容优质但字数略多**：可以保留，优质内容比严格字数控制更重要
+   - **如果内容优质但字数略少**：可以保留，不要为了凑字数而添加冗余内容
+   - **如果字数明显过多（>{int(target_words*1.2)}字）**：在保持质量的前提下，适当精简：
+     * 删除冗余的环境描写和重复的心理活动
+     * 合并相似的描述，使用更简洁的表达
+     * 精简对话，保留关键信息
+   - **如果字数明显过少（<{int(target_words*0.8)}字）**：在保持质量的前提下，适当补充：
+     * 增加必要的对话，推进情节和展现人物
+     * 补充关键的动作描写和环境描写
+     * 增加人物的心理活动和反应
 
-**内容控制技巧**：
-- 如果字数接近 {target_range_max} 字：**立即停止**，简洁结尾，删除冗余描写
-- 如果字数不足 {target_range_min} 字：适当增加对话、动作、细节，但不要超过 {target_range_max} 字
-- 避免冗长的环境描写、重复的心理活动、过长的对话、重复的内心独白
-- **优先保留核心情节**：如果必须删减，优先删除环境描写、重复的心理活动
-
-**最终检查**：创作完成后，字数必须在 {target_range_min}-{target_range_max} 字范围内，超过将被智能截断
+4. **质量检查优先**：
+   - 首先确保内容质量：情节完整、人物生动、对话自然、描写恰当
+   - 然后考虑字数：在保证质量的前提下，尽量接近目标字数
+   - **如果必须在质量和字数之间选择，优先选择质量**
 """
         
-        ***REMOVED*** 情节节奏控制提示
-        rhythm_control_instruction = """
-**情节节奏控制（重要）**：
-请按照以下节奏结构创作章节，确保情节推进有起有伏：
-1. **开头（约25%篇幅）**：快速进入情节，引入本章核心冲突或推进主线
-   - 避免冗长的铺垫，直接进入情节
-   - 可以承接上一章的结尾，或开启新的冲突
-2. **发展（约40%篇幅）**：展开情节，推进冲突，展现人物
-   - 通过对话、行动、心理描写推进情节
-   - 展现人物性格和关系变化
-   - 逐步提升紧张感或冲突强度
-3. **高潮（约25%篇幅）**：冲突达到顶点或出现转折
-   - 本章的核心冲突达到高潮
-   - 可以是激烈的对抗、重要的发现、关键的转折
-   - 给读者带来情绪冲击
-4. **结尾（约10%篇幅）**：自然过渡，为下一章埋下伏笔
-   - 解决或部分解决本章冲突
-   - 留下悬念或伏笔，吸引读者继续阅读
-   - 为下一章的情节发展做铺垫
-
-**节奏变化要求**：
-- 确保对话、动作、描写交替出现，避免长时间单一类型的内容
-- 在紧张的情节中适当加入对话或心理描写，在平静的情节中适当加入动作或冲突
-- 避免连续多段都是环境描写或心理活动，保持节奏的流动性
-"""
+        ***REMOVED*** Phase 5: 增强的节奏控制提示（根据章节位置和历史节奏数据动态生成）
+        ***REMOVED*** 获取最近的节奏得分
+        recent_rhythm_score = None
+        quality_history = self.quality_tracker.get("chapter_quality_history", [])
+        if quality_history:
+            ***REMOVED*** 从最近的阶段性质量检查中获取节奏得分
+            periodic_checks = self.metadata.get("periodic_quality_checks", [])
+            if periodic_checks:
+                latest_check = periodic_checks[-1]
+                recent_rhythm_score = latest_check.get("scores", {}).get("plot_rhythm")
+        
+        ***REMOVED*** 生成增强的节奏控制提示词
+        rhythm_control_instruction = self._get_enhanced_rhythm_instruction(
+            chapter_position,
+            chapter_number,
+            recent_rhythm_score
+        )
         
         ***REMOVED*** 对话质量优化提示（强化版）
         dialogue_quality_instruction = """
@@ -1109,6 +1281,7 @@ class ReactNovelCreator:
 9. 保持文笔流畅，情节紧凑
 10. 确保实体（角色、地点、物品）与前面章节保持一致
 {self._get_quality_adjustment_instruction(chapter_number)}
+{self._generate_preventive_prompt_additions(chapter_number)}
 
 重要提示：这是一个创作任务，请直接生成章节正文内容，不需要搜索工具或调用任何函数。直接返回创作的内容即可。
 请直接返回章节正文内容，不要包含标题或其他格式。
@@ -1122,75 +1295,17 @@ class ReactNovelCreator:
         ***REMOVED*** 自适应生成策略：根据质量反馈调整
         generation_strategy = self._get_adaptive_generation_strategy(chapter_number)
         
-        ***REMOVED*** 根据目标字数计算最大 token 数（优化：动态调整token/字数比例）
-        ***REMOVED*** 中文token转换：根据历史数据动态调整token/字数比例
-        quality_history = self.quality_tracker.get("chapter_quality_history", [])
+        ***REMOVED*** 初始生成策略：质量优先，字数控制通过prompt实现
+        ***REMOVED*** max_new_tokens 始终不低于 2048，确保有足够的生成空间
+        MIN_TOKEN_LIMIT = 2048
         
-        ***REMOVED*** 计算历史token效率（如果有数据）
-        token_ratio = 1.1  ***REMOVED*** 默认比例
-        if len(quality_history) >= 5:
-            ***REMOVED*** 根据历史数据动态调整token/字数比例
-            ***REMOVED*** 如果历史生成的平均字数总是超过目标，说明token比例过高
-            recent_chapters = quality_history[-5:]
-            avg_actual_words = sum(m.get("word_count", target_words) for m in recent_chapters) / len(recent_chapters)
-            avg_target_words = sum(m.get("target_words", target_words) for m in recent_chapters) / len(recent_chapters)
-            
-            if avg_target_words > 0:
-                actual_ratio = avg_actual_words / avg_target_words
-                ***REMOVED*** 如果实际字数/目标字数 > 1.15，说明token比例过高，需要降低
-                if actual_ratio > 1.15:
-                    token_ratio = 1.05  ***REMOVED*** 降低token比例
-                    logger.info(f"检测到历史字数偏多（实际/目标={actual_ratio:.2f}），降低token比例到{token_ratio}")
-                elif actual_ratio < 0.95:
-                    token_ratio = 1.15  ***REMOVED*** 提高token比例
-                    logger.info(f"检测到历史字数偏少（实际/目标={actual_ratio:.2f}），提高token比例到{token_ratio}")
+        ***REMOVED*** 计算基础token限制（确保至少2048，根据目标字数适当调整）
+        ***REMOVED*** 目标2048字时，使用3072 token（1.5倍），确保有足够空间生成优质内容
+        base_max_tokens = max(MIN_TOKEN_LIMIT, int(target_words * 1.5))
         
-        base_max_tokens = int(target_words * token_ratio)
-        
-        ***REMOVED*** 根据章节摘要长度预测所需字数（字数预测模型）
-        summary_length = len(chapter_summary) if chapter_summary else 0
-        if summary_length > 0:
-            ***REMOVED*** 摘要越长，通常需要的字数越多
-            ***REMOVED*** 经验公式：摘要长度 * 15-20 ≈ 章节字数
-            predicted_words = summary_length * 17  ***REMOVED*** 经验值
-            if abs(predicted_words - target_words) > target_words * 0.2:  ***REMOVED*** 预测值与目标差异>20%
-                ***REMOVED*** 根据预测值微调token限制
-                if predicted_words > target_words * 1.2:
-                    ***REMOVED*** 预测字数明显大于目标，可能需要更多token
-                    base_max_tokens = int(base_max_tokens * 0.95)  ***REMOVED*** 稍微降低，因为我们想控制字数
-                    logger.debug(f"根据摘要长度预测字数{predicted_words}，目标{target_words}，略微降低token限制")
-        
-        ***REMOVED*** 根据自适应策略和历史生成情况调整token限制
-        if generation_strategy.get("strict_word_control", False):
-            ***REMOVED*** 如果历史生成明显超过目标（>30%），使用更严格的限制
-            max_tokens_for_generation = int(base_max_tokens * 0.85)  ***REMOVED*** 更严格
-            logger.info(f"启用严格字数控制模式，token限制: {max_tokens_for_generation}")
-        else:
-            ***REMOVED*** 根据历史平均字数动态调整（更细粒度）
-            if len(quality_history) >= 3:
-                ***REMOVED*** 计算最近3章的平均字数偏差
-                recent_deviations = [
-                    abs(m.get("word_diff_percent", 0)) 
-                    for m in quality_history[-3:]
-                ]
-                avg_deviation = sum(recent_deviations) / len(recent_deviations)
-                
-                ***REMOVED*** 根据平均偏差动态调整（更细粒度）
-                if avg_deviation > 40:  ***REMOVED*** 偏差>40%，非常严格
-                    max_tokens_for_generation = int(base_max_tokens * 0.80)  ***REMOVED*** 更严格
-                    logger.info(f"检测到高偏差（{avg_deviation:.1f}%），使用非常严格token限制: {max_tokens_for_generation}")
-                elif avg_deviation > 30:  ***REMOVED*** 偏差>30%，较严格
-                    max_tokens_for_generation = int(base_max_tokens * 0.85)  ***REMOVED*** 更严格
-                    logger.info(f"检测到中等偏差（{avg_deviation:.1f}%），使用较严格token限制: {max_tokens_for_generation}")
-                elif avg_deviation > 20:  ***REMOVED*** 偏差>20%，稍微严格
-                    max_tokens_for_generation = int(base_max_tokens * 0.90)  ***REMOVED*** 稍微严格
-                    logger.info(f"检测到轻微偏差（{avg_deviation:.1f}%），使用稍微严格token限制: {max_tokens_for_generation}")
-                else:
-                    ***REMOVED*** 偏差<=20%，使用基础限制
-                    max_tokens_for_generation = base_max_tokens
-            else:
-                ***REMOVED*** 前3章，使用基础限制
-                max_tokens_for_generation = base_max_tokens
+        ***REMOVED*** 初始生成时，使用较高的token限制，质量优先
+        max_tokens_for_generation = base_max_tokens
+        logger.info(f"初始生成：使用token限制 {max_tokens_for_generation}（质量优先，字数控制通过prompt实现）")
         
         self.agent.max_iterations = 5  ***REMOVED*** 限制迭代次数，强制直接生成
         self.agent.max_new_tokens = max_tokens_for_generation  ***REMOVED*** 设置最大生成 token 数
@@ -1323,9 +1438,23 @@ class ReactNovelCreator:
                     should_rewrite = False
                     logger.debug(f"第{chapter_number}章问题数为0，强制不触发重写")
                 
+                ***REMOVED*** Phase 6: 质量预测和预防性提示
+                if chapter_number > 1:
+                    try:
+                        ***REMOVED*** 预测可能的问题
+                        predicted_issues = self._predict_quality_issues(chapter_number, chapter_summary)
+                        if predicted_issues:
+                            logger.info(f"第{chapter_number}章质量预测：预测到{len(predicted_issues)}个可能问题")
+                            for pred in predicted_issues:
+                                logger.debug(f"  - {pred.get('type')}: 概率{pred.get('probability', 0):.2f}")
+                    except Exception as e:
+                        logger.debug(f"质量预测失败: {e}")
+                
                 ***REMOVED*** 记录单章质量指标
                 try:
                     self._track_chapter_quality(chapter_number, quality_result, actual_words, target_words)
+                    ***REMOVED*** Phase 6: 更新问题模式追踪
+                    self._update_issue_patterns(quality_result)
                 except Exception as e:
                     logger.warning(f"追踪第{chapter_number}章质量指标失败: {e}")
             except Exception as e:
@@ -1436,9 +1565,50 @@ class ReactNovelCreator:
                         ***REMOVED*** 4. 如果问题数没有减少，且是第2轮，继续尝试第3轮（使用更激进的策略）
                         if improvement <= 0 and rewrite_round == 2:
                             logger.warning(
-                                f"第{chapter_number}章第{rewrite_round}轮重写未改善问题数，将在第3轮使用更激进的策略"
+                                f"第{chapter_number}章第{rewrite_round}轮重写未改善问题数，将在第3轮尝试备用策略"
                             )
-                            ***REMOVED*** 继续下一轮重写，使用aggressive策略
+                            ***REMOVED*** Phase 8: 记录失败策略，避免重复尝试
+                            if self.fix_strategy_library and target_issues:
+                                for issue in target_issues:
+                                    issue_type = issue.get('type', '')
+                                    ***REMOVED*** 记录当前策略失败
+                                    current_strategy = issue.get('predicted_strategy', 'standard')
+                                    self.fix_strategy_library.record_fix_attempt(
+                                        issue_type=issue_type,
+                                        strategy_type=current_strategy,
+                                        success=False,
+                                        validation_score=0.0,
+                                        metadata={
+                                            'content_length': len(original_content),
+                                            'severity': issue.get('severity', 'medium'),
+                                            'rewrite_round': rewrite_round,
+                                            'chapter_number': chapter_number,
+                                            'reason': 'no_improvement'
+                                        }
+                                    )
+                            
+                            ***REMOVED*** Phase 8: 尝试备用策略（从预测器获取）
+                            if self.fix_outcome_predictor and target_issues:
+                                for issue in target_issues:
+                                    issue_type = issue.get('type', '')
+                                    try:
+                                        ***REMOVED*** 获取备用策略
+                                        prediction = self.fix_outcome_predictor.predict_success_probability(
+                                            issue_type=issue_type,
+                                            content_length=len(original_content),
+                                            fix_strategy=issue.get('predicted_strategy', 'standard'),
+                                            severity=issue.get('severity', 'medium'),
+                                            previous_attempts=rewrite_round
+                                        )
+                                        if hasattr(prediction, 'alternative_strategy') and prediction.alternative_strategy:
+                                            issue['predicted_strategy'] = prediction.alternative_strategy
+                                            logger.info(
+                                                f"第{chapter_number}章问题 {issue_type} 切换到备用策略: {prediction.alternative_strategy}"
+                                            )
+                                    except Exception as e:
+                                        logger.debug(f"获取备用策略失败: {e}")
+                            
+                            ***REMOVED*** 继续下一轮重写，尝试备用策略（自适应重试机制）
                             current_quality_result = quality_result_after_rewrite
                             continue
                         
@@ -1986,6 +2156,9 @@ class ReactNovelCreator:
         logger.info("开始创建小说大纲...")
         plan = self.create_novel_plan(genre, theme, target_chapters, words_per_chapter, use_progressive)
         
+        ***REMOVED*** 保存目标章节数到metadata（用于节奏控制）
+        self.metadata["target_chapters"] = target_chapters
+        
         ***REMOVED*** 2. 按章节创作
         logger.info(f"开始创作小说，从第{start_from_chapter}章开始...")
         
@@ -2120,6 +2293,18 @@ class ReactNovelCreator:
                         if plan_type == "progressive" and periodic_quality_result.get("needs_attention", False):
                             logger.info("检测到质量问题，考虑调整后续大纲...")
                             self._consider_outline_adjustment(plan, chapter_number, periodic_quality_result)
+                        
+                        ***REMOVED*** Phase 7: 深度连贯性检查
+                        try:
+                            self._deep_coherence_check(chapter_number)
+                        except Exception as e:
+                            logger.warning(f"深度连贯性检查失败: {e}")
+                
+                ***REMOVED*** Phase 7: 关键节点回顾
+                try:
+                    self._check_key_node_review(chapter_number, plan)
+                except Exception as e:
+                    logger.debug(f"关键节点回顾检查失败: {e}")
             except Exception as e:
                 logger.error(f"创作第{i+1}章失败: {e}", exc_info=True)
                 ***REMOVED*** 记录失败但继续创作后续章节
@@ -2889,6 +3074,217 @@ class ReactNovelCreator:
                 logger.warning(f"第{chapter_number}章原始问题数为0，但触发了重写，这不应该发生")
                 return None
             
+            ***REMOVED*** Phase 1: 使用修复策略库选择目标问题（渐进式修复：每次只修复1-2个最高优先级问题）
+            ***REMOVED*** 优化：优先选择历史成功率更高的问题
+            target_issues = []
+            if self.fix_strategy_library and self.fix_outcome_predictor:
+                ***REMOVED*** 收集所有候选问题，计算预测成功率
+                all_candidate_issues = []
+                priority_order = ['consistency', 'dialogue', 'description', 'other']
+                
+                for priority in priority_order:
+                    if issue_groups[priority]:
+                        for issue in issue_groups[priority]:
+                            issue_type = issue.get('type', '')
+                            severity = issue.get('severity', 'medium')
+                            
+                            ***REMOVED*** 获取最佳策略（支持自适应重试：如果上一轮失败，尝试备用策略）
+                            best_strategy = self.fix_strategy_library.get_best_strategy_for_issue(issue_type)
+                            
+                            ***REMOVED*** 自适应重试：如果上一轮重写失败，尝试备用策略
+                            use_alternative = False
+                            if rewrite_round > 1 and rewrite_history:
+                                last_round = rewrite_history[-1] if rewrite_history else {}
+                                if last_round.get('improvement', 0) <= 0:
+                                    ***REMOVED*** 上一轮失败，尝试备用策略
+                                    use_alternative = True
+                            
+                            if best_strategy:
+                                strategy_name = best_strategy.value if hasattr(best_strategy, 'value') else str(best_strategy)
+                                
+                                ***REMOVED*** 预测成功率
+                                try:
+                                    prediction = self.fix_outcome_predictor.predict_success_probability(
+                                        issue_type=issue_type,
+                                        content_length=len(original_content),
+                                        fix_strategy=strategy_name,
+                                        severity=severity,
+                                        previous_attempts=rewrite_round - 1
+                                    )
+                                    
+                                    ***REMOVED*** 如果上一轮失败，尝试备用策略
+                                    if use_alternative and hasattr(prediction, 'alternative_strategy') and prediction.alternative_strategy:
+                                        strategy_name = prediction.alternative_strategy
+                                        logger.info(
+                                            f"第{chapter_number}章问题 {issue_type} 上一轮策略失败，"
+                                            f"尝试备用策略: {strategy_name}"
+                                        )
+                                        ***REMOVED*** 重新预测备用策略的成功率
+                                        prediction = self.fix_outcome_predictor.predict_success_probability(
+                                            issue_type=issue_type,
+                                            content_length=len(original_content),
+                                            fix_strategy=strategy_name,
+                                            severity=severity,
+                                            previous_attempts=rewrite_round - 1
+                                        )
+                                    
+                                    ***REMOVED*** 记录预测成功率到issue中
+                                    success_prob = getattr(prediction, 'success_probability', 0.5)
+                                    issue['predicted_success_prob'] = success_prob
+                                    issue['predicted_strategy'] = strategy_name
+                                    issue['priority'] = priority
+                                    
+                                    all_candidate_issues.append(issue)
+                                except Exception as e:
+                                    logger.warning(f"预测问题 {issue_type} 成功率失败: {e}")
+                                    ***REMOVED*** 如果预测失败，使用默认值
+                                    issue['predicted_success_prob'] = 0.5
+                                    issue['predicted_strategy'] = strategy_name
+                                    issue['priority'] = priority
+                                    all_candidate_issues.append(issue)
+                
+                ***REMOVED*** 按预测成功率排序（成功率高的优先），同时考虑优先级
+                ***REMOVED*** 评分 = 成功率 * 0.7 + 优先级权重 * 0.3
+                priority_weights = {'consistency': 1.0, 'dialogue': 0.8, 'description': 0.6, 'other': 0.4}
+                
+                def calculate_score(issue):
+                    success_prob = issue.get('predicted_success_prob', 0.5)
+                    priority = issue.get('priority', 'other')
+                    priority_weight = priority_weights.get(priority, 0.4)
+                    return success_prob * 0.7 + priority_weight * 0.3
+                
+                all_candidate_issues.sort(key=calculate_score, reverse=True)
+                
+                ***REMOVED*** 选择前1-2个问题，但至少成功率要>=0.3（第一轮）或>=0.25（后续轮）
+                min_success_prob = 0.4 if rewrite_round == 1 else 0.3
+                filtered_issues = [
+                    issue for issue in all_candidate_issues 
+                    if issue.get('predicted_success_prob', 0.5) >= min_success_prob
+                ]
+                
+                if filtered_issues:
+                    target_issues = filtered_issues[:2]  ***REMOVED*** 最多选择2个
+                    ***REMOVED*** 构建成功率字符串（避免f-string嵌套问题）
+                    success_probs = [f"{i.get('predicted_success_prob', 0):.2f}" for i in target_issues]
+                    logger.info(
+                        f"第{chapter_number}章渐进式修复：选择{len(target_issues)}个问题 "
+                        f"(成功率: {success_probs})"
+                    )
+                else:
+                    ***REMOVED*** 如果没有满足最低成功率的问题，选择成功率最高的1个
+                    if all_candidate_issues:
+                        target_issues = [all_candidate_issues[0]]
+                        logger.warning(
+                            f"第{chapter_number}章所有问题预测成功率都低于{min_success_prob}，"
+                            f"选择成功率最高的1个（{all_candidate_issues[0].get('predicted_success_prob', 0):.2f}）"
+                        )
+                    else:
+                        target_issues = issues[:1] if issues else []
+            elif self.fix_strategy_library:
+                ***REMOVED*** 如果没有预测器，使用原来的逻辑
+                priority_order = ['consistency', 'dialogue', 'description', 'other']
+                for priority in priority_order:
+                    if issue_groups[priority]:
+                        target_issues = issue_groups[priority][:2]
+                        logger.info(f"第{chapter_number}章渐进式修复：选择{len(target_issues)}个{priority}问题")
+                        break
+            else:
+                ***REMOVED*** 如果没有策略库，使用所有问题
+                target_issues = issues
+            
+            ***REMOVED*** 如果target_issues为空，使用所有问题作为后备
+            if not target_issues:
+                target_issues = issues[:1] if issues else []
+            
+            ***REMOVED*** 检查原始内容的字数，如果超过目标，需要在重写时优化字数
+            original_word_count = len(original_content)
+            word_count_optimization_needed = original_word_count > target_words * 1.1  ***REMOVED*** 超过目标10%需要优化
+            word_count_supplement_needed = original_word_count < target_words * 0.9  ***REMOVED*** 低于目标10%需要补充
+            
+            ***REMOVED*** 构建字数优化/补充要求文本（在f-string外部构建，避免反斜杠问题）
+            word_count_instruction = ""
+            if word_count_optimization_needed:
+                word_count_instruction = f"""
+**字数优化要求**（质量优先）：
+- 当前内容{original_word_count}字，超出目标{original_word_count - target_words}字
+- **核心原则**：质量优先，字数控制是次要的
+- 如果当前内容质量很高，可以保留（优质内容比严格字数控制更重要）
+- 如果需要在保持质量的前提下优化字数，可以通过以下方式：
+  * 删除冗余的环境描写和重复的心理活动（不影响核心情节）
+  * 合并相似的描述，使用更简洁的表达（保持文笔流畅）
+  * 精简对话，保留关键信息，删除无意义的寒暄（保持对话质量）
+  * 优化长句，使用更简洁的句式（保持表达清晰）
+- **目标**：重写后字数尽量控制在{int(target_words*0.9)}-{int(target_words*1.1)}字范围内，但如果内容优质，{int(target_words*0.8)}-{int(target_words*1.2)}字都可以接受"""
+            elif word_count_supplement_needed:
+                word_count_instruction = f"""
+**字数补充要求**（质量优先）：
+- 当前内容{original_word_count}字，低于目标{target_words - original_word_count}字
+- **核心原则**：质量优先，字数控制是次要的
+- 如果当前内容质量很高但字数略少，可以保留（不要为了凑字数而添加冗余）
+- 如果需要在保持质量的前提下补充内容，可以通过以下方式：
+  * 增加必要的对话，推进情节和展现人物（确保对话有目的性）
+  * 补充关键的动作描写和环境描写（服务于情节）
+  * 增加人物的心理活动和反应（展现人物性格）
+  * 扩展关键情节的细节（增强可读性）
+- **目标**：重写后字数尽量达到{int(target_words*0.9)}-{int(target_words*1.1)}字范围内，但如果内容优质，{int(target_words*0.8)}-{int(target_words*1.2)}字都可以接受"""
+            
+            ***REMOVED*** 构建当前字数信息
+            word_count_info = ""
+            if word_count_optimization_needed:
+                word_count_info = f"- **当前字数**：{original_word_count}字（超出目标{original_word_count - target_words}字，需要在重写时优化字数）"
+            elif word_count_supplement_needed:
+                word_count_info = f"- **当前字数**：{original_word_count}字（低于目标{target_words - original_word_count}字，需要在重写时补充内容）"
+            
+            ***REMOVED*** 构建针对性的修复策略提示（从修复策略库获取）
+            strategy_prompts = []
+            if self.fix_strategy_library and target_issues:
+                for issue in target_issues:
+                    issue_type = issue.get('type', '')
+                    issue_metadata = issue.get('metadata', {})
+                    
+                    ***REMOVED*** 获取修复策略
+                    strategy = self.fix_strategy_library.get_strategy(issue_type, issue_metadata)
+                    if strategy and strategy.fix_prompt_template:
+                        ***REMOVED*** 填充策略模板
+                        try:
+                            ***REMOVED*** 准备所有可能的变量
+                            template_vars = {
+                                **issue_metadata,  ***REMOVED*** 先添加元数据
+                                'chapter_summary': chapter_summary[:200] if chapter_summary else "",
+                                'few_shot_examples': "\n".join(f"- {ex}" for ex in strategy.few_shot_examples) if strategy.few_shot_examples else "",
+                                ***REMOVED*** 添加常见缺失变量（使用默认值）
+                                'thought_count': issue_metadata.get('thought_sentence_count', issue_metadata.get('thought_count', 0)),
+                                'dialogue_count': issue_metadata.get('dialogue_count', 0),
+                                'dialogue_with_action': issue_metadata.get('dialogue_with_action', 0),
+                                'dialogue_ratio_percent': issue_metadata.get('dialogue_ratio', 0) * 100 if 'dialogue_ratio' in issue_metadata else 0,
+                            }
+                            
+                            ***REMOVED*** 安全填充模板（只使用存在的变量）
+                            filled_prompt = strategy.fix_prompt_template
+                            ***REMOVED*** 使用format_map，如果缺少变量会抛出KeyError，我们捕获它
+                            try:
+                                filled_prompt = filled_prompt.format(**template_vars)
+                            except KeyError as ke:
+                                ***REMOVED*** 如果缺少变量，使用默认值
+                                logger.debug(f"策略模板缺少变量 {ke}，使用默认值")
+                                ***REMOVED*** 为缺失的变量添加默认值
+                                missing_var = str(ke).strip("'")
+                                template_vars[missing_var] = ""
+                                filled_prompt = filled_prompt.format(**template_vars)
+                            
+                            strategy_prompts.append(filled_prompt)
+                        except Exception as e:
+                            logger.warning(f"填充修复策略模板失败: {e}")
+                            ***REMOVED*** 如果填充失败，使用通用描述
+                            strategy_prompts.append(f"**问题**：{issue.get('description', '')}\n**修复要求**：请解决此问题")
+            
+            strategy_prompts_text = "\n\n".join(strategy_prompts) if strategy_prompts else ""
+            
+            ***REMOVED*** 构建针对性修复策略文本（在f-string外部处理，避免反斜杠问题）
+            strategy_section = ""
+            if strategy_prompts_text:
+                strategy_section = f"**针对性修复策略**（基于历史成功率优化）：\n{strategy_prompts_text}\n"
+            
             ***REMOVED*** 构建重写提示词（增强版）
             rewrite_prompt = f"""请重写小说《{self.novel_title}》的第{chapter_number}章。
 
@@ -2896,6 +3292,7 @@ class ReactNovelCreator:
 - 标题：{chapter_title}
 - 摘要：{chapter_summary}
 - 目标字数：{target_words}字（允许±10%，即{int(target_words*0.9)}-{int(target_words*1.1)}字）
+{word_count_info}
 
 **原始内容**（存在以下质量问题，需要改进）：
 {original_content[:2500]}...
@@ -2903,8 +3300,11 @@ class ReactNovelCreator:
 **质量检查反馈**（按优先级分组）：
 {feedback_text}
 
+{strategy_section}
+
 **重写后的质量目标**：
 {quality_targets_text}
+{word_count_instruction}
 
 {few_shot_examples}
 
@@ -2971,16 +3371,46 @@ class ReactNovelCreator:
 **重要提示**：
 - 请直接生成改进后的完整章节内容，不需要说明或注释
 - 确保内容质量**明显优于**原始版本，问题数必须减少
-- 重写后必须满足上述所有质量目标，特别是对话占比和心理活动限制
-- {f"**这是第{rewrite_round}轮重写，请使用更彻底的改进方法**" if rewrite_round > 1 else "**这是第一次重写，请全面改进**"}"""
+- 重写后必须满足上述所有质量目标，特别是对话占比和心理活动限制"""
+            
+            ***REMOVED*** 添加重写轮次提示（在f-string外部处理，避免反斜杠问题）
+            if rewrite_round > 1:
+                rewrite_prompt += f"\n- **这是第{rewrite_round}轮重写，请使用更彻底的改进方法**"
+            else:
+                rewrite_prompt += "\n- **这是第一次重写，请全面改进**"
+            
+            rewrite_prompt += "\n"
 
             ***REMOVED*** 生成重写内容
             original_max_iterations = self.agent.max_iterations
+            original_max_new_tokens = self.agent.max_new_tokens
+            
+            ***REMOVED*** 重写时：质量优先，max_new_tokens 始终不低于 2048
+            ***REMOVED*** 字数控制通过 prompt 实现，而不是通过降低 token 限制
+            MIN_TOKEN_LIMIT = 2048
+            
+            ***REMOVED*** 根据目标字数计算，但确保至少 2048
+            if word_count_optimization_needed:
+                ***REMOVED*** 字数过多，但保持足够的 token 空间（至少 2048）
+                rewrite_token_limit = max(MIN_TOKEN_LIMIT, int(target_words * 1.2 * 1.1))
+                self.agent.max_new_tokens = rewrite_token_limit
+                logger.info(f"重写时字数优化：原始{original_word_count}字，目标{target_words}字，使用token限制{rewrite_token_limit}（通过prompt优化字数）")
+            elif word_count_supplement_needed:
+                ***REMOVED*** 字数不足，使用较高的 token 限制来补充
+                rewrite_token_limit = max(MIN_TOKEN_LIMIT, int(target_words * 1.5 * 1.1))
+                self.agent.max_new_tokens = rewrite_token_limit
+                logger.info(f"重写时字数补充：原始{original_word_count}字，目标{target_words}字，使用token限制{rewrite_token_limit}进行补充")
+            else:
+                ***REMOVED*** 字数在合理范围内，使用基础限制（至少 2048）
+                rewrite_token_limit = max(MIN_TOKEN_LIMIT, int(target_words * 1.3 * 1.1))
+                self.agent.max_new_tokens = rewrite_token_limit
+            
             self.agent.max_iterations = 5
             try:
                 rewritten_content = self.agent.run(query=rewrite_prompt, verbose=False)
             finally:
                 self.agent.max_iterations = original_max_iterations
+                self.agent.max_new_tokens = original_max_new_tokens
             
             ***REMOVED*** 清理内容（移除可能的markdown标记等）
             if "```" in rewritten_content:
@@ -3000,6 +3430,87 @@ class ReactNovelCreator:
             if len(rewritten_content) < target_words * 0.5:  ***REMOVED*** 至少是目标字数的50%
                 logger.warning(f"重写内容过短（{len(rewritten_content)}字），可能重写失败")
                 return None
+            
+            ***REMOVED*** Phase 1: 使用修复验证器验证修复效果（安全重写模式）
+            validation_results = {}
+            overall_score = 0.0
+            is_successful = False
+            
+            if self.fix_validator and target_issues:
+                validation_results = self.fix_validator.validate_fix(
+                    original_content,
+                    rewritten_content,
+                    target_issues
+                )
+                
+                ***REMOVED*** 计算总体验证评分
+                overall_score = self.fix_validator.calculate_overall_validation_score(validation_results)
+                is_successful = self.fix_validator.is_fix_successful(validation_results, min_score=0.6)
+                
+                logger.info(
+                    f"第{chapter_number}章修复验证："
+                    f"总体评分={overall_score:.2f}, "
+                    f"成功={is_successful}, "
+                    f"验证了{len(validation_results)}个问题"
+                )
+                
+                ***REMOVED*** 记录验证结果详情
+                for issue_type, result in validation_results.items():
+                    logger.debug(
+                        f"  问题 {issue_type}: "
+                        f"已解决={result.fixed}, "
+                        f"仍存在={result.still_exists}, "
+                        f"引入新问题={result.introduced_new}, "
+                        f"评分={result.verification_score:.2f}"
+                    )
+                
+                ***REMOVED*** Phase 2: 记录修复历史（用于学习）
+                if self.fix_strategy_library:
+                    for issue in target_issues:
+                        issue_type = issue.get('type', '')
+                        severity = issue.get('severity', 'medium')
+                        
+                        ***REMOVED*** 获取使用的策略
+                        strategy = self.fix_strategy_library.get_best_strategy_for_issue(issue_type)
+                        if strategy:
+                            ***REMOVED*** 获取该问题的验证结果
+                            validation_result = validation_results.get(issue_type)
+                            validation_score = validation_result.verification_score if validation_result else overall_score
+                            
+                            ***REMOVED*** 判断是否成功（验证评分 >= 0.6 且问题已解决）
+                            fix_success = (
+                                validation_result.fixed if validation_result else False
+                            ) and validation_score >= 0.6
+                            
+                            ***REMOVED*** 记录修复尝试
+                            self.fix_strategy_library.record_fix_attempt(
+                                issue_type=issue_type,
+                                strategy_type=strategy,
+                                success=fix_success,
+                                validation_score=validation_score,
+                                metadata={
+                                    'content_length': len(original_content),
+                                    'severity': severity,
+                                    'rewrite_round': rewrite_round,
+                                    'chapter_number': chapter_number
+                                }
+                            )
+                            
+                            logger.debug(
+                                f"记录修复历史：问题类型={issue_type}, "
+                                f"策略={strategy.value}, "
+                                f"成功={fix_success}, "
+                                f"评分={validation_score:.2f}"
+                            )
+                
+                ***REMOVED*** 如果验证失败，记录但继续（让上层决定是否回退）
+                if not is_successful:
+                    logger.warning(
+                        f"第{chapter_number}章修复验证失败："
+                        f"总体评分{overall_score:.2f}低于阈值0.6，"
+                        f"或引入了新问题"
+                    )
+                    ***REMOVED*** 不直接返回None，让上层根据质量检查结果决定
             
             return rewritten_content.strip()
             
@@ -3108,6 +3619,219 @@ class ReactNovelCreator:
         if not self.semantic_mesh:
             return 0.8
         return 1.0  ***REMOVED*** 简化实现，后续可以增强
+    
+    def _build_character_profiles(self, chapters: List[NovelChapter]) -> Dict[str, Dict[str, Any]]:
+        """
+        建立人物档案（Phase 7: 长期连贯性增强）
+        
+        Args:
+            chapters: 章节列表
+        
+        Returns:
+            人物档案字典 {character_name: {name, personality, appearance, relationships, ...}}
+        """
+        profiles = {}
+        
+        if not self.semantic_mesh:
+            return profiles
+        
+        try:
+            ***REMOVED*** 从语义网格中提取人物实体
+            character_entities = [
+                e for e in self.semantic_mesh.entities.values()
+                if e.type.value == "character"
+            ]
+            
+            for entity in character_entities:
+                name = entity.name
+                if name not in profiles:
+                    profiles[name] = {
+                        "name": name,
+                        "personality": entity.metadata.get("personality", ""),
+                        "appearance": entity.metadata.get("appearance", ""),
+                        "relationships": entity.metadata.get("relationships", {}),
+                        "first_appearance": entity.metadata.get("first_appearance_chapter", 0),
+                        "appearance_chapters": entity.metadata.get("appearance_chapters", []),
+                        "key_events": entity.metadata.get("key_events", []),
+                        "last_updated": entity.updated_at
+                    }
+        except Exception as e:
+            logger.warning(f"建立人物档案失败: {e}")
+        
+        return profiles
+    
+    def _build_worldview_profiles(self, chapters: List[NovelChapter]) -> Dict[str, Dict[str, Any]]:
+        """
+        建立世界观档案（Phase 7: 长期连贯性增强）
+        
+        Args:
+            chapters: 章节列表
+        
+        Returns:
+            世界观档案字典 {category: {settings, first_mentioned, consistency_notes}}
+        """
+        profiles = {}
+        
+        if not self.semantic_mesh:
+            return profiles
+        
+        try:
+            ***REMOVED*** 从语义网格中提取世界观相关实体
+            worldview_categories = ["location", "setting", "concept", "creature", "item"]
+            
+            for category in worldview_categories:
+                category_entities = [
+                    e for e in self.semantic_mesh.entities.values()
+                    if e.type.value == category
+                ]
+                
+                if category_entities:
+                    profiles[category] = {
+                        "settings": [e.name for e in category_entities],
+                        "first_mentioned": min(
+                            [e.metadata.get("first_appearance_chapter", 0) for e in category_entities],
+                            default=0
+                        ),
+                        "consistency_notes": [],
+                        "last_updated": datetime.now().isoformat()
+                    }
+        except Exception as e:
+            logger.warning(f"建立世界观档案失败: {e}")
+        
+        return profiles
+    
+    def _deep_coherence_check(self, current_chapter_number: int):
+        """
+        深度连贯性检查（Phase 7: 长期连贯性增强）
+        每10章进行一次，检测人物性格漂移和世界观设定变化
+        
+        Args:
+            current_chapter_number: 当前章节编号
+        """
+        if current_chapter_number < 10:
+            return
+        
+        try:
+            logger.info(f"开始深度连贯性检查（第{current_chapter_number}章）...")
+            
+            ***REMOVED*** 获取所有章节
+            all_chapters = self.chapters
+            
+            ***REMOVED*** 建立人物档案
+            character_profiles = self._build_character_profiles(all_chapters)
+            
+            ***REMOVED*** 建立世界观档案
+            worldview_profiles = self._build_worldview_profiles(all_chapters)
+            
+            ***REMOVED*** 更新长期连贯性追踪
+            long_term_coherence = self.quality_tracker.get("long_term_coherence", {})
+            long_term_coherence["character_profiles"] = character_profiles
+            long_term_coherence["worldview_profiles"] = worldview_profiles
+            
+            ***REMOVED*** 检测人物性格漂移
+            character_drift_issues = []
+            for name, profile in character_profiles.items():
+                appearance_chapters = profile.get("appearance_chapters", [])
+                if len(appearance_chapters) >= 5:
+                    ***REMOVED*** 检查人物在不同章节中的表现是否一致
+                    ***REMOVED*** 这里可以添加更复杂的检测逻辑
+                    pass
+            
+            ***REMOVED*** 检测世界观设定变化
+            worldview_change_issues = []
+            ***REMOVED*** 检查世界观设定是否一致
+            ***REMOVED*** 这里可以添加更复杂的检测逻辑
+            
+            ***REMOVED*** 生成连贯性报告
+            coherence_report = {
+                "chapter_number": current_chapter_number,
+                "check_time": datetime.now().isoformat(),
+                "character_count": len(character_profiles),
+                "worldview_categories": len(worldview_profiles),
+                "character_drift_issues": character_drift_issues,
+                "worldview_change_issues": worldview_change_issues,
+                "summary": f"检查了{len(character_profiles)}个人物和{len(worldview_profiles)}个世界观类别"
+            }
+            
+            if not long_term_coherence.get("coherence_reports"):
+                long_term_coherence["coherence_reports"] = []
+            long_term_coherence["coherence_reports"].append(coherence_report)
+            
+            self.quality_tracker["long_term_coherence"] = long_term_coherence
+            
+            logger.info(f"深度连贯性检查完成：{coherence_report['summary']}")
+            
+        except Exception as e:
+            logger.error(f"深度连贯性检查失败: {e}", exc_info=True)
+    
+    def _check_key_node_review(self, chapter_number: int, plan: Dict[str, Any]):
+        """
+        关键节点回顾（Phase 7: 长期连贯性增强）
+        在关键情节节点回顾前面章节，确保重要设定和人物关系一致
+        
+        Args:
+            chapter_number: 当前章节编号
+            plan: 小说大纲
+        """
+        try:
+            ***REMOVED*** 获取关键节点信息
+            key_plot_points = plan.get("overall", {}).get("key_plot_points", [])
+            if not key_plot_points:
+                return
+            
+            ***REMOVED*** 检查当前章节是否接近关键节点
+            for plot_point in key_plot_points:
+                plot_chapter = plot_point.get("chapter", 0)
+                ***REMOVED*** 在关键节点前3章开始回顾
+                if plot_chapter - 3 <= chapter_number <= plot_chapter:
+                    logger.info(f"检测到关键节点（第{plot_chapter}章），开始回顾前面章节...")
+                    
+                    ***REMOVED*** 回顾前面章节的关键信息
+                    review_chapters = self.chapters[max(0, chapter_number-20):chapter_number]
+                    
+                    ***REMOVED*** 提取关键信息
+                    key_characters = set()
+                    key_settings = set()
+                    key_events = []
+                    
+                    for ch in review_chapters:
+                        ***REMOVED*** 从语义网格提取关键实体
+                        if self.semantic_mesh:
+                            chapter_entities = [
+                                e for e in self.semantic_mesh.entities.values()
+                                if ch.chapter_number in e.metadata.get("appearance_chapters", [])
+                            ]
+                            for entity in chapter_entities:
+                                if entity.type.value == "character":
+                                    key_characters.add(entity.name)
+                                elif entity.type.value in ["location", "setting"]:
+                                    key_settings.add(entity.name)
+                    
+                    ***REMOVED*** 生成回顾报告
+                    review_report = {
+                        "chapter_number": chapter_number,
+                        "target_plot_point": plot_point.get("title", ""),
+                        "target_chapter": plot_chapter,
+                        "review_time": datetime.now().isoformat(),
+                        "reviewed_chapters": f"第{max(1, chapter_number-20)}-{chapter_number}章",
+                        "key_characters": list(key_characters),
+                        "key_settings": list(key_settings),
+                        "key_events": key_events,
+                        "summary": f"回顾了{len(review_chapters)}章，提取了{len(key_characters)}个关键人物和{len(key_settings)}个关键设定"
+                    }
+                    
+                    ***REMOVED*** 保存到长期连贯性追踪
+                    long_term_coherence = self.quality_tracker.get("long_term_coherence", {})
+                    if not long_term_coherence.get("key_node_reviews"):
+                        long_term_coherence["key_node_reviews"] = []
+                    long_term_coherence["key_node_reviews"].append(review_report)
+                    self.quality_tracker["long_term_coherence"] = long_term_coherence
+                    
+                    logger.info(f"关键节点回顾完成：{review_report['summary']}")
+                    break
+                    
+        except Exception as e:
+            logger.warning(f"关键节点回顾失败: {e}")
     
     def _calculate_plot_rhythm_score(self, chapters: List[NovelChapter]) -> float:
         """
@@ -4034,12 +4758,11 @@ class ReactNovelCreator:
             core_entities = [entity for score, entity in deduplicated_key_entities[:10]]
             
             ***REMOVED*** 统计核心实体中各类型的数量（用于配额调整）
-            core_entities_by_type = {
-                EntityType.CHARACTER: [e for e in core_entities if e.type == EntityType.CHARACTER],
-                EntityType.SETTING: [e for e in core_entities if e.type == EntityType.SETTING],
-                EntityType.SYMBOL: [e for e in core_entities if e.type == EntityType.SYMBOL],
-                EntityType.PLOT_POINT: [e for e in core_entities if e.type == EntityType.PLOT_POINT]
-            }
+            ***REMOVED*** 支持所有实体类型
+            core_entities_by_type = {}
+            for entity_type in EntityType:
+                if entity_type != EntityType.CHAPTER:  ***REMOVED*** 排除章节实体
+                    core_entities_by_type[entity_type] = [e for e in core_entities if e.type == entity_type]
             
             ***REMOVED*** 2. 按类型分组候选实体（排除核心实体）
             remaining_entity_scores = [
@@ -4047,13 +4770,11 @@ class ReactNovelCreator:
                 if entity not in core_entities
             ]
             
-            ***REMOVED*** 按类型分组
-            entities_by_type_candidates = {
-                EntityType.CHARACTER: [],
-                EntityType.SETTING: [],
-                EntityType.SYMBOL: [],
-                EntityType.PLOT_POINT: []
-            }
+            ***REMOVED*** 按类型分组（支持所有实体类型）
+            entities_by_type_candidates = {}
+            for entity_type in EntityType:
+                if entity_type != EntityType.CHAPTER:  ***REMOVED*** 排除章节实体
+                    entities_by_type_candidates[entity_type] = []
             
             for score, entity in remaining_entity_scores:
                 entity_type = entity.type
@@ -4064,16 +4785,25 @@ class ReactNovelCreator:
             ***REMOVED*** 总配额 = max_entities - 核心实体数
             remaining_slots = max_entities - len(core_entities)
             
-            ***REMOVED*** 类型配额分配策略（扩充到64后，给各类型更多空间）：
-            ***REMOVED*** - 角色：35%（因为核心实体中可能已有较多角色）
-            ***REMOVED*** - 地点/设定：35%（重要场景需要保持一致性，提高配额）
-            ***REMOVED*** - 物品/符号：25%（重要物品需要保持一致性，提高配额）
-            ***REMOVED*** - 情节节点：5%（辅助信息）
-            ***REMOVED*** 同时确保每种类型至少有最低配额，即使核心实体已经包含该类型
+            ***REMOVED*** 类型配额分配策略（支持所有实体类型）：
+            ***REMOVED*** - 角色：20%
+            ***REMOVED*** - 地点/设定：20%
+            ***REMOVED*** - 组织：8%
+            ***REMOVED*** - 物品：15%
+            ***REMOVED*** - 生物：5%
+            ***REMOVED*** - 概念：12%
+            ***REMOVED*** - 时间：5%
+            ***REMOVED*** - 其他类型：15%（符号、情节节点等）
             type_quotas = {
-                EntityType.CHARACTER: max(8, int(remaining_slots * 0.35)),   ***REMOVED*** 至少8个
-                EntityType.SETTING: max(5, int(remaining_slots * 0.35)),     ***REMOVED*** 至少5个
-                EntityType.SYMBOL: max(4, int(remaining_slots * 0.25)),      ***REMOVED*** 至少4个
+                EntityType.CHARACTER: max(8, int(remaining_slots * 0.20)),   ***REMOVED*** 至少8个
+                EntityType.LOCATION: max(5, int(remaining_slots * 0.20)),     ***REMOVED*** 至少5个
+                EntityType.SETTING: max(3, int(remaining_slots * 0.10)),     ***REMOVED*** 至少3个（兼容旧类型）
+                EntityType.ORGANIZATION: max(3, int(remaining_slots * 0.08)), ***REMOVED*** 至少3个
+                EntityType.ITEM: max(4, int(remaining_slots * 0.15)),        ***REMOVED*** 至少4个
+                EntityType.CREATURE: max(2, int(remaining_slots * 0.05)),     ***REMOVED*** 至少2个
+                EntityType.CONCEPT: max(3, int(remaining_slots * 0.12)),     ***REMOVED*** 至少3个
+                EntityType.TIME: max(2, int(remaining_slots * 0.05)),        ***REMOVED*** 至少2个
+                EntityType.SYMBOL: max(2, int(remaining_slots * 0.05)),     ***REMOVED*** 至少2个
                 EntityType.PLOT_POINT: max(2, int(remaining_slots * 0.05))   ***REMOVED*** 至少2个
             }
             
@@ -4096,10 +4826,16 @@ class ReactNovelCreator:
                     (score, entity) for score, entity in remaining_entity_scores
                     if entity not in selected_entities
                 ]
-                ***REMOVED*** 按类型优先级排序：SETTING > SYMBOL > PLOT_POINT > CHARACTER
+                ***REMOVED*** 按类型优先级排序（支持所有实体类型）
                 type_priority = {
-                    EntityType.SETTING: 3,
+                    EntityType.LOCATION: 5,
+                    EntityType.SETTING: 4,
+                    EntityType.ORGANIZATION: 4,
+                    EntityType.ITEM: 3,
+                    EntityType.CONCEPT: 3,
                     EntityType.SYMBOL: 2,
+                    EntityType.CREATURE: 2,
+                    EntityType.TIME: 2,
                     EntityType.PLOT_POINT: 1,
                     EntityType.CHARACTER: 0
                 }
@@ -4112,13 +4848,11 @@ class ReactNovelCreator:
             if not selected_entities:
                 return ""
             
-            ***REMOVED*** 按类型分组
-            entities_by_type = {
-                EntityType.CHARACTER: [],
-                EntityType.SETTING: [],
-                EntityType.SYMBOL: [],
-                EntityType.PLOT_POINT: []
-            }
+            ***REMOVED*** 按类型分组（支持所有实体类型）
+            entities_by_type = {}
+            for entity_type in EntityType:
+                if entity_type != EntityType.CHAPTER:  ***REMOVED*** 排除章节实体
+                    entities_by_type[entity_type] = []
             
             for entity in selected_entities:
                 entity_type = entity.type
@@ -4193,10 +4927,16 @@ class ReactNovelCreator:
                 ]
                 
                 if remaining_candidates:
-                    ***REMOVED*** 按类型优先级排序：SETTING > SYMBOL > PLOT_POINT > CHARACTER
+                    ***REMOVED*** 按类型优先级排序（支持所有实体类型）
                     type_priority = {
-                        EntityType.SETTING: 3,
+                        EntityType.LOCATION: 5,
+                        EntityType.SETTING: 4,
+                        EntityType.ORGANIZATION: 4,
+                        EntityType.ITEM: 3,
+                        EntityType.CONCEPT: 3,
                         EntityType.SYMBOL: 2,
+                        EntityType.CREATURE: 2,
+                        EntityType.TIME: 2,
                         EntityType.PLOT_POINT: 1,
                         EntityType.CHARACTER: 0
                     }
@@ -4227,8 +4967,14 @@ class ReactNovelCreator:
             lines = []
             type_names = {
                 EntityType.CHARACTER: "角色",
-                EntityType.SETTING: "地点/设定",
-                EntityType.SYMBOL: "物品/符号",
+                EntityType.LOCATION: "地点",
+                EntityType.SETTING: "设定",
+                EntityType.ORGANIZATION: "组织",
+                EntityType.ITEM: "物品",
+                EntityType.CREATURE: "生物",
+                EntityType.CONCEPT: "概念",
+                EntityType.TIME: "时间",
+                EntityType.SYMBOL: "符号",
                 EntityType.PLOT_POINT: "情节节点"
             }
             

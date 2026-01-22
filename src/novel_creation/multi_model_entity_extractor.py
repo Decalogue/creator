@@ -38,7 +38,8 @@ class MultiModelEntityExtractor:
         self,
         llm_clients: List[Any],
         vote_threshold: int = 2,  ***REMOVED*** 至少2个模型都提取到才保留
-        use_ner: bool = False
+        use_ner: bool = False,
+        primary_model_index: int = 0  ***REMOVED*** 主模型索引（优先保留该模型的所有结果）
     ):
         """
         初始化多模型实体提取器
@@ -47,6 +48,7 @@ class MultiModelEntityExtractor:
             llm_clients: LLM 客户端列表（至少2个）
             vote_threshold: 投票阈值（至少需要多少个模型都提取到）
             use_ner: 是否使用 NER 模型（可选）
+            primary_model_index: 主模型索引（优先保留该模型的所有结果，其他模型作为补充）
         """
         if len(llm_clients) < 2:
             raise ValueError("至少需要2个LLM客户端进行投票")
@@ -54,8 +56,13 @@ class MultiModelEntityExtractor:
         self.llm_clients = llm_clients
         self.vote_threshold = min(vote_threshold, len(llm_clients))
         self.use_ner = use_ner
+        self.primary_model_index = primary_model_index
         
-        logger.info(f"多模型实体提取器初始化：{len(llm_clients)} 个模型，投票阈值: {self.vote_threshold}")
+        logger.info(
+            f"多模型实体提取器初始化：{len(llm_clients)} 个模型，"
+            f"投票阈值: {self.vote_threshold}，"
+            f"主模型索引: {self.primary_model_index}（优先保留主模型结果）"
+        )
     
     def extract_entities(self, text: str, chapter_number: int = 0) -> List[Entity]:
         """
@@ -314,12 +321,42 @@ class MultiModelEntityExtractor:
                 vote.descriptions.append(entity_dict.get('description', ''))
                 vote.metadata_list.append({'model_id': model_id})
         
-        ***REMOVED*** 2. 只保留达到投票阈值的实体
+        ***REMOVED*** 2. 优先保留主模型结果，其他模型作为补充
         voted_entities = []
+        primary_model_entities = set()  ***REMOVED*** 主模型提取的实体（标准化名称）
+        
+        ***REMOVED*** 首先收集主模型提取的所有实体
+        if self.primary_model_index < len(all_results):
+            for entity_dict in all_results[self.primary_model_index]:
+                normalized = self._normalize_entity_name(entity_dict['name'])
+                primary_model_entities.add(normalized)
+        
+        ***REMOVED*** 保留实体：
+        ***REMOVED*** 1. 主模型提取的所有实体（优先保留）
+        ***REMOVED*** 2. 其他模型提取的实体，如果主模型没有提取到（作为补充）
+        ***REMOVED*** 3. 达到投票阈值的实体（多个模型都提取到，质量更高）
         for normalized, vote in entity_votes.items():
-            if vote.votes >= self.vote_threshold:
-                ***REMOVED*** 合并描述（取最长的或最常见的）
-                best_description = max(vote.descriptions, key=len) if vote.descriptions else ""
+            is_primary = normalized in primary_model_entities
+            meets_threshold = vote.votes >= self.vote_threshold
+            
+            ***REMOVED*** 保留条件：
+            ***REMOVED*** - 主模型提取的实体（优先保留）
+            ***REMOVED*** - 或者达到投票阈值（多个模型都提取到）
+            if is_primary or meets_threshold:
+                ***REMOVED*** 合并描述（优先使用主模型的描述，如果没有则取最长的）
+                best_description = ""
+                if is_primary and vote.metadata_list:
+                    ***REMOVED*** 找到主模型的描述
+                    primary_desc_idx = None
+                    for i, meta in enumerate(vote.metadata_list):
+                        if meta.get('model_id') == self.primary_model_index:
+                            primary_desc_idx = i
+                            break
+                    if primary_desc_idx is not None and primary_desc_idx < len(vote.descriptions):
+                        best_description = vote.descriptions[primary_desc_idx]
+                
+                if not best_description:
+                    best_description = max(vote.descriptions, key=len) if vote.descriptions else ""
                 
                 entity = Entity(
                     id=f"voted_{chapter_number}_{hash(normalized) % 10000}",
@@ -331,12 +368,18 @@ class MultiModelEntityExtractor:
                         "extraction_method": "multi_model_vote",
                         "votes": vote.votes,
                         "total_models": len(all_results),
-                        "vote_ratio": vote.votes / len(all_results)
+                        "vote_ratio": vote.votes / len(all_results),
+                        "from_primary_model": is_primary,
+                        "meets_threshold": meets_threshold
                     }
                 )
                 voted_entities.append(entity)
-                logger.debug(f"实体 '{vote.name}' 获得 {vote.votes}/{len(all_results)} 票，已保留")
+                
+                if is_primary and not meets_threshold:
+                    logger.debug(f"实体 '{vote.name}' 由主模型提取（{vote.votes}/{len(all_results)} 票），已优先保留")
+                elif meets_threshold:
+                    logger.debug(f"实体 '{vote.name}' 获得 {vote.votes}/{len(all_results)} 票，已保留")
             else:
-                logger.debug(f"实体 '{vote.name}' 仅获得 {vote.votes}/{len(all_results)} 票，未达到阈值 {self.vote_threshold}，已过滤")
+                logger.debug(f"实体 '{vote.name}' 仅获得 {vote.votes}/{len(all_results)} 票，未达到阈值且非主模型提取，已过滤")
         
         return voted_entities

@@ -242,25 +242,52 @@ src/
 - 混合编排器自动选择最优方式
 
 ***REMOVED******REMOVED******REMOVED*** 2. 上下文管理
-- 自动卸载冗长内容
-- 智能压缩和摘要
-- 分层行动空间优化
+- **工具结果卸载**：结果超过500字符时自动写入文件，返回文件路径引用
+- **聊天历史卸载**：上下文超过128K tokens时触发，生成摘要+文件引用，保留最近3条消息
+- **终端会话卸载**：自动同步终端输出到文件系统
+- **工具调用紧凑化**：移除可从外部状态重建的信息，只保留文件路径
+- **智能压缩和摘要**：先 Compaction（无损），再 Summarization（有损但带保险）
 
 ***REMOVED******REMOVED******REMOVED*** 3. 记忆系统
-- 长期记忆（UniMem）
-- 语义网格记忆（实体-关系图谱）
-- 动态上下文路由
-- 订阅式记忆总线
+- **语义网格记忆**：实体-关系图谱，维护创作一致性
+  - 章节创作前：检索并注入前面章节的实体信息
+  - 章节创作后：提取新章节的实体并存储
+  - 质量检查：使用语义网格进行深度一致性检查
+- **动态上下文路由**：根据用户行为预测并预加载上下文（未来）
+- **订阅式记忆总线**：Agent 间实时通信，自动检测冲突（未来）
+- **UniMem**：长期记忆系统（未来集成）
 
 ***REMOVED******REMOVED******REMOVED*** 4. 工具系统
-- 工具动态发现（减少 Token 消耗 53.8%）
-- 分层行动空间（L1/L2/L3）
-- MCP 协议支持
+- **工具动态发现**：Index Layer + Discovery Layer
+  - Index Layer：系统提示词中只包含工具名称列表（72 tokens vs 156 tokens）
+  - Discovery Layer：工具详细描述同步到 `tools/docs/`，Agent 按需查找
+  - **Token 节省：53.8%**（超过预期 40-50%）
+- **分层行动空间**：L1/L2/L3 三层架构
+  - **L1（原子函数）**：固定、正交的原子函数（read_file, write_file, execute_shell等），对 KV Cache 友好
+  - **L2（沙盒工具）**：预装在系统中的工具（grep, sed, awk, curl等），通过 L1 的 execute_shell 使用
+  - **L3（软件包与 API）**：编写 Python 脚本执行复杂任务，调用预授权的 API
+- **MCP 协议支持**：标准化工具协议
 
-***REMOVED******REMOVED******REMOVED*** 5. 质量保证
-- 多维度质量检查
-- 实体一致性验证
-- 情节逻辑检查
+***REMOVED******REMOVED******REMOVED*** 5. 多 Agent 协作
+- **Master Agent（主代理）**：创建和管理 Sub-Agent，协调多 Agent 协作
+- **Sub-Agent（子代理）**：执行特定任务
+- **两种协作模式**：
+  - **任务委托（Task Delegation）**：通过通信实现隔离，Sub-agent 上下文完全独立，必须定义输出 Schema
+  - **信息同步（Information Synchronization）**：通过共享上下文实现协作，Sub-agent 拥有 Master Agent 的完整历史上下文
+- **共享沙箱**：Master 和 Sub-agent 共享同一沙箱，通过文件路径传递信息
+
+***REMOVED******REMOVED******REMOVED*** 6. 实体提取系统
+- **多模型投票提取**：使用多个 LLM 模型（`kimi_k2` + `gemini_3_flash`）并行提取实体
+  - 主模型优先策略：优先保留 Kimi K2 的所有提取结果
+  - 投票机制：只保留至少2个模型都提取到的实体
+  - **提取精度：95%+**
+- **实体类型**：角色、组织、地点、物品、生物、概念、时间
+- **实体验证**：长度检查、动作词过滤、介词过滤、句子片段过滤
+
+***REMOVED******REMOVED******REMOVED*** 7. 质量保证
+- **多维度质量检查**：一致性、连贯性、风格等
+- **实体一致性验证**：使用语义网格进行深度检查
+- **情节逻辑检查**：确保前后章节逻辑连贯
 
 ***REMOVED******REMOVED*** 🚀 快速开始
 
@@ -296,12 +323,8 @@ python novel_creation/test_full_novel_creation.py \
 
 ***REMOVED******REMOVED*** 📚 文档
 
-详细文档请参考 `docs/` 目录：
-
-- [项目状态分析](./docs/PROJECT_STATUS_ANALYSIS.md)
-- [下一步行动建议](./docs/NEXT_STEPS_RECOMMENDATION.md)
-- [测试指南](../novel_creation/TESTING_GUIDE.md)
-- [完整实施总结](./docs/FINAL_IMPLEMENTATION_SUMMARY.md)
+- **小说创作系统**：详细文档请参考 [`novel_creation/README.md`](./novel_creation/README.md)
+  - 包含完整的使用指南、LLM 配置、优化功能、重写机制等
 
 ***REMOVED******REMOVED*** 🔧 技术栈
 
