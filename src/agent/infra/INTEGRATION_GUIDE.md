@@ -19,12 +19,7 @@
    - 多类型缓存支持
    - 缓存装饰器
 
-4. **容错机制** (`resilience.py`)
-   - Circuit Breaker
-   - 重试策略
-   - 优雅降级
-
-5. **Dashboard API** (`api/dashboard.py`)
+4. **Dashboard API** (`api/dashboard.py`)
    - RESTful API 接口
    - 实时指标获取
    - 前端就绪
