@@ -97,6 +97,9 @@ def chat():
                 state['code'] = 0
                 state['message'] = '回复成功'
                 state['content'] = content
+                ***REMOVED*** 如果有 reasoning_content，也一并返回（推理模型的思考过程）
+                if reasoning_content:
+                    state['reasoning_content'] = reasoning_content
             else:
                 state['message'] = '请求异常：模型返回空内容'
             

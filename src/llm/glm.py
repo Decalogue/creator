@@ -14,8 +14,11 @@ def glm(messages, thinking='disabled', max_new_tokens=8192):
         max_tokens=max_new_tokens,
         temperature=1.0
     )
-    content = response.choices[0].message.content
-    return '', content
+    message = response.choices[0].message
+    ***REMOVED*** 提取 reasoning_content（推理模型的思考过程）
+    reasoning_content = getattr(message, 'reasoning_content', None) or ''
+    content = message.content or ''
+    return reasoning_content, content
 
 
 def glm_stream(messages, thinking='disabled', max_new_tokens=8192, buffer_size=10):

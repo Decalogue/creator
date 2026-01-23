@@ -24,6 +24,7 @@ import re
 import statistics
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
+from collections import defaultdict
 from datetime import datetime
 import logging
 
@@ -495,8 +496,8 @@ class ReactNovelCreator:
                 debug_file = self.output_dir / "novel_plan_raw_response.txt"
                 debug_file.write_text(result, encoding="utf-8")
                 logger.debug(f"原始响应已保存到: {debug_file}")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"保存调试文件失败: {e}")
             
             ***REMOVED*** 尝试使用 LLM 修复 JSON（如果失败则使用占位符）
             try:
@@ -689,20 +690,39 @@ class ReactNovelCreator:
 
 请提供：
 1. **故事背景设定**：世界观、时代背景、主要设定
-2. **主要角色介绍**：主角、重要配角的姓名、性格、背景
+2. **主要角色介绍**：**重要：需要8-12个主要角色**，包括：
+   - 主角（1-2个）：核心人物，推动主线
+   - 重要配角（3-4个）：与主角有深度互动，推动关键情节
+   - 反派/对立角色（2-3个）：制造冲突和张力
+   - 辅助角色（2-3个）：提供信息、制造转折、丰富情节
+   - 每个角色需要：name（姓名）、role（角色定位）、description（性格、背景、动机）
+   - **人物关系要复杂**：有合作、对立、背叛、联盟等多种关系
+   - **人物要有成长弧线**：角色在故事中会发生变化
 3. **故事主线**：整个故事的 {num_phases} 个主要阶段，每个阶段的核心目标
 4. **关键情节节点**：每20章一个关键转折点（共 {num_phases} 个转折点）
-5. **结局方向**：故事的大致结局方向
+5. **结局方向**：**重要：这是第一部，结局必须留有悬念，不要圆满的大结局**
+   - 结局应该设置悬念、疑问或未解决的危机
+   - 可以是新的威胁出现、关键谜题未解、角色命运未定等
+   - 为后续章节留下伏笔和期待
+   - 避免所有问题都得到解决、所有角色都获得圆满结局
 
 重点：这是整体规划，不需要详细到每章，只需要主要阶段和关键转折点。
 每个阶段的描述应该简洁（50-100字），但能体现该阶段的核心冲突和发展方向。
 
 请以 JSON 格式返回，包含以下字段：
 - background: 背景设定
-- characters: 主要角色列表（每个角色包含 name, role, description）
+- characters: 主要角色列表（**必须8-12个角色**，每个角色包含 name, role, description）
+  - role字段说明：主角/重要配角/反派/辅助角色
+  - description字段应包含：性格特点、背景故事、动机目标、与其他角色的关系
 - main_plot: 故事主线（{num_phases}个阶段的描述）
 - key_plot_points: 关键情节节点列表（每个节点包含 phase_number, chapter_range, description）
-- ending_direction: 结局方向
+- ending_direction: 结局方向（**必须包含悬念，不要圆满结局**）
+
+**人物设计要求**：
+- 人物数量：8-12个主要角色（不能少于8个）
+- 人物关系：要有复杂的网络关系，包括盟友、敌人、背叛者、隐藏身份等
+- 人物成长：每个主要角色都要有明确的成长弧线或变化轨迹
+- 人物功能：不同角色承担不同功能（推动情节、制造冲突、提供信息、制造转折等）
 
 重要提示：这是一个创作任务，请直接生成内容，不需要搜索工具或调用任何函数。直接返回 JSON 格式的结果。
 """
@@ -796,6 +816,23 @@ class ReactNovelCreator:
                 if key_events:
                     previous_phases_summary += f"  关键事件：{', '.join(key_events[:3])}\n"
         
+        ***REMOVED*** 判断是否是最后一个阶段（需要悬念结局）
+        is_final_phase = False
+        target_chapters = overall_outline.get('target_chapters', phase_number * phase_size)
+        if end_chapter >= target_chapters - phase_size // 2:  ***REMOVED*** 最后阶段或接近最后
+            is_final_phase = True
+        
+        ending_note = ""
+        if is_final_phase:
+            ending_note = """
+**重要：这是第一部的最后阶段，结局必须留有悬念！**
+- 最后几章（特别是第95-100章）应该设置悬念、疑问或未解决的危机
+- 可以是新的威胁出现、关键谜题未解、角色命运未定、更大的阴谋浮出水面等
+- 为后续章节（第二部）留下伏笔和期待
+- 避免所有问题都得到解决、所有角色都获得圆满结局
+- 结局应该让读者产生"接下来会发生什么？"的疑问
+"""
+        
         prompt = f"""请为小说《{self.novel_title}》的第{start_chapter}-{end_chapter}章创建详细大纲。
 
 整体大纲：
@@ -805,6 +842,7 @@ class ReactNovelCreator:
 - 阶段编号：{phase_number}
 - 章节范围：第{start_chapter}-{end_chapter}章（共 {num_chapters} 章）
 - 该阶段的核心目标：{phase_target}
+{ending_note}
 
 请为这 {num_chapters} 章创建详细大纲，每章包括：
 - chapter_number: 章节编号
@@ -818,6 +856,7 @@ class ReactNovelCreator:
 3. 每章都要有明确的情节进展，避免流水账
 4. 章节之间要有逻辑连接和递进关系
 5. 符合{genre}类型的风格和节奏
+{ending_note if is_final_phase else ""}
 
 请以 JSON 格式返回，包含以下字段：
 - phase_number: 阶段编号
@@ -945,6 +984,7 @@ class ReactNovelCreator:
     def _get_enhanced_rhythm_instruction(
         self,
         chapter_position: str,
+        chapter_number: int,
         recent_rhythm_score: Optional[float] = None
     ) -> str:
         """
@@ -1177,6 +1217,10 @@ class ReactNovelCreator:
 """
         
         ***REMOVED*** Phase 5: 增强的节奏控制提示（根据章节位置和历史节奏数据动态生成）
+        ***REMOVED*** 确定章节位置
+        total_chapters = self.metadata.get("target_chapters", 0)
+        chapter_position = self._determine_chapter_position(chapter_number, total_chapters)
+        
         ***REMOVED*** 获取最近的节奏得分
         recent_rhythm_score = None
         quality_history = self.quality_tracker.get("chapter_quality_history", [])
@@ -1257,6 +1301,7 @@ class ReactNovelCreator:
      * 必须让读者产生"接下来会发生什么？"的疑问
    - **禁止**：平淡的结尾、完整的总结、没有悬念的描述
    - **检查方法**：创作完成后，检查结尾最后100字，确保包含上述悬念元素之一
+{self._get_ending_suspense_instruction(chapter_number, total_chapters)}
 7. **一致性要求（必须）**：
    - **角色一致性**：角色名称、性格、外貌、说话方式必须与前面章节完全一致，参考前面章节的实体信息
    - **世界观一致性**：世界观设定（时间、地点、科技、魔法、生物等）必须与前面章节保持一致
@@ -1280,8 +1325,9 @@ class ReactNovelCreator:
      * 确保对话、动作、描写的平衡：避免长时间单一类型的内容
 9. 保持文笔流畅，情节紧凑
 10. 确保实体（角色、地点、物品）与前面章节保持一致
-{self._get_quality_adjustment_instruction(chapter_number)}
+   {self._get_quality_adjustment_instruction(chapter_number)}
 {self._generate_preventive_prompt_additions(chapter_number)}
+{self._get_ending_suspense_instruction(chapter_number, total_chapters)}
 
 重要提示：这是一个创作任务，请直接生成章节正文内容，不需要搜索工具或调用任何函数。直接返回创作的内容即可。
 请直接返回章节正文内容，不要包含标题或其他格式。
@@ -1344,6 +1390,31 @@ class ReactNovelCreator:
             )
             content = self._truncate_content(content, target_after_truncate, chapter_summary)
             actual_words = len(content)
+        
+        ***REMOVED*** 检查字数是否过少（少于目标字数的50%），如果是则重试生成
+        min_acceptable_words = int(target_words * 0.5)  ***REMOVED*** 最少接受目标字数的50%
+        if actual_words < min_acceptable_words:
+            logger.warning(
+                f"第{chapter_number}章生成内容过短（{actual_words}字 < {min_acceptable_words}字，目标{target_words}字），"
+                f"可能是生成失败，尝试重新生成..."
+            )
+            ***REMOVED*** 重试生成（最多重试1次）
+            try:
+                retry_content = self.agent.run(query=prompt, verbose=False)
+                retry_words = len(retry_content)
+                if retry_words >= min_acceptable_words:
+                    logger.info(
+                        f"第{chapter_number}章重试生成成功：{retry_words}字（目标{target_words}字）"
+                    )
+                    content = retry_content
+                    original_words = retry_words
+                    actual_words = retry_words
+                else:
+                    logger.warning(
+                        f"第{chapter_number}章重试生成仍然过短（{retry_words}字），保留原始内容"
+                    )
+            except Exception as e:
+                logger.warning(f"第{chapter_number}章重试生成失败: {e}，保留原始内容")
         
         ***REMOVED*** 计算字数差异（基于截断后的实际字数）
         word_diff = actual_words - target_words
@@ -1568,18 +1639,36 @@ class ReactNovelCreator:
                                 f"第{chapter_number}章第{rewrite_round}轮重写未改善问题数，将在第3轮尝试备用策略"
                             )
                             ***REMOVED*** Phase 8: 记录失败策略，避免重复尝试
-                            if self.fix_strategy_library and target_issues:
-                                for issue in target_issues:
+                            ***REMOVED*** 从当前质量结果中获取问题列表
+                            current_issues = current_quality_result.get('issues', []) if current_quality_result else []
+                            if self.fix_strategy_library and current_issues:
+                                for issue in current_issues[:2]:  ***REMOVED*** 只处理前2个问题
                                     issue_type = issue.get('type', '')
                                     ***REMOVED*** 记录当前策略失败
-                                    current_strategy = issue.get('predicted_strategy', 'standard')
+                                    current_strategy_str = issue.get('predicted_strategy', 'standard')
+                                    ***REMOVED*** 将字符串转换为 FixStrategy 枚举
+                                    try:
+                                        from novel_creation.fix_strategy_library import FixStrategy
+                                        ***REMOVED*** 尝试通过值匹配枚举
+                                        current_strategy = None
+                                        for strategy in FixStrategy:
+                                            if strategy.value == current_strategy_str:
+                                                current_strategy = strategy
+                                                break
+                                        ***REMOVED*** 如果找不到匹配的，使用默认值
+                                        if current_strategy is None:
+                                            current_strategy = FixStrategy.ITERATIVE  ***REMOVED*** 默认使用迭代策略
+                                    except Exception as e:
+                                        logger.debug(f"转换策略类型失败: {e}，跳过记录")
+                                        continue
+                                    
                                     self.fix_strategy_library.record_fix_attempt(
                                         issue_type=issue_type,
                                         strategy_type=current_strategy,
                                         success=False,
                                         validation_score=0.0,
                                         metadata={
-                                            'content_length': len(original_content),
+                                            'content_length': len(original_content_for_save),
                                             'severity': issue.get('severity', 'medium'),
                                             'rewrite_round': rewrite_round,
                                             'chapter_number': chapter_number,
@@ -1588,14 +1677,14 @@ class ReactNovelCreator:
                                     )
                             
                             ***REMOVED*** Phase 8: 尝试备用策略（从预测器获取）
-                            if self.fix_outcome_predictor and target_issues:
-                                for issue in target_issues:
+                            if self.fix_outcome_predictor and current_issues:
+                                for issue in current_issues[:2]:  ***REMOVED*** 只处理前2个问题
                                     issue_type = issue.get('type', '')
                                     try:
                                         ***REMOVED*** 获取备用策略
                                         prediction = self.fix_outcome_predictor.predict_success_probability(
                                             issue_type=issue_type,
-                                            content_length=len(original_content),
+                                            content_length=len(original_content_for_save),
                                             fix_strategy=issue.get('predicted_strategy', 'standard'),
                                             severity=issue.get('severity', 'medium'),
                                             previous_attempts=rewrite_round
@@ -1885,6 +1974,122 @@ class ReactNovelCreator:
             return "\n11. " + "\n".join(instructions)
         return ""
     
+    def _update_issue_patterns(self, quality_result: Dict[str, Any]) -> None:
+        """
+        更新问题模式追踪（Phase 6: 初始生成质量提升）
+        
+        Args:
+            quality_result: 质量检查结果
+        """
+        if "issue_patterns" not in self.quality_tracker:
+            self.quality_tracker["issue_patterns"] = {}
+        
+        issue_patterns = self.quality_tracker["issue_patterns"]
+        issues = quality_result.get("issues", [])
+        
+        for issue in issues:
+            issue_type = issue.get("type")
+            if issue_type:
+                if issue_type not in issue_patterns:
+                    issue_patterns[issue_type] = {
+                        "count": 0,
+                        "first_seen": datetime.now().isoformat(),
+                        "last_seen": datetime.now().isoformat(),
+                        "metadata": []
+                    }
+                
+                issue_patterns[issue_type]["count"] += 1
+                issue_patterns[issue_type]["last_seen"] = datetime.now().isoformat()
+                
+                ***REMOVED*** 记录问题元数据（用于分析）
+                metadata = issue.get("metadata", {})
+                if metadata:
+                    issue_patterns[issue_type]["metadata"].append(metadata)
+                    ***REMOVED*** 只保留最近10条元数据
+                    if len(issue_patterns[issue_type]["metadata"]) > 10:
+                        issue_patterns[issue_type]["metadata"] = issue_patterns[issue_type]["metadata"][-10:]
+    
+    def _get_ending_suspense_instruction(self, chapter_number: int, total_chapters: int) -> str:
+        """
+        获取结尾悬念指令（特别针对最后几章）
+        
+        Args:
+            chapter_number: 当前章节编号
+            total_chapters: 总章节数
+        
+        Returns:
+            悬念指令字符串（如果是最後几章则返回特殊指令，否则返回空字符串）
+        """
+        if total_chapters == 0:
+            return ""
+        
+        ***REMOVED*** 判断是否是最后10章（第一部结尾）
+        if chapter_number >= total_chapters - 10:
+            return f"""
+**特别重要：这是第一部的最后阶段（第{chapter_number}章/共{total_chapters}章），结局必须留有悬念！**
+- **禁止圆满结局**：不要解决所有问题，不要给所有角色圆满的结局
+- **必须设置悬念**：最后几章（特别是第{max(95, total_chapters-5)}-{total_chapters}章）必须设置以下悬念之一：
+  * 新的威胁或危机出现
+  * 关键谜题未解（留下疑问）
+  * 角色命运未定（生死、去向不明）
+  * 更大的阴谋浮出水面
+  * 意外的转折或发现
+- **为第二部留下伏笔**：结局应该让读者产生"接下来会发生什么？"、"真相是什么？"、"他们能成功吗？"等疑问
+- **第{total_chapters}章特别要求**：最后一章必须是一个强烈的悬念结尾，可以是：
+  * 突然出现的威胁
+  * 未解之谜的揭示
+  * 关键角色的失踪或危险
+  * 更大的阴谋的暗示
+  * 开放式结局，留下多个悬念
+"""
+        return ""
+    
+    def _generate_preventive_prompt_additions(self, chapter_number: int) -> str:
+        """
+        基于历史问题模式生成预防性提示（Phase 6: 初始生成质量提升）
+        
+        Args:
+            chapter_number: 当前章节编号
+        
+        Returns:
+            预防性提示字符串
+        """
+        preventive_instructions = []
+        issue_patterns = self.quality_tracker.get("issue_patterns", {})
+        
+        ***REMOVED*** 检查最近10章的问题模式
+        recent_issues = self.quality_tracker.get("chapter_quality_history", [])[-10:]
+        
+        ***REMOVED*** 统计最近问题类型频率
+        recent_issue_counts = defaultdict(int)
+        for chapter_data in recent_issues:
+            for issue in chapter_data.get("issues", []):
+                issue_type = issue.get("type")
+                if issue_type:
+                    recent_issue_counts[issue_type] += 1
+        
+        ***REMOVED*** 针对高频问题添加预防性提示
+        if recent_issue_counts.get("style_issue.心理活动过多", 0) >= 3:
+            preventive_instructions.append(
+                "**预防性提示：严格控制心理活动描写**：前续章节心理活动过多，本章心理活动句子（包含'想'、'觉得'、'认为'、'感觉'等词语）**不得超过8句**。优先通过对话和行动展现人物内心。"
+            )
+        if recent_issue_counts.get("style_issue.对话占比过低", 0) >= 3:
+            preventive_instructions.append(
+                "**预防性提示：确保对话占比**：前续章节对话占比过低，本章对话占比**必须达到25-35%**。每段对话后必须有动作或心理描写，避免纯对话堆砌。"
+            )
+        if recent_issue_counts.get("plot_inconsistency", 0) >= 2:
+            preventive_instructions.append(
+                "**预防性提示：加强情节逻辑连贯性**：前续章节出现情节不一致，本章请务必确保情节发展符合大纲和前面章节的逻辑，避免突兀的转折。"
+            )
+        if recent_issue_counts.get("character_inconsistency", 0) >= 2:
+            preventive_instructions.append(
+                "**预防性提示：保持人物性格一致**：前续章节人物性格出现漂移，本章请严格按照人物档案（如果存在）和前面章节的设定，保持角色性格、行为、说话方式的一致性。"
+            )
+        
+        if preventive_instructions:
+            return "\n\n" + "\n".join(preventive_instructions) + "\n"
+        return ""
+    
     def _truncate_content(self, content: str, target_length: int, chapter_summary: str) -> str:
         """
         智能截断章节内容，保留核心情节
@@ -2020,8 +2225,8 @@ class ReactNovelCreator:
             match = re.search(r'(\d+)', chapter_range)
             if match:
                 return int(match.group(1))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"解析章节范围 '{chapter_range}' 失败: {e}")
         return 0
     
     def _generate_phase_summary(self, phase_chapters: List[NovelChapter], phase_number: int) -> Dict[str, Any]:
@@ -3242,6 +3447,10 @@ class ReactNovelCreator:
                     issue_type = issue.get('type', '')
                     issue_metadata = issue.get('metadata', {})
                     
+                    ***REMOVED*** 确保 chapter_summary 在 metadata 中（用于策略模板填充）
+                    if 'chapter_summary' not in issue_metadata:
+                        issue_metadata['chapter_summary'] = chapter_summary[:200] if chapter_summary else ""
+                    
                     ***REMOVED*** 获取修复策略
                     strategy = self.fix_strategy_library.get_strategy(issue_type, issue_metadata)
                     if strategy and strategy.fix_prompt_template:
@@ -3609,8 +3818,8 @@ class ReactNovelCreator:
                         if main_characters and not (main_characters & chapter_characters):
                             score -= 0.1
                         main_characters.update(chapter_characters)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"计算角色一致性得分时出错: {e}")
         
         return max(0.0, min(1.0, score))
     
@@ -4701,8 +4910,8 @@ class ReactNovelCreator:
                             try:
                                 chapter_id = relation.source_id.replace('chapter_', '')
                                 entity_chapter = int(chapter_id)
-                            except:
-                                pass
+                            except (ValueError, AttributeError) as e:
+                                logger.debug(f"无法从关系 {relation.source_id} 提取章节号: {e}")
                             break
                 
                 ***REMOVED*** 只包含前面章节的实体（排除当前章节）

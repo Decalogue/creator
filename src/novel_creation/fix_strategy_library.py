@@ -235,14 +235,30 @@ class FixStrategyLibrary:
             min_success_rate=strategy.min_success_rate
         )
         
-        ***REMOVED*** 填充模板变量
+        ***REMOVED*** 填充模板变量，添加默认值以避免KeyError
+        template_vars = {
+            **metadata,  ***REMOVED*** 先添加元数据
+            'few_shot_examples': "\n".join(f"- {ex}" for ex in filled_strategy.few_shot_examples) if filled_strategy.few_shot_examples else "",
+            ***REMOVED*** 添加常见缺失变量的默认值
+            'thought_count': metadata.get('thought_sentence_count', metadata.get('thought_count', 0)),
+            'chapter_summary': metadata.get('chapter_summary', ''),
+            'dialogue_count': metadata.get('dialogue_count', 0),
+            'dialogue_with_action': metadata.get('dialogue_with_action', 0),
+            'dialogue_ratio_percent': metadata.get('dialogue_ratio', 0) * 100 if 'dialogue_ratio' in metadata else 0,
+        }
+        
+        ***REMOVED*** 安全填充模板
         try:
-            filled_strategy.fix_prompt_template = filled_strategy.fix_prompt_template.format(
-                **metadata,
-                few_shot_examples="\n".join(f"- {ex}" for ex in filled_strategy.few_shot_examples)
-            )
+            filled_strategy.fix_prompt_template = filled_strategy.fix_prompt_template.format(**template_vars)
         except KeyError as e:
-            logger.warning(f"策略模板填充失败，缺少变量: {e}")
+            ***REMOVED*** 如果还有缺失的变量，使用空字符串作为默认值
+            logger.warning(f"策略模板填充失败，缺少变量: {e}，使用空字符串作为默认值")
+            missing_var = str(e).strip("'\"")
+            template_vars[missing_var] = ""
+            try:
+                filled_strategy.fix_prompt_template = filled_strategy.fix_prompt_template.format(**template_vars)
+            except KeyError as e2:
+                logger.warning(f"策略模板填充仍然失败，缺少变量: {e2}，保留原始模板")
         
         return filled_strategy
     
