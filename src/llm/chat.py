@@ -8,6 +8,10 @@ from .glm import glm, glm_stream
 from .gemini import gemini_3_flash, gemini_3_flash_stream
 from .claude import claude_opus_4_5, claude_opus_4_5_stream
 
+try:
+    from .local_qwen import qwen_local, qwen_local_stream
+except ImportError:
+    qwen_local = qwen_local_stream = None
 
 __all__ = [
     "client",
@@ -21,4 +25,6 @@ __all__ = [
     "gemini_3_flash_stream",
     "claude_opus_4_5",
     "claude_opus_4_5_stream",
+    "qwen_local",
+    "qwen_local_stream",
 ]

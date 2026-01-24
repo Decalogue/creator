@@ -14,7 +14,6 @@ def claude_opus_4_5(messages, max_new_tokens=8192):
         max_tokens=max_new_tokens,
     )
     message = response.choices[0].message
-    ***REMOVED*** 提取 reasoning_content（推理模型的思考过程）
     reasoning_content = getattr(message, 'reasoning_content', None) or ''
     content = message.content or ''
     return reasoning_content, content

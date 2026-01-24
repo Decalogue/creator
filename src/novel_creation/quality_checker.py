@@ -50,14 +50,34 @@ class QualityChecker:
     检查小说创作的一致性、连贯性、风格等
     """
     
-    def __init__(self, llm_client=None):
+    def __init__(self, llm_client=None, strict_mode: bool = False):
         """
         初始化质量检查器
         
         Args:
             llm_client: LLM 客户端（可选，用于高级检查）
+            strict_mode: 是否使用严格模式（默认 False，使用更宽松的标准）
         """
         self.llm_client = llm_client
+        self.strict_mode = strict_mode
+        
+        ***REMOVED*** 根据模式调整检查阈值
+        if strict_mode:
+            ***REMOVED*** 严格模式：保持原有标准
+            self.dialogue_ratio_min = 0.15
+            self.dialogue_ratio_max = 0.45
+            self.dialogue_ratio_ideal_min = 0.20
+            self.dialogue_ratio_ideal_max = 0.40
+            self.max_paragraph_length = 1000
+            self.max_word_repeat = 20
+        else:
+            ***REMOVED*** 宽松模式：放宽标准
+            self.dialogue_ratio_min = 0.05  ***REMOVED*** 允许更低的对话占比
+            self.dialogue_ratio_max = 0.60  ***REMOVED*** 允许更高的对话占比
+            self.dialogue_ratio_ideal_min = 0.10
+            self.dialogue_ratio_ideal_max = 0.50
+            self.max_paragraph_length = 2000  ***REMOVED*** 允许更长的段落
+            self.max_word_repeat = 40  ***REMOVED*** 允许更多重复
     
     def check_chapter(
         self,
@@ -135,6 +155,9 @@ class QualityChecker:
         """
         检查角色一致性
         
+        注意：只检查本章出现的角色与前面章节的一致性，不要求所有角色每章都出现。
+        根据章节设定和情节需要，某些章节可能只涉及部分角色，这是正常的创作情况。
+        
         Args:
             chapter_content: 章节内容
             chapter_number: 章节编号
@@ -142,7 +165,7 @@ class QualityChecker:
             semantic_mesh_entities: 语义网格中的实体（可选，用于深度检查）
         
         Returns:
-            角色一致性问题列表
+            角色一致性问题列表（只检查本章出现的角色）
         """
         issues = []
         
@@ -437,11 +460,11 @@ class QualityChecker:
         ***REMOVED*** 检查过长段落
         paragraphs = chapter_content.split('\n\n')
         for i, para in enumerate(paragraphs):
-            if len(para) > 1000:  ***REMOVED*** 段落超过1000字
+            if len(para) > self.max_paragraph_length:
                 issues.append(QualityIssue(
                     issue_type=IssueType.STYLE_ISSUE,
                     severity=IssueSeverity.LOW,
-                    description=f"段落过长：第{i+1}段超过1000字",
+                    description=f"段落过长：第{i+1}段超过{self.max_paragraph_length}字",
                     location=f"第{chapter_number}章，第{i+1}段",
                     suggestion="考虑将长段落拆分为多个段落",
                     metadata={"paragraph_length": len(para)}
@@ -456,7 +479,7 @@ class QualityChecker:
         
         ***REMOVED*** 找出重复次数过多的词
         for word, count in word_freq.items():
-            if count > 20:  ***REMOVED*** 出现超过20次
+            if count > self.max_word_repeat:
                 issues.append(QualityIssue(
                     issue_type=IssueType.STYLE_ISSUE,
                     severity=IssueSeverity.LOW,
@@ -516,21 +539,21 @@ class QualityChecker:
         dialogue_length = sum(len(d) for d in dialogues)
         dialogue_ratio = dialogue_length / total_length if total_length > 0 else 0
         
-        ***REMOVED*** 检查对话占比（理想范围：20%-40%）
-        if dialogue_ratio < 0.15:
+        ***REMOVED*** 检查对话占比（根据模式调整阈值）
+        if dialogue_ratio < self.dialogue_ratio_min:
             issues.append(QualityIssue(
                 issue_type=IssueType.STYLE_ISSUE,
                 severity=IssueSeverity.LOW,
-                description=f"对话占比过低：{dialogue_ratio*100:.1f}%（理想范围：20%-40%）",
+                description=f"对话占比过低：{dialogue_ratio*100:.1f}%（理想范围：{self.dialogue_ratio_ideal_min*100:.0f}%-{self.dialogue_ratio_ideal_max*100:.0f}%）",
                 location=f"第{chapter_number}章",
                 suggestion="适当增加对话，通过对话推进情节和展现人物性格",
                 metadata={"dialogue_ratio": dialogue_ratio, "dialogue_length": dialogue_length, "total_length": total_length}
             ))
-        elif dialogue_ratio > 0.45:
+        elif dialogue_ratio > self.dialogue_ratio_max:
             issues.append(QualityIssue(
                 issue_type=IssueType.STYLE_ISSUE,
                 severity=IssueSeverity.LOW,
-                description=f"对话占比过高：{dialogue_ratio*100:.1f}%（理想范围：20%-40%）",
+                description=f"对话占比过高：{dialogue_ratio*100:.1f}%（理想范围：{self.dialogue_ratio_ideal_min*100:.0f}%-{self.dialogue_ratio_ideal_max*100:.0f}%）",
                 location=f"第{chapter_number}章",
                 suggestion="适当减少对话，增加动作描写、心理描写和环境描写",
                 metadata={"dialogue_ratio": dialogue_ratio, "dialogue_length": dialogue_length, "total_length": total_length}

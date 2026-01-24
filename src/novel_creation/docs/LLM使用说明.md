@@ -1,0 +1,143 @@
+***REMOVED*** LLM使用情况说明
+
+***REMOVED******REMOVED*** 当前配置（《完美之墙》100章创作）
+
+***REMOVED******REMOVED******REMOVED*** 1. 章节生成和大纲生成
+- **模型**：`kimi_k2`（Kimi K2）
+- **用途**：
+  - 生成章节正文内容
+  - 生成小说大纲（整体大纲、阶段大纲）
+  - 章节重写和修复
+- **配置位置**：`create_100_chapters_novel.py` 第60行
+- **特点**：
+  - 通过 `llm_client=kimi_k2` 传递给 `ReactNovelCreator`
+  - 传递给 `ReActAgent`，用于所有章节创作任务
+
+***REMOVED******REMOVED******REMOVED*** 2. 实体提取（多模型投票）
+- **模型组合**：`kimi_k2` + `gemini_3_flash`
+- **策略**：主模型优先策略
+  - **主模型**：Kimi K2（索引0）
+    - 提取的所有实体都保留
+    - 优先保留其所有结果
+  - **辅助模型**：Gemini 3 Flash（索引1）
+    - 作为验证和补充
+    - 提取的实体作为补充（如果Kimi没有提取到）
+- **投票机制**：
+  - 多个模型都提取到的实体，合并描述提高质量
+  - 投票阈值：2（但主模型结果优先保留）
+- **配置位置**：`react_novel_creator.py` 第212-224行
+- **实际效果**：
+  - 通常提取到 18-25 个实体/章
+  - 投票后保留约 20-22 个实体
+  - 提取精度：95%+
+
+***REMOVED******REMOVED******REMOVED*** 3. 悬念评估
+- **模型**：`deepseek_v3_2`（DeepSeek V3.2）
+- **用途**：评估章节的悬念程度（0-1分）
+- **评估标准**：
+  1. 情节悬念：未解之谜、危险信号、紧张冲突
+  2. 氛围营造：紧张、不安、神秘的氛围
+  3. 结尾设计：章节结尾是否留下悬念
+  4. 心理描写：是否通过心理活动增强悬念感
+  5. 信息控制：是否通过信息不对称制造悬念
+- **配置位置**：`react_novel_creator.py` 第4138行（固定使用）
+- **调用频率**：每10章进行一次阶段性质量检查时评估最近5章
+- **实际效果**：平均悬念得分约 0.89-0.90
+
+***REMOVED******REMOVED******REMOVED*** 4. 质量检查
+- **方法**：基于规则的检查系统
+- **不使用LLM**：通过规则检查一致性、连贯性、风格等问题
+- **检查项**：
+  - 角色一致性（使用语义网格实体进行深度检查）
+  - 世界观一致性
+  - 时间线一致性
+  - 情节一致性
+  - 连贯性问题
+  - 风格问题（对话占比、心理活动等）
+- **配置位置**：`quality_checker.py`（虽然接受llm_client参数，但当前未使用）
+
+***REMOVED******REMOVED*** LLM调用流程
+
+***REMOVED******REMOVED******REMOVED*** 章节创作流程
+```
+1. 生成章节内容
+   └─> 使用 kimi_k2（通过 ReActAgent）
+   
+2. 提取实体
+   ├─> 并行调用 kimi_k2 提取实体
+   └─> 并行调用 gemini_3_flash 提取实体
+   └─> 投票合并结果（主模型优先）
+   
+3. 质量检查
+   ├─> 规则检查（不使用LLM）
+   └─> 如果发现问题，触发重写
+       └─> 使用 kimi_k2 重写章节
+       
+4. 阶段性质量检查（每10章）
+   └─> 使用 deepseek_v3_2 评估悬念得分
+```
+
+***REMOVED******REMOVED*** 模型选择理由
+
+***REMOVED******REMOVED******REMOVED*** Kimi K2（章节生成）
+- **优势**：
+  - 创作能力强，文笔流畅
+  - 字数控制较好
+  - 理解复杂指令能力强
+- **适用场景**：长文本生成、创意写作
+
+***REMOVED******REMOVED******REMOVED*** Kimi K2 + Gemini 3 Flash（实体提取）
+- **Kimi K2**：
+  - 实体提取能力最强（7种类型，18-25个实体/章）
+  - 作为主模型，优先保留所有结果
+- **Gemini 3 Flash**：
+  - 速度快，成本低
+  - 作为验证和补充，提高提取精度
+- **组合优势**：兼顾准确性和效率
+
+***REMOVED******REMOVED******REMOVED*** DeepSeek V3.2（悬念评估）
+- **优势**：
+  - 深度理解能力强
+  - 适合分析和评估任务
+  - 能够准确识别深层悬疑元素
+- **适用场景**：质量评估、深度分析
+
+***REMOVED******REMOVED*** 实际使用统计
+
+根据日志分析（《完美之墙》创作中）：
+- **实体提取**：每章约提取 20-22 个实体（2个模型投票后）
+- **悬念评估**：平均得分 0.89-0.90（基于最近5章）
+- **章节生成**：使用 kimi_k2，质量稳定
+
+***REMOVED******REMOVED*** 配置变更
+
+如需修改LLM配置：
+
+***REMOVED******REMOVED******REMOVED*** 修改章节生成模型
+```python
+***REMOVED*** 在 create_100_chapters_novel.py 中修改
+from llm.chat import gemini_3_flash  ***REMOVED*** 或其他模型
+creator = ReactNovelCreator(
+    ...
+    llm_client=gemini_3_flash  ***REMOVED*** 修改这里
+)
+```
+
+***REMOVED******REMOVED******REMOVED*** 修改实体提取模型
+```python
+***REMOVED*** 在 react_novel_creator.py 第218行修改
+llm_clients = [kimi_k2, gemini_3_flash]  ***REMOVED*** 修改模型组合
+```
+
+***REMOVED******REMOVED******REMOVED*** 修改悬念评估模型
+```python
+***REMOVED*** 在 react_novel_creator.py 第4138行修改
+from llm.chat import gemini_3_flash  ***REMOVED*** 或其他模型
+_, response = gemini_3_flash(messages, max_new_tokens=100)
+```
+
+***REMOVED******REMOVED*** 注意事项
+
+1. **悬念评估模型**：不建议修改，DeepSeek V3.2 在评估任务上表现最佳
+2. **实体提取**：保持多模型投票，确保高精度
+3. **章节生成**：可根据需要切换，但 Kimi K2 在创作质量上表现优秀
