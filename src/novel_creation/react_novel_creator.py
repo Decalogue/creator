@@ -205,41 +205,59 @@ class ReactNovelCreator:
         ***REMOVED*** 增强实体提取器（支持多模型投票）
         self.entity_extractor = None
         self.enable_enhanced_extraction = enable_enhanced_extraction
+        ***REMOVED*** 控制是否只使用单模型（kimi_k2），不启用多模型投票
+        ***REMOVED*** 通过环境变量控制：如果设置 USE_SINGLE_MODEL_EXTRACTION=1，则只使用 kimi_k2
+        use_single_model_only = False
+        import os
+        if os.getenv("USE_SINGLE_MODEL_EXTRACTION", "0") == "1":
+            use_single_model_only = True
+            logger.info("检测到 USE_SINGLE_MODEL_EXTRACTION=1，将只使用 kimi_k2 进行实体提取")
+        
         if enable_enhanced_extraction:
             try:
-                ***REMOVED*** 尝试使用多模型投票提取器（更准确）
-                try:
-                    from novel_creation.multi_model_entity_extractor import MultiModelEntityExtractor
-                    from llm.gemini import gemini_3_flash
-                    from llm.chat import kimi_k2
-                    
-                    ***REMOVED*** 使用 Kimi K2 和 Gemini 进行投票（推荐配置：Kimi 实体提取最强，Gemini 作为验证）
-                    ***REMOVED*** 优先保留 Kimi 的所有结果，Gemini 作为补充
-                    llm_clients = [kimi_k2, gemini_3_flash]
-                    self.entity_extractor = MultiModelEntityExtractor(
-                        llm_clients=llm_clients,
-                        vote_threshold=2,  ***REMOVED*** 投票阈值（但主模型结果优先保留）
-                        use_ner=False,
-                        primary_model_index=0  ***REMOVED*** Kimi K2 作为主模型（索引0），优先保留其所有结果
-                    )
-                    logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型）")
-                except (ImportError, Exception) as e:
-                    logger.debug(f"多模型提取器初始化失败，回退到单模型: {e}")
-                    ***REMOVED*** 回退到单模型提取器
+                ***REMOVED*** 如果设置了只使用单模型，直接使用 kimi_k2
+                if use_single_model_only:
                     from novel_creation.enhanced_entity_extractor import EnhancedEntityExtractor
-                    try:
-                        from llm.gemini import gemini_3_flash
-                        llm_client = gemini_3_flash
-                        logger.info("增强实体提取器已启用（使用 Gemini 模型）")
-                    except ImportError:
-                        from llm.chat import deepseek_v3_2
-                        llm_client = deepseek_v3_2
-                        logger.info("增强实体提取器已启用（使用 DeepSeek 模型）")
-                    
+                    from llm.chat import kimi_k2
                     self.entity_extractor = EnhancedEntityExtractor(
-                        llm_client=llm_client,
+                        llm_client=kimi_k2,
                         use_ner=False
                     )
+                    logger.info("增强实体提取器已启用（仅使用 Kimi K2 模型）")
+                else:
+                    ***REMOVED*** 尝试使用多模型投票提取器（更准确）
+                    try:
+                        from novel_creation.multi_model_entity_extractor import MultiModelEntityExtractor
+                        from llm.gemini import gemini_3_flash
+                        from llm.chat import kimi_k2
+                        
+                        ***REMOVED*** 使用 Kimi K2 和 Gemini 进行投票（推荐配置：Kimi 实体提取最强，Gemini 作为验证）
+                        ***REMOVED*** 优先保留 Kimi 的所有结果，Gemini 作为补充
+                        llm_clients = [kimi_k2, gemini_3_flash]
+                        self.entity_extractor = MultiModelEntityExtractor(
+                            llm_clients=llm_clients,
+                            vote_threshold=2,  ***REMOVED*** 投票阈值（但主模型结果优先保留）
+                            use_ner=False,
+                            primary_model_index=0  ***REMOVED*** Kimi K2 作为主模型（索引0），优先保留其所有结果
+                        )
+                        logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型）")
+                    except (ImportError, Exception) as e:
+                        logger.debug(f"多模型提取器初始化失败，回退到单模型: {e}")
+                        ***REMOVED*** 回退到单模型提取器
+                        from novel_creation.enhanced_entity_extractor import EnhancedEntityExtractor
+                        try:
+                            from llm.gemini import gemini_3_flash
+                            llm_client = gemini_3_flash
+                            logger.info("增强实体提取器已启用（使用 Gemini 模型）")
+                        except ImportError:
+                            from llm.chat import kimi_k2
+                            llm_client = kimi_k2
+                            logger.info("增强实体提取器已启用（使用 Kimi K2 模型）")
+                        
+                        self.entity_extractor = EnhancedEntityExtractor(
+                            llm_client=llm_client,
+                            use_ner=False
+                        )
             except Exception as e:
                 logger.warning(f"增强实体提取器初始化失败，将使用基础提取: {e}")
                 self.entity_extractor = None
@@ -1284,10 +1302,15 @@ class ReactNovelCreator:
 创作要求：
 1. 严格按照章节摘要展开情节
 2. 保持与前面章节的连贯性
-3. {word_control_instruction.strip()}
-4. {rhythm_control_instruction.strip()}
-5. {dialogue_quality_instruction.strip()}
-6. **章节结尾悬念要求（必须严格执行）**：
+3. **语言要求（重要）**：
+   - **通俗易懂**：使用简单直白的语言，避免复杂科学术语和专业名词
+   - **生活化表达**：即使涉及科技概念，也要用生活化的比喻和描述，让绝大多数人都能理解
+   - **避免术语堆砌**：不要使用过多专业术语，如必须使用，要配合简单解释
+   - **保证可读性**：语言要流畅自然，让读者看得爽，不要因为术语过多而影响阅读体验
+4. {word_control_instruction.strip()}
+5. {rhythm_control_instruction.strip()}
+6. {dialogue_quality_instruction.strip()}
+7. **章节结尾悬念要求（必须严格执行）**：
    - **硬性要求**：章节结尾（最后50-100字）必须设置悬念、转折或疑问，这是质量评估的核心指标
    - **必须包含以下元素之一**：
      * 疑问句结尾：必须包含"？"号，如"这到底是怎么回事？"、"他究竟是谁？"、"会发生什么？"
@@ -1302,13 +1325,13 @@ class ReactNovelCreator:
    - **禁止**：平淡的结尾、完整的总结、没有悬念的描述
    - **检查方法**：创作完成后，检查结尾最后100字，确保包含上述悬念元素之一
 {self._get_ending_suspense_instruction(chapter_number, total_chapters)}
-7. **一致性要求（必须）**：
+8. **一致性要求（必须）**：
    - **角色一致性**：角色名称、性格、外貌、说话方式必须与前面章节完全一致，参考前面章节的实体信息
    - **世界观一致性**：世界观设定（时间、地点、科技、魔法、生物等）必须与前面章节保持一致
    - **时间线一致性**：时间顺序必须合理，不能出现时间倒流或混乱的情况
    - **情节逻辑一致性**：情节发展必须符合大纲，不能出现逻辑矛盾
    - **连贯性**：本章开头应自然承接上一章的结尾，不能突兀或跳跃
-8. **描写质量要求（重要）**：
+9. **描写质量要求（重要）**：
    - **环境描写控制**：
      * 避免冗余的环境描写：环境描写应简洁有力，结合动作和情节推进
      * 禁止大段纯形容词描述：超过50字的纯环境描写必须与动作或对话结合
@@ -1323,8 +1346,8 @@ class ReactNovelCreator:
    - **描写平衡**：
      * 描写应服务于情节：所有描写都应推进情节或展现人物，避免无意义的描写
      * 确保对话、动作、描写的平衡：避免长时间单一类型的内容
-9. 保持文笔流畅，情节紧凑
-10. 确保实体（角色、地点、物品）与前面章节保持一致
+10. 保持文笔流畅，情节紧凑
+11. 确保实体（角色、地点、物品）与前面章节保持一致
    {self._get_quality_adjustment_instruction(chapter_number)}
 {self._generate_preventive_prompt_additions(chapter_number)}
 {self._get_ending_suspense_instruction(chapter_number, total_chapters)}
