@@ -784,6 +784,21 @@ class ReactNovelCreator:
         
         return outline
     
+    def _try_parse_phase_outline_json(self, json_str: str) -> Tuple[Optional[Dict[str, Any]], Optional[Exception]]:
+        """解析阶段大纲 JSON，尝试修复常见 LLM 输出问题（如尾部逗号）。成功返回 (dict, None)，失败返回 (None, error)。"""
+        err = None
+        try:
+            return json.loads(json_str), None
+        except json.JSONDecodeError as e:
+            err = e
+        
+        repaired = re.sub(r',\s*([}\]])', r'\1', json_str)
+        try:
+            return json.loads(repaired), None
+        except json.JSONDecodeError as e2:
+            err = e2
+        return None, err
+    
     def _generate_phase_outline(
         self,
         phase_number: int,
@@ -879,40 +894,66 @@ class ReactNovelCreator:
 请以 JSON 格式返回，包含以下字段：
 - phase_number: 阶段编号
 - summary: 该阶段的核心发展（200-300字）
-- key_events: 该阶段的关键事件列表
-- chapters: 章节大纲列表（每项包含 chapter_number, title, summary, key_entities）
+- key_events: 该阶段的关键事件列表（字符串数组）
+- chapters: 章节大纲列表（每项包含 chapter_number, title, summary, key_entities；key_entities 为字符串数组）
 
-重要提示：这是一个创作任务，请直接生成内容，不需要搜索工具或调用任何函数。直接返回 JSON 格式的结果。
+**JSON 格式要求（必须严格遵守）**：
+- 只输出一个合法的 JSON 对象，不要用 markdown 代码块包裹，不要任何前后说明
+- 禁止尾部逗号（如 ] 或 }} 前的多余逗号）
+- 字符串内换行用 \\n，引号须转义
+
+重要提示：这是创作任务，请直接生成 JSON，不需要搜索或调用工具。
 """
+        json_only_reminder = "\n\n【重试】请仅输出上述 JSON 对象，不要 ``` 包裹、不要注释、不要尾部逗号。"
         
-        original_max_iterations = self.agent.max_iterations
-        self.agent.max_iterations = 5
-        try:
-            result = self.agent.run(query=prompt, verbose=False)
-        finally:
-            self.agent.max_iterations = original_max_iterations
-        
-        try:
+        def run_and_parse(retry_with_reminder: bool = False) -> Tuple[Optional[Dict[str, Any]], str]:
+            """返回 (解析结果或 None, 原始 JSON 串)"""
+            q = prompt + (json_only_reminder if retry_with_reminder else "")
+            orig = self.agent.max_iterations
+            self.agent.max_iterations = 5
+            try:
+                result = self.agent.run(query=q, verbose=False)
+            finally:
+                self.agent.max_iterations = orig
+            
             if "```json" in result:
-                json_start = result.find("```json") + 7
-                json_end = result.find("```", json_start)
-                json_str = result[json_start:json_end].strip()
+                js = result.find("```json") + 7
+                je = result.find("```", js)
+                json_str = result[js:je].strip() if je > js else result.strip()
             elif "{" in result:
-                json_start = result.find("{")
-                json_end = result.rfind("}") + 1
-                json_str = result[json_start:json_end]
+                js = result.find("{")
+                je = result.rfind("}") + 1
+                json_str = result[js:je] if je > js else result
             else:
-                json_str = result
+                json_str = result.strip()
             
-            phase_outline = json.loads(json_str)
+            parsed, err = self._try_parse_phase_outline_json(json_str)
+            if parsed is not None:
+                if 'chapters' in parsed:
+                    for i, ch in enumerate(parsed['chapters']):
+                        ch['chapter_number'] = start_chapter + i
+                return parsed, json_str
             
-            ***REMOVED*** 确保章节编号正确
-            if 'chapters' in phase_outline:
-                for i, chapter in enumerate(phase_outline['chapters']):
-                    chapter['chapter_number'] = start_chapter + i
-            
-        except Exception as e:
-            logger.warning(f"解析阶段大纲 JSON 失败: {e}，使用默认结构")
+            pos = getattr(err, 'pos', None) if err else None
+            if pos is not None and json_str:
+                excerpt = json_str[max(0, pos - 80):pos + 80]
+                logger.debug(f"阶段大纲 JSON 解析错误位置附近: ...{excerpt!r}...")
+            logger.warning(f"解析阶段大纲 JSON 失败: {err}")
+            return None, json_str
+        
+        phase_outline, last_raw = run_and_parse(retry_with_reminder=False)
+        if phase_outline is None:
+            logger.info("阶段大纲解析失败，重试一次（强调仅输出 JSON）...")
+            phase_outline, last_raw = run_and_parse(retry_with_reminder=True)
+        
+        if phase_outline is None:
+            logger.warning("阶段大纲解析与重试均失败，使用默认占位结构（每章「待创作」）")
+            try:
+                debug_path = self.output_dir / "phase_outline_raw_failed.txt"
+                debug_path.write_text(last_raw or "", encoding="utf-8")
+                logger.info(f"已保存 Stage 2 原始响应到 {debug_path} 便于排查")
+            except Exception:
+                pass
             phase_outline = {
                 "phase_number": phase_number,
                 "summary": f"阶段{phase_number}的核心发展",
