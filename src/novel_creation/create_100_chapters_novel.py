@@ -6,12 +6,10 @@
 """
 
 import sys
-import os
 import logging
 from pathlib import Path
 
-***REMOVED*** 设置环境变量：只使用 kimi_k2 进行实体提取，不使用 gemini_3_flash
-os.environ["USE_SINGLE_MODEL_EXTRACTION"] = "1"
+***REMOVED*** 注意：实体提取使用多模型投票（kimi_k2 + deepseek_v3_2），不设置 USE_SINGLE_MODEL_EXTRACTION
 
 ***REMOVED*** 添加项目路径
 project_root = Path(__file__).parent.parent.parent

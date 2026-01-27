@@ -228,31 +228,30 @@ class ReactNovelCreator:
                     ***REMOVED*** 尝试使用多模型投票提取器（更准确）
                     try:
                         from novel_creation.multi_model_entity_extractor import MultiModelEntityExtractor
-                        from llm.gemini import gemini_3_flash
-                        from llm.chat import kimi_k2
+                        from llm.chat import kimi_k2, deepseek_v3_2
                         
-                        ***REMOVED*** 使用 Kimi K2 和 Gemini 进行投票（推荐配置：Kimi 实体提取最强，Gemini 作为验证）
-                        ***REMOVED*** 优先保留 Kimi 的所有结果，Gemini 作为补充
-                        llm_clients = [kimi_k2, gemini_3_flash]
+                        ***REMOVED*** 使用 Kimi K2 和 DeepSeek V3.2 进行投票（推荐配置：Kimi 实体提取最强，DeepSeek 作为验证）
+                        ***REMOVED*** 优先保留 Kimi 的所有结果，DeepSeek 作为补充
+                        llm_clients = [kimi_k2, deepseek_v3_2]
                         self.entity_extractor = MultiModelEntityExtractor(
                             llm_clients=llm_clients,
                             vote_threshold=2,  ***REMOVED*** 投票阈值（但主模型结果优先保留）
                             use_ner=False,
                             primary_model_index=0  ***REMOVED*** Kimi K2 作为主模型（索引0），优先保留其所有结果
                         )
-                        logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型）")
+                        logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型：Kimi K2 + DeepSeek V3.2）")
                     except (ImportError, Exception) as e:
                         logger.debug(f"多模型提取器初始化失败，回退到单模型: {e}")
                         ***REMOVED*** 回退到单模型提取器
                         from novel_creation.enhanced_entity_extractor import EnhancedEntityExtractor
                         try:
-                            from llm.gemini import gemini_3_flash
-                            llm_client = gemini_3_flash
-                            logger.info("增强实体提取器已启用（使用 Gemini 模型）")
-                        except ImportError:
                             from llm.chat import kimi_k2
                             llm_client = kimi_k2
                             logger.info("增强实体提取器已启用（使用 Kimi K2 模型）")
+                        except ImportError:
+                            from llm.chat import deepseek_v3_2
+                            llm_client = deepseek_v3_2
+                            logger.info("增强实体提取器已启用（使用 DeepSeek V3.2 模型）")
                         
                         self.entity_extractor = EnhancedEntityExtractor(
                             llm_client=llm_client,
