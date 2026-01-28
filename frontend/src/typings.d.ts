@@ -1,16 +1,21 @@
 declare module 'umi' {
+  import type { ReactNode } from 'react';
+
   export const history: {
     push: (path: string) => void;
     replace: (path: string) => void;
     goBack: () => void;
   };
-  
+
   export function useLocation(): {
     pathname: string;
     search: string;
     hash: string;
     state: any;
   };
+
+  export function Outlet(): ReactNode;
+  export function Link(props: { to: string; children?: ReactNode; [k: string]: any }): ReactNode;
 }
 
 // Umi define 注入的全局变量

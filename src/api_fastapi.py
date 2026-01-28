@@ -20,6 +20,7 @@ app.add_middleware(
 )
 
 from llm.glm import glm, glm_stream
+from llm.kimi import kimi_k2, kimi_k2_stream
 from llm.deepseek import deepseek_v3_2, deepseek_v3_2_stream
 from llm.gemini import gemini_3_flash, gemini_3_flash_stream
 from llm.claude import claude_opus_4_5, claude_opus_4_5_stream
@@ -83,6 +84,17 @@ async def chat(request: ChatRequest):
                 )
             else:
                 reasoning_content, content = deepseek_v3_2(messages_dict)
+        elif model == 'Kimi-k2' or model == 'kimi-k2':
+            if stream:  ***REMOVED*** 流式数据请求
+                def stream_data():
+                    for t in kimi_k2_stream(messages_dict):
+                        yield t
+                return StreamingResponse(
+                    stream_data(),
+                    media_type="text/plain;charset=utf-8"
+                )
+            else:
+                reasoning_content, content = kimi_k2(messages_dict)
         elif model == 'GLM-4-7' or model == 'glm-4-7':
             if stream:  ***REMOVED*** 流式数据请求
                 def stream_data():

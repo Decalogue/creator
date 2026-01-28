@@ -19,27 +19,21 @@ import {
   CheckOutlined,
   MenuOutlined,
 } from '@ant-design/icons';
-import MarkdownIt from 'markdown-it';
 import axios from 'axios';
+import { CREATOR_THEME } from '@/components/creator/creatorTheme';
+import { md } from '@/utils/markdown';
 
-// 类型声明（Umi define 注入的全局变量）
+const T = CREATOR_THEME;
+
+/** AI 对话页专用头像背景：白色 */
+const AI_AVATAR_USER = '***REMOVED***ffffff';
+const AI_AVATAR_BOT = '***REMOVED***ffffff';
+
 declare const API_URL: string;
 
+const API_BASE = API_URL;
 const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
-const { Option } = Select;
-
-
-// 初始化 Markdown 渲染器
-const md = new MarkdownIt({
-  html: true,
-  linkify: true,
-  typographer: true,
-  breaks: true,
-});
-
-// API 配置
-const API_BASE_URL = API_URL;
 
 // 常量定义
 const STREAM_UPDATE_THROTTLE = 16; // 流式更新节流时间（毫秒），约60fps
@@ -62,6 +56,7 @@ type ModelType = 'DeepSeek-v3-2' | 'GLM-4-7' | 'Gemini-3-flash' | 'Claude-Opus-4
 const getModelDisplayName = (model: ModelType | string): string => {
   const modelMap: Record<string, string> = {
     'DeepSeek-v3-2': 'DeepSeek V3.2',
+    'Kimi-k2': 'Kimi K2',
     'GLM-4-7': 'GLM-4-7',
     'Gemini-3-flash': 'Gemini 3 Flash',
     'Claude-Opus-4-5': 'Claude Opus 4.5',
@@ -75,6 +70,8 @@ const getModelAvatar = (model: ModelType | string | undefined): string => {
   
   if (model === 'DeepSeek-v3-2') {
     return '/avatars/deepseek.png';
+  } else if (model === 'Kimi-k2') {
+    return '/avatars/kimi.png';
   } else if (model === 'GLM-4-7') {
     return '/avatars/zai.png';
   } else if (model === 'Gemini-3-flash') {
@@ -322,7 +319,7 @@ const AIAssistant: React.FC = () => {
     try {
       // 先尝试流式请求
       try {
-        const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        const response = await fetch(`${API_BASE}/api/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -412,7 +409,7 @@ const AIAssistant: React.FC = () => {
         },
       ];
 
-      const fallbackResponse = await axios.post(`${API_BASE_URL}/api/chat`, {
+      const fallbackResponse = await axios.post(`${API_BASE}/api/chat`, {
         messages: messagesToSend,
         model: selectedModel,
         stream: false,
@@ -504,20 +501,25 @@ const AIAssistant: React.FC = () => {
 
   return (
     <div
+      className="ai-page"
       style={{
-        height: '100vh',
+        flex: 1,
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        background: '***REMOVED***ffffff',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        background: T.bgPage,
+        fontFamily: T.fontFamily,
+        color: T.text,
       }}
     >
-      {/* 顶部导航栏 - 专业简洁风格 */}
+      {/* 顶栏 — 与创作助手统一深色 */}
       <div
         style={{
-          height: '64px',
-          borderBottom: '1px solid ***REMOVED***e5e7eb',
-          background: '***REMOVED***ffffff',
+          height: 64,
+          borderBottom: `1px solid ${T.borderHeader}`,
+          background: T.bgHeader,
+          backdropFilter: T.headerBlur,
+          WebkitBackdropFilter: T.headerBlur,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -525,105 +527,104 @@ const AIAssistant: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Button
             type="text"
             icon={<MenuOutlined />}
             onClick={() => setSidebarVisible(!sidebarVisible)}
-            style={{ fontSize: '16px' }}
+            style={{ fontSize: 16, color: T.textMuted }}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Avatar
               src={getModelAvatar(selectedModel)}
               icon={<RobotOutlined />}
               shape="circle"
               size={32}
-              className="model-avatar"
+              className="ai-model-avatar"
+              style={{ background: AI_AVATAR_BOT }}
               onError={() => false}
             />
             <div>
-              <Text strong style={{ fontSize: '16px', color: '***REMOVED***111827' }}>
+              <Text strong style={{ fontSize: 16, color: T.textBright }}>
                 AI 助手
               </Text>
-              <div style={{ fontSize: '12px', color: '***REMOVED***6b7280', lineHeight: '1.2' }}>
+              <div style={{ fontSize: 12, color: T.textMuted, lineHeight: 1.2 }}>
                 {modelDisplayName}
               </div>
             </div>
           </div>
         </div>
-        
+
         <Space size="middle">
           <Select
             value={selectedModel}
             onChange={handleModelChange}
             style={{ width: 160 }}
             size="middle"
-            bordered={false}
-          >
-            <Option value="DeepSeek-v3-2">DeepSeek V3.2</Option>
-            <Option value="GLM-4-7">GLM-4.7</Option>
-            <Option value="Gemini-3-flash">Gemini 3 Flash</Option>
-            <Option value="Claude-Opus-4-5">Claude Opus 4.5</Option>
-          </Select>
+            options={[
+              { value: 'DeepSeek-v3-2', label: 'DeepSeek V3.2' },
+              { value: 'Kimi-k2', label: 'Kimi K2' },
+              { value: 'GLM-4-7', label: 'GLM-4.7' },
+              { value: 'Gemini-3-flash', label: 'Gemini 3 Flash' },
+              { value: 'Claude-Opus-4-5', label: 'Claude Opus 4.5' },
+            ]}
+            className="ai-model-select"
+          />
           <Button
             type="text"
             icon={<ClearOutlined />}
             onClick={handleClear}
             disabled={messages.length === 0}
-            style={{ color: '***REMOVED***6b7280' }}
+            style={{ color: T.textMuted }}
           >
             清空对话
           </Button>
         </Space>
       </div>
 
-      {/* 主内容区域 */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* 侧边栏（可选，类似 Claude） */}
         {sidebarVisible && (
           <div
             style={{
-              width: '280px',
-              borderRight: '1px solid ***REMOVED***e5e7eb',
-              background: '***REMOVED***f9fafb',
-              padding: '16px',
+              width: 280,
+              borderRight: `1px solid ${T.border}`,
+              background: T.bgSidebar,
+              padding: 16,
               overflowY: 'auto',
             }}
           >
-            <div style={{ marginBottom: '16px' }}>
-              <Text strong style={{ fontSize: '14px', color: '***REMOVED***111827' }}>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 14, color: T.textBright }}>
                 对话历史
               </Text>
             </div>
             <Empty
               description={
-                <Text type="secondary" style={{ fontSize: '12px' }}>
+                <span style={{ fontSize: 12, color: T.textMuted }}>
                   暂无历史对话
-                </Text>
+                </span>
               }
-              style={{ marginTop: '40px' }}
+              style={{ marginTop: 40 }}
             />
           </div>
         )}
 
-        {/* 聊天区域 */}
         <div
           style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            background: '***REMOVED***ffffff',
+            background: T.bgCanvas,
           }}
         >
-          {/* 消息列表 */}
           <div
             ref={messagesContainerRef}
             style={{
               flex: 1,
               overflowY: 'auto',
               overflowX: 'hidden',
-              padding: '24px',
-              background: '***REMOVED***ffffff',
+              padding: 24,
+              background: 'transparent',
               position: 'relative',
             }}
           >
@@ -635,7 +636,7 @@ const AIAssistant: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
-                  marginTop: '-100px',
+                  marginTop: -100,
                 }}
               >
                 <Avatar
@@ -643,48 +644,40 @@ const AIAssistant: React.FC = () => {
                   icon={<RobotOutlined />}
                   shape="circle"
                   size={64}
-                  className="model-avatar"
-                  style={{ marginBottom: '24px' }}
+                  className="ai-model-avatar"
+                  style={{ marginBottom: 24, background: AI_AVATAR_BOT }}
                   onError={() => false}
                 />
-                <Text
-                  style={{
-                    fontSize: '20px',
-                    fontWeight: 500,
-                    color: '***REMOVED***111827',
-                    marginBottom: '8px',
-                  }}
-                >
+                <div style={{ fontSize: 20, fontWeight: 500, color: T.textBright, marginBottom: 8 }}>
                   开始对话
-                </Text>
-                <Text
-                  type="secondary"
+                </div>
+                <div
                   style={{
-                    fontSize: '14px',
-                    color: '***REMOVED***6b7280',
+                    fontSize: 14,
+                    color: T.textMuted,
                     textAlign: 'center',
-                    maxWidth: '400px',
+                    maxWidth: 400,
                   }}
                 >
-                  支持 DeepSeek V3.2、GLM-4.7、Gemini 3 Flash、Claude Opus 4.5
-                </Text>
+                  支持 DeepSeek V3.2、Kimi K2、GLM-4.7、Gemini 3 Flash、Claude Opus 4.5
+                </div>
               </div>
             ) : (
-              <div style={{ maxWidth: '768px', margin: '0 auto' }}>
+              <div style={{ maxWidth: 768, margin: '0 auto' }}>
                 {messages.map((msg, index) => (
                   <div
                     key={msg.id}
                     style={{
-                      marginBottom: index === messages.length - 1 ? 0 : '32px',
+                      marginBottom: index === messages.length - 1 ? 0 : 32,
                     }}
                   >
                     <div
                       style={{
                         display: 'flex',
-                        gap: '16px',
+                        gap: 16,
                         alignItems: 'flex-start',
                         flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-                        justifyContent: msg.role === 'user' ? 'flex-start' : 'flex-start',
+                        justifyContent: 'flex-start',
                       }}
                     >
                       <Avatar
@@ -699,17 +692,16 @@ const AIAssistant: React.FC = () => {
                         shape="circle"
                         size={32}
                         style={{
-                          backgroundColor:
-                            msg.role === 'user' ? '***REMOVED***95EC69' : 'transparent',
+                          background: msg.role === 'user' ? AI_AVATAR_USER : AI_AVATAR_BOT,
                           flexShrink: 0,
                         }}
-                        className={msg.role === 'assistant' ? 'model-avatar' : ''}
+                        className={msg.role === 'assistant' ? 'ai-model-avatar' : ''}
                         onError={() => false}
                       />
                       <div
                         style={{
                           maxWidth: msg.role === 'user' ? '70%' : '100%',
-                          minWidth: msg.role === 'user' ? '120px' : 'auto',
+                          minWidth: msg.role === 'user' ? 120 : 'auto',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -718,14 +710,14 @@ const AIAssistant: React.FC = () => {
                         <div
                           style={{
                             padding: '16px 20px',
-                            borderRadius: '12px',
-                            background:
-                              msg.role === 'user' ? '***REMOVED***95EC69' : '***REMOVED***f3f4f6',
-                            color: msg.role === 'user' ? '***REMOVED***000000' : '***REMOVED***111827',
-                            lineHeight: '1.8',
+                            borderRadius: T.radiusLg,
+                            background: msg.role === 'user' ? T.bgMsgUser : T.bgMsgBot,
+                            border: `1px solid ${msg.role === 'user' ? T.borderMsgUser : T.borderMsgBot}`,
+                            lineHeight: 1.8,
                             wordBreak: 'break-word',
                             display: 'inline-block',
                             maxWidth: '100%',
+                            boxShadow: T.shadowCard,
                           }}
                         >
                           {msg.role === 'user' ? (
@@ -733,9 +725,9 @@ const AIAssistant: React.FC = () => {
                               style={{
                                 margin: 0,
                                 whiteSpace: 'pre-wrap',
-                                color: '***REMOVED***000000',
-                                fontSize: '16px',
-                                lineHeight: '1.8',
+                                color: T.textMsgUser,
+                                fontSize: 16,
+                                lineHeight: 1.8,
                               }}
                             >
                               {msg.content}
@@ -747,10 +739,10 @@ const AIAssistant: React.FC = () => {
                         {msg.role === 'assistant' && msg.content && (
                           <div
                             style={{
-                              marginTop: '8px',
+                              marginTop: 8,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '12px',
+                              gap: 12,
                               alignSelf: 'flex-start',
                             }}
                           >
@@ -766,24 +758,18 @@ const AIAssistant: React.FC = () => {
                               }
                               onClick={() => handleCopy(msg.content, msg.id)}
                               style={{
-                                color: '***REMOVED***6b7280',
-                                fontSize: '12px',
-                                height: '24px',
+                                color: T.textMuted,
+                                fontSize: 12,
+                                height: 24,
                                 padding: '0 8px',
                               }}
                             >
                               {copiedId === msg.id ? '已复制' : '复制'}
                             </Button>
                             {msg.model && (
-                              <Text
-                                type="secondary"
-                                style={{
-                                  fontSize: '11px',
-                                  color: '***REMOVED***9ca3af',
-                                }}
-                              >
+                              <span style={{ fontSize: 11, color: T.textDim }}>
                                 {getModelDisplayName(msg.model)}
-                              </Text>
+                              </span>
                             )}
                           </div>
                         )}
@@ -796,20 +782,19 @@ const AIAssistant: React.FC = () => {
             )}
           </div>
 
-          {/* 输入区域 - 专业简洁风格 */}
           <div
             style={{
-              borderTop: '1px solid ***REMOVED***e5e7eb',
-              background: '***REMOVED***ffffff',
+              borderTop: `1px solid ${T.border}`,
+              background: T.bgInput,
               padding: '16px 24px',
             }}
           >
             <div
               style={{
-                maxWidth: '768px',
+                maxWidth: 768,
                 margin: '0 auto',
                 display: 'flex',
-                gap: '12px',
+                gap: 12,
                 alignItems: 'flex-end',
               }}
             >
@@ -822,21 +807,22 @@ const AIAssistant: React.FC = () => {
                   placeholder="输入消息..."
                   autoSize={{ minRows: 1, maxRows: 6 }}
                   disabled={loading}
-                  bordered={false}
                   style={{
-                    background: '***REMOVED***f9fafb',
-                    borderRadius: '12px',
+                    background: 'rgba(24, 24, 32, 0.8)',
+                    border: `1px solid ${T.borderStrong}`,
+                    borderRadius: T.radiusMd,
                     padding: '12px 16px',
                     resize: 'none',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: T.text,
                   }}
                 />
                 <div
                   style={{
-                    marginTop: '8px',
-                    fontSize: '12px',
-                    color: '***REMOVED***9ca3af',
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: T.textDim,
                     textAlign: 'right',
                   }}
                 >
@@ -851,13 +837,15 @@ const AIAssistant: React.FC = () => {
                 disabled={!inputValue.trim()}
                 size="large"
                 style={{
-                  height: '40px',
-                  width: '40px',
+                  height: 40,
+                  width: 40,
                   padding: 0,
-                  borderRadius: '8px',
+                  borderRadius: T.radiusSm,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  background: T.primaryBg,
+                  borderColor: T.primaryBg,
                 }}
               />
             </div>
@@ -866,110 +854,98 @@ const AIAssistant: React.FC = () => {
       </div>
 
       <style>{`
-        /* 头像样式：去除背景，确保圆形显示 */
-        .ant-avatar.model-avatar {
-          background: transparent !important;
-          overflow: hidden;
-          border: none;
-        }
-        .ant-avatar.model-avatar > img {
+        .ai-page .ant-avatar.ai-model-avatar > img {
           object-fit: cover;
           width: 100%;
           height: 100%;
-          background: transparent !important;
           border-radius: 50%;
-          mix-blend-mode: multiply;
         }
-        
-        /* Markdown 内容样式 - 专业简洁 */
-        .markdown-content {
-          color: inherit;
+        .ai-page .ai-model-select.ant-select .ant-select-selector {
+          background: rgba(255,255,255,0.06) !important;
+          border-color: rgba(255,255,255,0.12) !important;
+          color: ***REMOVED***e4e4e7 !important;
+        }
+        .ai-page .ai-model-select.ant-select:hover .ant-select-selector {
+          border-color: rgba(255,75,47,0.4) !important;
+        }
+
+        .ai-page .markdown-content {
+          color: rgba(255,255,255,0.9);
           font-size: 16px;
         }
-        .markdown-content h1,
-        .markdown-content h2,
-        .markdown-content h3,
-        .markdown-content h4 {
+        .ai-page .markdown-content h1,
+        .ai-page .markdown-content h2,
+        .ai-page .markdown-content h3,
+        .ai-page .markdown-content h4 {
           margin-top: 20px;
           margin-bottom: 12px;
           font-weight: 600;
-          color: inherit;
+          color: ***REMOVED***fafafa;
         }
-        .markdown-content h1 {
-          font-size: 1.5em;
-        }
-        .markdown-content h2 {
-          font-size: 1.3em;
-        }
-        .markdown-content h3 {
-          font-size: 1.1em;
-        }
-        .markdown-content p {
+        .ai-page .markdown-content h1 { font-size: 1.5em; }
+        .ai-page .markdown-content h2 { font-size: 1.3em; }
+        .ai-page .markdown-content h3 { font-size: 1.1em; }
+        .ai-page .markdown-content p {
           margin: 12px 0;
           line-height: 1.8;
         }
-        .markdown-content code {
-          background: rgba(0, 0, 0, 0.06);
+        .ai-page .markdown-content code {
+          background: rgba(255,255,255,0.08);
           padding: 2px 6px;
           border-radius: 4px;
           font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
           font-size: 0.9em;
-          color: inherit;
+          color: ***REMOVED***e4e4e7;
         }
-        .markdown-content pre {
-          background: rgba(0, 0, 0, 0.04);
+        .ai-page .markdown-content pre {
+          background: rgba(0,0,0,0.25);
           padding: 16px;
           border-radius: 8px;
           overflow-x: auto;
           margin: 16px 0;
-          border: 1px solid rgba(0, 0, 0, 0.06);
+          border: 1px solid rgba(255,255,255,0.08);
         }
-        .markdown-content pre code {
+        .ai-page .markdown-content pre code {
           background: none;
           padding: 0;
         }
-        .markdown-content ul,
-        .markdown-content ol {
+        .ai-page .markdown-content ul,
+        .ai-page .markdown-content ol {
           margin: 12px 0;
           padding-left: 24px;
         }
-        .markdown-content li {
-          margin: 6px 0;
-          line-height: 1.8;
-        }
-        .markdown-content a {
-          color: ***REMOVED***2563eb;
+        .ai-page .markdown-content li { margin: 6px 0; line-height: 1.8; }
+        .ai-page .markdown-content a {
+          color: ***REMOVED***ffa7a7;
           text-decoration: none;
         }
-        .markdown-content a:hover {
-          text-decoration: underline;
-        }
-        .markdown-content blockquote {
-          border-left: 3px solid ***REMOVED***e5e7eb;
+        .ai-page .markdown-content a:hover { text-decoration: underline; }
+        .ai-page .markdown-content blockquote {
+          border-left: 3px solid rgba(255,75,47,0.4);
           padding-left: 16px;
           margin: 16px 0;
-          color: ***REMOVED***6b7280;
+          color: rgba(255,255,255,0.5);
           font-style: italic;
         }
-        .markdown-content table {
+        .ai-page .markdown-content table {
           border-collapse: collapse;
           width: 100%;
           margin: 16px 0;
           font-size: 0.9em;
         }
-        .markdown-content th,
-        .markdown-content td {
-          border: 1px solid ***REMOVED***e5e7eb;
+        .ai-page .markdown-content th,
+        .ai-page .markdown-content td {
+          border: 1px solid rgba(255,255,255,0.1);
           padding: 10px 12px;
           text-align: left;
         }
-        .markdown-content th {
-          background: ***REMOVED***f9fafb;
+        .ai-page .markdown-content th {
+          background: rgba(255,255,255,0.06);
           font-weight: 600;
         }
-        .markdown-content hr {
+        .ai-page .markdown-content hr {
           border: none;
-          border-top: 1px solid ***REMOVED***e5e7eb;
+          border-top: 1px solid rgba(255,255,255,0.1);
           margin: 24px 0;
         }
       `}</style>

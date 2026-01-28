@@ -3,7 +3,7 @@
 // DO NOT CHANGE IT MANUALLY!
 import React, { useEffect, useState } from 'react';
 import { ApplyPluginsType } from 'umi';
-import { renderClient, RenderClientOpts } from '/home/amax/AI/mm/AiCut/imix/frontend/node_modules/.pnpm/@umijs+renderer-react@4.4.6_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/@umijs/renderer-react';
+import { renderClient, RenderClientOpts } from '/root/data/AI/creator/frontend/node_modules/.pnpm/@umijs+renderer-react@4.4.6_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/@umijs/renderer-react';
 import { createHistory } from './core/history';
 import { createPluginManager } from './core/plugin';
 import { getRoutes } from './core/route';
