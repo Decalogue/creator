@@ -110,3 +110,4 @@ src/memory/
 src/llm/result/
 src/novel_creation/outputs/
 frontend/node_modules/
+frontend/dist/

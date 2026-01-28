@@ -5,14 +5,14 @@
 export { defineApp } from './core/defineApp'
 export type { RuntimeConfig } from './core/defineApp'
 // plugins
-export { StyleSheetManager, ThemeProvider, createGlobalStyle, css, keyframes, styled, useTheme } from '/home/amax/AI/mm/AiCut/imix/frontend/src/.umi-production/plugin-styledComponents';
+export { StyleSheetManager, ThemeProvider, createGlobalStyle, css, keyframes, styled, useTheme } from '/root/data/AI/creator/frontend/src/.umi-production/plugin-styledComponents';
 // plugins types.d.ts
-export * from '/home/amax/AI/mm/AiCut/imix/frontend/src/.umi-production/plugin-antd/types.d';
+export * from '/root/data/AI/creator/frontend/src/.umi-production/plugin-antd/types.d';
 // @umijs/renderer-*
-export { createBrowserHistory, createHashHistory, createMemoryHistory, Helmet, HelmetProvider, createSearchParams, generatePath, matchPath, matchRoutes, Navigate, NavLink, Outlet, resolvePath, useLocation, useMatch, useNavigate, useOutlet, useOutletContext, useParams, useResolvedPath, useRoutes, useSearchParams, useAppData, useClientLoaderData, useLoaderData, useRouteProps, useSelectedRoutes, useServerLoaderData, renderClient, __getRoot, Link, useRouteData, __useFetcher, withRouter } from '/home/amax/AI/mm/AiCut/imix/frontend/node_modules/.pnpm/@umijs+renderer-react@4.4.6_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/@umijs/renderer-react';
-export type { History, ClientLoader } from '/home/amax/AI/mm/AiCut/imix/frontend/node_modules/.pnpm/@umijs+renderer-react@4.4.6_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/@umijs/renderer-react'
+export { createBrowserHistory, createHashHistory, createMemoryHistory, Helmet, HelmetProvider, createSearchParams, generatePath, matchPath, matchRoutes, Navigate, NavLink, Outlet, resolvePath, useLocation, useMatch, useNavigate, useOutlet, useOutletContext, useParams, useResolvedPath, useRoutes, useSearchParams, useAppData, useClientLoaderData, useLoaderData, useRouteProps, useSelectedRoutes, useServerLoaderData, renderClient, __getRoot, Link, useRouteData, __useFetcher, withRouter } from '/root/data/AI/creator/frontend/node_modules/.pnpm/@umijs+renderer-react@4.4.6_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/@umijs/renderer-react';
+export type { History, ClientLoader } from '/root/data/AI/creator/frontend/node_modules/.pnpm/@umijs+renderer-react@4.4.6_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/@umijs/renderer-react'
 // umi/client/client/plugin
-export { ApplyPluginsType, PluginManager } from '/home/amax/AI/mm/AiCut/imix/frontend/node_modules/.pnpm/umi@4.4.6_@babel+core@7.23.6_@types+node@22.15.24_@types+react@18.3.18_eslint@8.35.0_lightnin_4vlst4zu3wiy3edsg4rs2n2mvm/node_modules/umi/client/client/plugin.js';
+export { ApplyPluginsType, PluginManager } from '/root/data/AI/creator/frontend/node_modules/.pnpm/umi@4.4.6_@babel+core@7.26.9_@types+node@22.15.24_@types+react@18.3.18_eslint@8.35.0_li_40dfe9426b03c6b0336683fb06098020/node_modules/umi/client/client/plugin.js';
 export { history, createHistory } from './core/history';
 export { terminal } from './core/terminal';
 // react ssr

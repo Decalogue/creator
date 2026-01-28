@@ -4,16 +4,14 @@
 import React from 'react';
 
 export async function getRoutes() {
-  const routes = {"1":{"path":"/","id":"1"},"2":{"path":"/mm","id":"2"},"3":{"path":"/login","id":"3"},"4":{"path":"/register","id":"4"},"5":{"path":"/password","id":"5"},"6":{"path":"/detect","id":"6"}} as const;
+  const routes = {"1":{"path":"/","parentId":"@@/global-layout","id":"1"},"2":{"path":"/creator","parentId":"@@/global-layout","id":"2"},"3":{"path":"/ai","parentId":"@@/global-layout","id":"3"},"@@/global-layout":{"id":"@@/global-layout","path":"/","isLayout":true}} as const;
   return {
     routes,
     routeComponents: {
-'1': React.lazy(() => import(/* webpackChunkName: "p__home__mm" */'@/pages/home/mm.tsx')),
-'2': React.lazy(() => import(/* webpackChunkName: "p__home__mm" */'@/pages/home/mm.tsx')),
-'3': React.lazy(() => import(/* webpackChunkName: "p__home__login" */'@/pages/home/login.tsx')),
-'4': React.lazy(() => import(/* webpackChunkName: "p__home__register" */'@/pages/home/register.tsx')),
-'5': React.lazy(() => import(/* webpackChunkName: "p__home__password" */'@/pages/home/password.tsx')),
-'6': React.lazy(() => import(/* webpackChunkName: "p__home__detect" */'@/pages/home/detect.tsx')),
+'1': React.lazy(() => import(/* webpackChunkName: "p__home__intro" */'@/pages/home/intro.tsx')),
+'2': React.lazy(() => import(/* webpackChunkName: "p__home__creator" */'@/pages/home/creator.tsx')),
+'3': React.lazy(() => import(/* webpackChunkName: "p__home__ai" */'@/pages/home/ai.tsx')),
+'@@/global-layout': React.lazy(() => import(/* webpackChunkName: "layouts__index" */'/root/data/AI/creator/frontend/src/layouts/index.tsx')),
 },
   };
 }
