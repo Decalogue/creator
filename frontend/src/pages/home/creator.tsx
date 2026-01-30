@@ -41,6 +41,86 @@ const { Text } = Typography;
 
 const API_BASE = API_URL;
 
+/** 提交创作任务：仅等待返回 task_id，短超时即可 */
+const CREATOR_SUBMIT_TIMEOUT_MS = 15 * 1000;
+/** 轮询间隔 */
+const CREATOR_POLL_INTERVAL_MS = 2500;
+
+function fetchCreatorSubmit(body: Record<string, unknown>): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CREATOR_SUBMIT_TIMEOUT_MS);
+  return fetch(`${API_BASE}/api/creator/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
+}
+
+/** 轮询任务状态直至 done 或 failed */
+async function pollCreatorTask(
+  taskId: string
+): Promise<{
+  status: 'done' | 'failed';
+  code?: number;
+  message?: string;
+  content?: string;
+  project_id?: string;
+  chapter_number?: number;
+  error?: string;
+}> {
+  for (;;) {
+    const res = await fetch(`${API_BASE}/api/creator/task/${encodeURIComponent(taskId)}`);
+    const raw = await res.json().catch(() => ({}));
+    const status = raw.status as string;
+    if (status === 'done') {
+      return {
+        status: 'done',
+        code: raw.code,
+        message: raw.message,
+        content: raw.content,
+        project_id: raw.project_id,
+        chapter_number: raw.chapter_number,
+      };
+    }
+    if (status === 'failed' || status === 'unknown') {
+      return { status: 'failed', error: raw.error || raw.message || '任务失败' };
+    }
+    await new Promise((r) => setTimeout(r, CREATOR_POLL_INTERVAL_MS));
+  }
+}
+
+/** 安全解析创作 API 响应：提交返回 task_id，轮询结果返回 code/content 等 */
+async function parseCreatorRunResponse(
+  res: Response
+): Promise<{
+  data: { code?: number; message?: string; content?: string; chapter_number?: number; project_id?: string; task_id?: string };
+  error: string | null;
+}> {
+  let data: {
+    code?: number;
+    message?: string;
+    content?: string;
+    chapter_number?: number;
+    project_id?: string;
+    task_id?: string;
+  } = { code: 1, message: '' };
+  try {
+    const raw = await res.json();
+    if (raw && typeof raw === 'object') data = raw;
+  } catch {
+    return {
+      data: { code: 1, message: '' },
+      error: res.ok ? '后端返回格式异常' : `后端异常 (HTTP ${res.status})，请确认服务已启动且地址正确`,
+    };
+  }
+  if (!res.ok) {
+    const msg = (data && data.message) || `HTTP ${res.status}`;
+    return { data: { ...data, code: 1, message: msg }, error: msg };
+  }
+  return { data, error: null };
+}
+
 // 智能体定义
 const AGENTS = [
   { key: 'planner', name: '大纲', icon: <BulbOutlined />, color: '#f59e0b' },
@@ -74,7 +154,9 @@ const CreatorPage: React.FC = () => {
   const [orchestration, setOrchestration] = useState<AgentKey[]>([]);
   const [activeAgent, setActiveAgent] = useState<AgentKey | null>(null);
   const [graphSize, setGraphSize] = useState({ width: 420, height: 340 });
-  const projectId = '完美之墙';
+  const [projectId, setProjectId] = useState('完美之墙');
+  const [memoryListPage, setMemoryListPage] = useState(1);
+  const MEMORY_LIST_PAGE_SIZE = 20;
 
   const [memoryEntities, setMemoryEntities] = useState<Array<{ id: string; name: string; type?: string; brief?: string }>>([]);
   const [memoryGraph, setMemoryGraph] = useState<MemoryGraphData>({ nodes: [], links: [] });
@@ -96,8 +178,7 @@ const CreatorPage: React.FC = () => {
     return () => ro.disconnect();
   }, [memoryView]);
 
-  useEffect(() => {
-    if (!memoryOpen) return;
+  const fetchMemory = useCallback(() => {
     setMemoryLoading(true);
     const q = new URLSearchParams({ project_id: projectId });
     Promise.all([
@@ -116,7 +197,21 @@ const CreatorPage: React.FC = () => {
       })
       .catch(() => {})
       .finally(() => setMemoryLoading(false));
-  }, [memoryOpen, projectId]);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!memoryOpen) return;
+    fetchMemory();
+  }, [memoryOpen, projectId, fetchMemory]);
+
+  useEffect(() => {
+    setMemoryListPage(1);
+  }, [projectId]);
+
+  useEffect(() => {
+    const maxPage = Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE) || 1;
+    setMemoryListPage((p) => Math.min(p, maxPage));
+  }, [memoryEntities.length]);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -155,30 +250,185 @@ const CreatorPage: React.FC = () => {
 
     const aid = `a-${Date.now()}`;
     const useCreatorApi = mode === 'create' || mode === 'continue' || mode === 'polish';
+    const messageAgent: AgentKey =
+      mode === 'create' ? 'planner' : mode === 'continue' ? 'writer' : mode === 'polish' ? 'editor' : 'writer';
     const assistantMsg: Message = {
       id: aid,
       role: 'assistant',
       content: '',
       ts: new Date(),
-      agent: 'writer',
+      agent: messageAgent,
       streaming: !useCreatorApi,
     };
     setMessages((prev) => [...prev, assistantMsg]);
-    runOrchestration();
+    // 创作 API：指挥中心与真实请求同步，不跑假动画
+    if (useCreatorApi) {
+      if (mode === 'create') {
+        setOrchestration([]);
+        setActiveAgent('planner');
+      } else if (mode === 'continue') {
+        setOrchestration(['planner', 'memory']);
+        setActiveAgent('writer');
+      } else {
+        setOrchestration(['planner', 'memory', 'writer']);
+        setActiveAgent('editor');
+      }
+    } else {
+      runOrchestration();
+    }
 
     try {
       if (useCreatorApi) {
-        const res = await fetch(`${API_BASE}/api/creator/run`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, input: raw, project_id: projectId }),
-        });
-        const data = (await res.json()) as { code?: number; message?: string; content?: string };
-        const text = data.code === 0 ? (data.content || '') : (data.message || '请求失败');
-        streamEndRef.current.add(aid);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === aid ? { ...m, content: text, streaming: false } : m))
-        );
+        const batchMatch = mode === 'continue' ? raw.match(/(?:写|连续\s*写)?\s*(\d+)\s*章/) || raw.match(/^(\d+)\s*章$/) : null;
+        const batchN = batchMatch ? Math.min(Math.max(1, parseInt(batchMatch[1], 10)), 100) : 1;
+
+        if (mode === 'continue' && batchN > 1) {
+          let progress = `正在连续撰写 ${batchN} 章…\n\n`;
+          setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress + '第 1 章撰写中…' } : m)));
+          scrollToBottom();
+          let lastChapter = 0;
+          let lastContent = '';
+          let completedCount = 0;
+          for (let i = 0; i < batchN; i++) {
+            let res: Response;
+            try {
+              res = await fetchCreatorSubmit({ mode: 'continue', input: '', project_id: projectId });
+            } catch (e) {
+              const msg =
+                (e instanceof Error && e.name === 'AbortError')
+                  ? '提交超时，请检查网络'
+                  : '无法连接后端，请确认 creator_api 已启动且前端 API_URL 指向正确地址。';
+              progress += `\n第 ${i + 1} 章失败：${msg}`;
+              setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
+              break;
+            }
+            const { data: submitData, error } = await parseCreatorRunResponse(res);
+            if (error) {
+              progress += `\n第 ${i + 1} 章失败：${error}`;
+              setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
+              break;
+            }
+            const taskId = submitData.task_id as string | undefined;
+            let data: { code?: number; message?: string; content?: string; chapter_number?: number };
+            if (taskId) {
+              const pollResult = await pollCreatorTask(taskId);
+              if (pollResult.status === 'failed') {
+                progress += `\n第 ${i + 1} 章失败：${pollResult.error || '任务失败'}`;
+                setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
+                break;
+              }
+              data = {
+                code: pollResult.code,
+                message: pollResult.message,
+                content: pollResult.content,
+                chapter_number: pollResult.chapter_number,
+              };
+            } else {
+              data = submitData;
+            }
+            if (data.code !== 0) {
+              progress += `\n第 ${i + 1} 章失败：${data.message || '请求失败'}`;
+              setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
+              break;
+            }
+            completedCount = i + 1;
+            lastChapter = data.chapter_number ?? i + 1;
+            lastContent = (data.content || '').slice(0, 300);
+            progress += `第 ${i + 1}/${batchN} 章完成 ✓`;
+            if (data.chapter_number) progress += `（已写入 chapter_${String(data.chapter_number).padStart(3, '0')}.txt）`;
+            progress += '\n';
+            if (i < batchN - 1) progress += `第 ${i + 2} 章撰写中…\n`;
+            setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
+            scrollToBottom();
+          }
+          progress += `\n---\n✅ 共完成 ${completedCount} 章。`;
+          if (lastChapter) progress += ` 最后章节已写入 \`chapters/chapter_${String(lastChapter).padStart(3, '0')}.txt\`。`;
+          if (lastContent) progress += `\n\n最后章节摘要：\n${lastContent}…`;
+          streamEndRef.current.add(aid);
+          setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
+          if (completedCount > 0 && memoryOpen) fetchMemory();
+          setOrchestration(['planner', 'memory', 'writer', 'editor', 'qa']);
+          setActiveAgent(null);
+        } else {
+          let res: Response;
+          try {
+            res = await fetchCreatorSubmit({
+              mode,
+              input: raw,
+              ...(mode !== 'create' ? { project_id: projectId } : {}),
+            });
+          } catch (e) {
+            const msg =
+              (e instanceof Error && e.name === 'AbortError')
+                ? '提交超时，请检查网络'
+                : '无法连接后端，请确认 creator_api 已启动且前端 API_URL 指向正确地址。';
+            streamEndRef.current.add(aid);
+            setMessages((prev) =>
+              prev.map((m) => (m.id === aid ? { ...m, content: msg, streaming: false } : m))
+            );
+            setOrchestration([]);
+            setActiveAgent(null);
+            setLoading(false);
+            scrollToBottom();
+            return;
+          }
+          const { data: submitData, error } = await parseCreatorRunResponse(res);
+          if (error) {
+            streamEndRef.current.add(aid);
+            setMessages((prev) =>
+              prev.map((m) => (m.id === aid ? { ...m, content: error, streaming: false } : m))
+            );
+            setOrchestration([]);
+            setActiveAgent(null);
+            setLoading(false);
+            scrollToBottom();
+            return;
+          }
+          const taskId = submitData.task_id as string | undefined;
+          let data: { code?: number; message?: string; content?: string; project_id?: string; chapter_number?: number };
+          if (taskId) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === aid ? { ...m, content: '任务已提交，正在生成…', streaming: false } : m))
+            );
+            const pollResult = await pollCreatorTask(taskId);
+            if (pollResult.status === 'failed') {
+              streamEndRef.current.add(aid);
+              setMessages((prev) =>
+                prev.map((m) => (m.id === aid ? { ...m, content: pollResult.error || '任务失败', streaming: false } : m))
+              );
+              setOrchestration([]);
+              setActiveAgent(null);
+              setLoading(false);
+              scrollToBottom();
+              return;
+            }
+            data = {
+              code: pollResult.code,
+              message: pollResult.message,
+              content: pollResult.content,
+              project_id: pollResult.project_id,
+              chapter_number: pollResult.chapter_number,
+            };
+          } else {
+            data = submitData;
+          }
+          let text = data.code === 0 ? (data.content || '') : (data.message || '请求失败');
+          if (data.code === 0 && mode === 'create') {
+            if (data.project_id) setProjectId(data.project_id);
+            text += '\n\n---\n💡 大纲已生成。请切换到「章节」并发送任意内容（如「写第一章」或「写10章」），将按大纲逐章生成正文。';
+          }
+          if (data.code === 0 && mode === 'continue' && data.chapter_number) {
+            const ch = data.chapter_number;
+            text += `\n\n---\n📄 第 ${ch} 章已写入项目目录 \`chapters/chapter_${String(ch).padStart(3, '0')}.txt\`。继续点击「章节」可写下一章。`;
+          }
+          streamEndRef.current.add(aid);
+          setMessages((prev) =>
+            prev.map((m) => (m.id === aid ? { ...m, content: text, streaming: false } : m))
+          );
+          if (data.code === 0 && memoryOpen) fetchMemory();
+          setOrchestration(['planner', 'memory', 'writer', 'editor', 'qa']);
+          setActiveAgent(null);
+        }
       } else {
         const res = await fetch(`${API_BASE}/api/chat`, {
           method: 'POST',
@@ -224,16 +474,21 @@ const CreatorPage: React.FC = () => {
       setMessages((prev) =>
         prev.map((m) => (m.id === aid ? { ...m, content: fallback, streaming: false } : m))
       );
+      if (useCreatorApi) {
+        setOrchestration([]);
+        setActiveAgent(null);
+      }
     } finally {
       setLoading(false);
+      setActiveAgent(null);
       scrollToBottom();
     }
   };
 
   const getAgent = (k?: AgentKey) => AGENTS.find((a) => a.key === k);
   const modeLabels: Record<typeof mode, string> = {
-    create: '创作',
-    continue: '续写',
+    create: '大纲',
+    continue: '章节',
     polish: '润色',
     chat: '对话',
   };
@@ -299,8 +554,8 @@ const CreatorPage: React.FC = () => {
           value={mode}
           onChange={(v) => setMode(v as typeof mode)}
           options={[
-            { value: 'create', label: '创作' },
-            { value: 'continue', label: '续写' },
+            { value: 'create', label: '大纲' },
+            { value: 'continue', label: '章节' },
             { value: 'polish', label: '润色' },
             { value: 'chat', label: '对话' },
           ]}
@@ -494,7 +749,7 @@ const CreatorPage: React.FC = () => {
                   >
                     大纲、写手、记忆、润色、质检等智能体按任务动态编排，结合记忆系统保持设定与风格一致。
                     <br />
-                    选择模式后输入意图，开始创作。
+                    选择模式：大纲 → 章节 → 润色/对话。
                   </div>
                 </div>
                 <Space size="middle" wrap style={{ justifyContent: 'center' }}>
@@ -512,7 +767,7 @@ const CreatorPage: React.FC = () => {
                         className="creator-ghost-btn"
                         onClick={() => {
                           setMode(m);
-                          setInput(m === 'create' ? '写一个科幻短篇，主题：完美之墙' : m === 'continue' ? '从上一章结尾续写' : '润色这段文字');
+                          setInput(m === 'create' ? '输入主题，例如：穿越到玄灵大陆的科学家' : m === 'continue' ? '写下一章，或输入「写10章」连续写多章' : '润色这段文字');
                         }}
                         style={{
                           borderColor: T.ghostBorder,
@@ -761,7 +1016,9 @@ const CreatorPage: React.FC = () => {
                           </div>
                         </div>
                         <div style={{ flex: 1, padding: 16, overflowY: 'auto' }}>
-                          {memoryEntities.slice(0, 60).map((e, idx) => (
+                          {memoryEntities
+                            .slice((memoryListPage - 1) * MEMORY_LIST_PAGE_SIZE, memoryListPage * MEMORY_LIST_PAGE_SIZE)
+                            .map((e, idx) => (
                             <div
                               key={e.id}
                               role="button"
@@ -808,7 +1065,7 @@ const CreatorPage: React.FC = () => {
                                   flexShrink: 0,
                                 }}
                               >
-                                {String(idx + 1).padStart(2, '0')}
+                                {String((memoryListPage - 1) * MEMORY_LIST_PAGE_SIZE + idx + 1).padStart(2, '0')}
                               </div>
                               <div
                                 style={{
@@ -854,6 +1111,45 @@ const CreatorPage: React.FC = () => {
                             </div>
                           ))}
                         </div>
+                        {memoryEntities.length > MEMORY_LIST_PAGE_SIZE && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 12,
+                              padding: '12px 16px',
+                              borderTop: `1px solid ${T.border}`,
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Button
+                              type="text"
+                              size="small"
+                              disabled={memoryListPage <= 1}
+                              onClick={() => setMemoryListPage((p) => Math.max(1, p - 1))}
+                              style={{ color: T.textMuted, fontSize: 12 }}
+                            >
+                              上一页
+                            </Button>
+                            <span style={{ fontSize: 12, color: T.textMuted }}>
+                              {memoryListPage} / {Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE)}
+                            </span>
+                            <Button
+                              type="text"
+                              size="small"
+                              disabled={memoryListPage >= Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE)}
+                              onClick={() =>
+                                setMemoryListPage((p) =>
+                                  Math.min(Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE), p + 1)
+                                )
+                              }
+                              style={{ color: T.textMuted, fontSize: 12 }}
+                            >
+                              下一页
+                            </Button>
+                          </div>
+                        )}
                         {memoryRecents.length > 0 && (
                           <div style={{ padding: 12, borderTop: `1px solid ${T.border}` }}>
                             <div style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.textMuted, marginBottom: 8, letterSpacing: '0.04em' }}>最近检索</div>
@@ -940,7 +1236,7 @@ const CreatorPage: React.FC = () => {
                         style={{ background: T.segBg }}
                       />
                     </div>
-                    <div ref={graphContainerRef} style={{ flex: 1, minHeight: 380 }}>
+                    <div ref={graphContainerRef} style={{ flex: 1, minHeight: 280, maxHeight: 420 }}>
                       {memoryLoading ? (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.textDim }}>加载中…</div>
                       ) : !memoryGraph.nodes.length ? (

@@ -8,6 +8,7 @@ export default defineConfig({
     routes: routes,
     npmClient: 'pnpm',
     define:{
+        // 创作 API 地址。本地开发时改为 http://localhost:5200（需先启动 creator_api）
         'API_URL':'http://azj1.dc.huixingyun.com:53115',
     },
 });
