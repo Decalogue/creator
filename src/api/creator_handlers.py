@@ -29,6 +29,42 @@ def _default_llm():
     return deepseek_v3_2
 
 
+def _sanitize_project_id(name: str, max_len: int = 20) -> str:
+    """将 LLM 返回的书名整理为可作目录名的 project_id。"""
+    if not name or not isinstance(name, str):
+        return "未命名小说"
+    s = name.strip().strip('"\'「」『』').replace("\n", " ").replace("\r", "")
+    for c in '/\\:*?"<>|':
+        s = s.replace(c, "_")
+    s = s[:max_len].strip() or "未命名小说"
+    return s
+
+
+def _extract_novel_title(theme: str, llm) -> str:
+    """
+    使用 LLM 根据创作意图解析出小说书名（用于 project_id）。
+    只输出书名，2–12 字，便于做目录名。
+    """
+    if not theme or not theme.strip():
+        return "未命名小说"
+    prompt = (
+        "根据以下创作意图，提取或生成一个简短的小说书名（2–12 个字，仅用于项目标识）。"
+        "只输出书名，不要引号、不要解释、不要换行。\n\n创作意图：\n"
+    ) + theme.strip()[:500]
+    try:
+        _, content = llm(
+            [{"role": "user", "content": prompt}],
+            max_new_tokens=64,
+        )
+        return _sanitize_project_id((content or "").strip())
+    except Exception as e:
+        logger.warning("LLM 解析书名失败，使用主题前段: %s", e)
+    fallback = theme.strip()[:20].strip()
+    for c in '/\\:*?"<>|':
+        fallback = fallback.replace(c, "_")
+    return fallback[:20] or "未命名小说"
+
+
 def _ensure_sys_path():
     import sys
     base = _BASE
@@ -38,11 +74,11 @@ def _ensure_sys_path():
 
 def run_create(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tuple[int, str, Optional[Dict]]:
     """
-    执行「创作」：创建小说大纲。
+    执行「大纲」：创建小说大纲。
+    若未传 project_id，则用 LLM 根据输入解析出小说书名作为 project_id。
     Returns: (code, message, extra)
     """
     _ensure_sys_path()
-    project_id = (project_id or "完美之墙").strip() or "完美之墙"
     genre = "科幻"
     theme = raw_input.strip() or "完美之墙"
     ***REMOVED*** 简单解析：主题：XXX
@@ -51,6 +87,11 @@ def run_create(mode: str, raw_input: str, project_id: Optional[str] = None) -> T
         theme = m.group(1).strip()
     if not theme:
         theme = "完美之墙"
+
+    ***REMOVED*** 大纲模式始终根据用户输入用 LLM 解析书名，忽略传入的 project_id
+    llm = _default_llm()
+    project_id = _extract_novel_title(theme, llm)
+    logger.info("run_create: theme=%r -> project_id=%r", theme[:80], project_id)
 
     try:
         from novel_creation.react_novel_creator import ReactNovelCreator

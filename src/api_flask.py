@@ -1,4 +1,6 @@
 import time
+import uuid
+import threading
 import requests
 
 from flask import Flask
@@ -17,6 +19,8 @@ from llm.kimi import kimi_k2, kimi_k2_stream
 from llm.deepseek import deepseek_v3_2, deepseek_v3_2_stream
 from llm.gemini import gemini_3_flash, gemini_3_flash_stream
 from llm.claude import claude_opus_4_5, claude_opus_4_5_stream
+
+from config import backend_url
 
 
 def get_current_time(format_string="%Y-%m-%d-%H-%M-%S"):
@@ -135,10 +139,42 @@ except Exception as e:
     app.logger.warning('Creator/Memory API handlers not available: %s', e)
     _CREATOR_MEMORY_AVAILABLE = False
 
+***REMOVED*** 异步任务存储：task_id -> { status: pending|running|done|failed, ... }
+_creator_tasks = {}
+_creator_tasks_lock = threading.Lock()
+_CREATOR_TASKS_MAX = 200
+***REMOVED*** 续写（写章节）串行锁：同一时刻只允许一个续写任务执行，避免「写3章」时多任务同时看到 0 个文件都写第 1 章
+_continue_lock = threading.Lock()
+
+
+def _run_creator_task(task_id, mode, raw, project_id):
+    try:
+        with _creator_tasks_lock:
+            _creator_tasks[task_id]['status'] = 'running'
+        if mode == 'continue':
+            _continue_lock.acquire()
+        try:
+            code, msg, extra = creator_run(mode, raw, project_id)
+        finally:
+            if mode == 'continue':
+                _continue_lock.release()
+        with _creator_tasks_lock:
+            _creator_tasks[task_id] = {
+                'status': 'done',
+                'code': code,
+                'message': msg,
+                'content': (extra or {}).get('content', ''),
+                **(extra or {}),
+            }
+    except Exception as e:
+        app.logger.exception('Creator task failed: %s', e)
+        with _creator_tasks_lock:
+            _creator_tasks[task_id] = {'status': 'failed', 'error': str(e)}
+
 
 @app.route('/api/creator/run', methods=['POST'])
 def creator_run_endpoint():
-    """POST /api/creator/run  body: { mode, input, project_id? }"""
+    """POST /api/creator/run  body: { mode, input, project_id? } 立即返回 task_id，结果通过轮询 GET /api/creator/task/<task_id> 获取"""
     if not _CREATOR_MEMORY_AVAILABLE:
         return jsonify({'code': 1, 'message': '创作服务未就绪', 'content': ''})
     try:
@@ -146,14 +182,46 @@ def creator_run_endpoint():
         mode = data.get('mode', 'chat')
         raw = data.get('input', '')
         project_id = data.get('project_id')
-        code, msg, extra = creator_run(mode, raw, project_id)
-        out = {'code': code, 'message': msg, 'content': (extra or {}).get('content', '')}
-        if extra:
-            out.update({k: v for k, v in extra.items() if k not in ('content',)})
-        return jsonify(out)
+        task_id = str(uuid.uuid4())
+        with _creator_tasks_lock:
+            if len(_creator_tasks) >= _CREATOR_TASKS_MAX:
+                ***REMOVED*** 简单清理：删掉最早的一批
+                keys = list(_creator_tasks.keys())[:_CREATOR_TASKS_MAX // 2]
+                for k in keys:
+                    del _creator_tasks[k]
+            _creator_tasks[task_id] = {'status': 'pending'}
+        t = threading.Thread(target=_run_creator_task, args=(task_id, mode, raw, project_id), daemon=True)
+        t.start()
+        return jsonify({'code': 0, 'task_id': task_id, 'message': '任务已提交，请轮询状态'})
     except Exception as e:
         app.logger.exception('Creator run error')
         return jsonify({'code': 1, 'message': str(e), 'content': ''})
+
+
+@app.route('/api/creator/task/<task_id>', methods=['GET'])
+def creator_task_status(task_id):
+    """GET /api/creator/task/<task_id> 轮询任务状态。status: pending|running|done|failed"""
+    with _creator_tasks_lock:
+        t = _creator_tasks.get(task_id)
+    if t is None:
+        return jsonify({'status': 'unknown', 'message': '任务不存在或已过期'}), 404
+    out = {'status': t['status']}
+    if t['status'] == 'done':
+        out['code'] = t.get('code', 0)
+        out['message'] = t.get('message', '')
+        out['content'] = t.get('content', '')
+        for k in ('project_id', 'chapter_number'):
+            if k in t:
+                out[k] = t[k]
+    elif t['status'] == 'failed':
+        out['error'] = t.get('error', '')
+    return jsonify(out)
+
+
+@app.route('/api/config', methods=['GET'])
+def api_config():
+    """GET /api/config 返回后端配置（如 backend_url），供前端或调试使用"""
+    return jsonify({'backend_url': backend_url})
 
 
 @app.route('/api/memory/entities', methods=['GET'])

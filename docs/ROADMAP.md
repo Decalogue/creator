@@ -46,6 +46,30 @@
 - **后端**：`api/creator_handlers.py`、`api/memory_handlers.py`；Flask 在 `api_flask.py` 中挂载上述路由。
 - **前端**：创作页 create/continue/polish 走 `/api/creator/run`，chat 仍走 `/api/chat` 流式；记忆列表/图谱/最近检索拉取真实 API；图谱节点点击请求 `note/:id`，抽屉展示详情与关联。
 
+**阶段一打通情况检查**（按 ROADMAP 逐项核对）：
+
+| 任务 | 要求 | 检查结果 | 说明 |
+|------|------|----------|------|
+| **1.1 创作 API** | `POST /api/creator/run`，入参 mode/input/project_id，支持流式返回 | ✅ 已实现 | `api_flask.py` 挂载 `/api/creator/run`；入参齐全；当前为**非流式** JSON 返回（与「支持流式」为可选差异） |
+| **1.2 路由到现有引擎** | 按 mode 调用 ReactNovelCreator（create_plan、create_chapter、续写、润色等） | ✅ 已实现 | `creator_handlers.py`：create→`run_create`（create_novel_plan），continue→`run_continue`（create_chapter + 加载 mesh），polish→`run_polish`，chat→`run_chat`；均复用现有引擎 |
+| **1.3 记忆 & 图谱 API** | entities / graph / recents / note/:id，数据来自 semantic_mesh 或 UniMem | ✅ 已实现 | `memory_handlers.py` 全部实现；数据来自 `outputs/<project_id>/semantic_mesh/mesh.json`；get_note 返回 id/label/type/brief/body/related |
+| **1.4 前端接真接口** | 创作用 `/api/creator/run`，记忆/图谱/最近用 memory API，节点点击调 note/:id | ✅ 已实现 | `creator.tsx`：create/continue/polish 用 `/api/creator/run`，chat 用 `/api/chat` 流式；memoryOpen 时拉 entities/graph/recents（带 project_id）；记忆列表项与 2D/3D 图节点点击均请求 `/api/memory/note/<id>` 并 setSelectedNode，抽屉展示详情与关联 |
+
+**结论**：阶段一四项任务均已打通；唯一与 ROADMAP 描述的差异为创作 API 当前为**非流式**返回，若需「流式返回」可在 1.1 上做增量（如 SSE 或 WebSocket）。
+
+**运行与验证**：后端需在 **seeme** 虚拟环境（conda）下运行。启动：`conda activate seeme`，在 `src` 目录执行 `python api_flask.py`（默认端口 5200）。验证创作/记忆 API 是否加载：`conda run -n seeme python -c "from api_flask import app, _CREATOR_MEMORY_AVAILABLE; print('Creator/Memory:', _CREATOR_MEMORY_AVAILABLE)"`（在 `src` 下执行）。前端 `config/config.ts` 中 `API_URL` 需指向后端地址（本地联调可为 `http://localhost:5200`）。
+
+**前端能否看到「创作 + 记忆更新」的完整流程？**
+
+| 能力 | 现状 | 说明 |
+|------|------|------|
+| 创作步骤可见 | ⚠️ 仅演示 | 编排区播放的是**固定顺序动画**（planner→memory→writer→editor→qa），非后端真实步骤；后端 create/continue 为单次请求，未推送「正在写大纲」「正在写第 N 章」等中间状态 |
+| 创作结果可见 | ✅ 有 | 最终大纲摘要或章节正文在对话区展示 |
+| 记忆更新可见 | ✅ 已改善 | 创作/续写**成功后若记忆面板已打开**会**自动刷新** entities/graph/recents（`creator.tsx` 中 `fetchMemory()`，创作成功且 `memoryOpen` 时调用），用户无需关开面板即可看到新记忆 |
+
+若要在页面上进一步「看到整个流程」的**步骤**（非仅结果）：  
+- **中期**：阶段二编排事件 + 流式/WS 推送后，可展示真实步骤（正在写大纲、正在写第 N 章、正在更新记忆等）。
+
 ---
 
 ***REMOVED******REMOVED******REMOVED*** 阶段二：编排可观测 & UniMem 贯通（P1）— 建议 2–3 周
