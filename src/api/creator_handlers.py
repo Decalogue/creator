@@ -24,6 +24,62 @@ def _project_dir(project_id: str) -> Path:
     return _OUTPUTS / pid
 
 
+def list_projects() -> list:
+    """返回已创作小说列表：outputs 下存在 novel_plan.json 的目录名（project_id）。"""
+    if not _OUTPUTS.exists():
+        return []
+    out = []
+    for p in _OUTPUTS.iterdir():
+        if p.is_dir() and (p / "novel_plan.json").exists():
+            out.append(p.name)
+    return sorted(out)
+
+
+def get_project_chapters(project_id: Optional[str] = None) -> Tuple[int, Optional[list]]:
+    """
+    返回当前作品的章节列表（含标题、是否已写）。
+    Returns: (code, None) 表示无大纲；(0, [ { number, title, summary?, has_file }, ... ]) 表示成功。
+    """
+    pid = (project_id or "完美之墙").strip() or "完美之墙"
+    root = _project_dir(pid)
+    plan_file = root / "novel_plan.json"
+    chapters_dir = root / "chapters"
+    if not plan_file.exists():
+        return 1, None
+    try:
+        with open(plan_file, "r", encoding="utf-8") as f:
+            plan = json.load(f)
+    except Exception as e:
+        logger.warning("get_project_chapters load plan failed: %s", e)
+        return 1, None
+    co = plan.get("chapter_outline") or (plan.get("plan") or {}).get("chapter_outline")
+    if not isinstance(co, list):
+        return 0, []
+    existing_files = set()
+    if chapters_dir.exists():
+        for f in chapters_dir.glob("chapter_*.txt"):
+            try:
+                suffix = f.stem.replace("chapter_", "").strip()
+                if suffix.isdigit():
+                    existing_files.add(int(suffix))
+            except Exception:
+                pass
+    out = []
+    for i, ch in enumerate(co):
+        if not isinstance(ch, dict):
+            continue
+        num = ch.get("chapter_number", i + 1)
+        title = ch.get("title") or f"第{num}章"
+        summary = ch.get("summary") or ""
+        out.append({
+            "number": num,
+            "title": title,
+            "summary": summary[:200] if summary else "",
+            "has_file": num in existing_files,
+        })
+    return 0, out
+
+
 def _default_llm():
     from llm.deepseek import deepseek_v3_2
     return deepseek_v3_2
@@ -72,26 +128,124 @@ def _ensure_sys_path():
         sys.path.insert(0, str(base))
 
 
-def run_create(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tuple[int, str, Optional[Dict]]:
+def _load_previous_volume_context(previous_project_id: str) -> Optional[Dict[str, Any]]:
+    """
+    加载前卷项目的接续上下文，供第二卷大纲生成使用。
+    包含：背景、人物、主线、结尾摘要、未解决伏笔、最后几章内容摘要。
+    """
+    root = _project_dir(previous_project_id.strip())
+    plan_file = root / "novel_plan.json"
+    chapters_dir = root / "chapters"
+    mesh_file = root / "semantic_mesh" / "mesh.json"
+    if not plan_file.exists():
+        logger.warning("前卷 novel_plan.json 不存在: %s", plan_file)
+        return None
+    try:
+        with open(plan_file, "r", encoding="utf-8") as f:
+            plan = json.load(f)
+    except Exception as e:
+        logger.warning("读取前卷大纲失败: %s", e)
+        return None
+    co = plan.get("chapter_outline") or (plan.get("plan") or {}).get("chapter_outline")
+    if not isinstance(co, list):
+        co = []
+    overall = plan.get("overall") or {}
+    ***REMOVED*** 最后几章大纲摘要（用于接续）
+    last_n = min(5, len(co))
+    last_outline_summaries = []
+    for i in range(-last_n, 0):
+        if i + len(co) >= 0:
+            ch = co[i]
+            if isinstance(ch, dict):
+                num = ch.get("chapter_number", len(co) + i + 1)
+                title = ch.get("title") or f"第{num}章"
+                summary = (ch.get("summary") or "")[:300]
+                last_outline_summaries.append(f"第{num}章《{title}》：{summary}")
+    ***REMOVED*** 若存在章节文件，取最后 2 章正文前段作为「当前状态」
+    end_state_snippets = []
+    if chapters_dir.exists():
+        existing = sorted(
+            [f for f in chapters_dir.glob("chapter_*.txt") if f.stem.replace("chapter_", "").strip().isdigit()],
+            key=lambda f: int(f.stem.replace("chapter_", "").strip()),
+        )
+        for f in existing[-2:]:
+            try:
+                text = f.read_text(encoding="utf-8")[:500].strip()
+                if text:
+                    end_state_snippets.append(text)
+            except Exception as e:
+                logger.debug("读取前卷章节片段失败 %s: %s", f.name, e)
+    ***REMOVED*** 语义网格关键实体（简要）
+    mesh_summary = ""
+    if mesh_file.exists():
+        try:
+            with open(mesh_file, "r", encoding="utf-8") as f:
+                mesh_data = json.load(f)
+            nodes = mesh_data.get("nodes") or mesh_data.get("entities") or []
+            names = [n.get("name") or n.get("label") or str(n) for n in nodes[:30] if isinstance(n, dict)]
+            if names:
+                mesh_summary = "关键实体（前卷）：" + "、".join(names[:20])
+        except Exception as e:
+            logger.debug("读取前卷 semantic_mesh 失败: %s", e)
+    return {
+        "previous_project_id": previous_project_id.strip(),
+        "background": plan.get("background") or overall.get("background", ""),
+        "characters": plan.get("characters") or overall.get("characters", []),
+        "main_plot": plan.get("main_plot") or overall.get("main_plot", ""),
+        "key_plot_points": plan.get("key_plot_points", []),
+        "ending_direction": plan.get("ending_direction") or overall.get("ending_direction", ""),
+        "last_chapters_outline": "\n".join(last_outline_summaries) if last_outline_summaries else "",
+        "end_state_snippets": "\n\n".join(end_state_snippets) if end_state_snippets else "",
+        "semantic_mesh_summary": mesh_summary,
+    }
+
+
+def run_create(
+    mode: str,
+    raw_input: str,
+    project_id: Optional[str] = None,
+    previous_project_id: Optional[str] = None,
+    start_chapter: Optional[int] = None,
+    target_chapters: Optional[int] = None,
+) -> Tuple[int, str, Optional[Dict]]:
     """
     执行「大纲」：创建小说大纲。
-    若未传 project_id，则用 LLM 根据输入解析出小说书名作为 project_id。
+    - 若未接续前卷：根据输入用 LLM 解析书名作为 project_id，target_chapters 默认 20。
+    - 若接续前卷：previous_project_id 必填；project_id 为本卷作品名（如 完美之墙_第二卷）；
+      start_chapter 为本卷起始章号（如 101），target_chapters 为本卷章数（如 100）。
     Returns: (code, message, extra)
     """
     _ensure_sys_path()
     genre = "科幻"
     theme = raw_input.strip() or "完美之墙"
-    ***REMOVED*** 简单解析：主题：XXX
     m = re.search(r"主题[：:]\s*([^\n]+)", theme)
     if m:
         theme = m.group(1).strip()
     if not theme:
         theme = "完美之墙"
 
-    ***REMOVED*** 大纲模式始终根据用户输入用 LLM 解析书名，忽略传入的 project_id
-    llm = _default_llm()
-    project_id = _extract_novel_title(theme, llm)
-    logger.info("run_create: theme=%r -> project_id=%r", theme[:80], project_id)
+    is_continuation = bool(previous_project_id and previous_project_id.strip())
+    if is_continuation:
+        ***REMOVED*** 接续前卷：本卷作品名必填或从前卷推导
+        new_id = (project_id or "").strip()
+        if not new_id:
+            new_id = _sanitize_project_id(previous_project_id.strip() + "_第二卷", max_len=24)
+        project_id = new_id
+        start_ch = 1 if start_chapter is None else max(1, int(start_chapter))
+        target_ch = 100 if target_chapters is None else max(1, int(target_chapters))
+        prev_ctx = _load_previous_volume_context(previous_project_id)
+        if not prev_ctx:
+            return 1, "加载前卷失败，请确认前卷作品存在且包含 novel_plan.json", None
+        logger.info("run_create 接续前卷: previous=%r, project_id=%r, start_chapter=%s, target_chapters=%s",
+                    previous_project_id, project_id, start_ch, target_ch)
+    else:
+        ***REMOVED*** 新作：LLM 解析书名
+        llm = _default_llm()
+        project_id = _extract_novel_title(theme, llm)
+        start_ch = 1
+        target_ch = 20 if target_chapters is None else max(1, int(target_chapters))
+        prev_ctx = None
+        logger.info("run_create: theme=%r -> project_id=%r", theme[:80], project_id)
 
     try:
         from novel_creation.react_novel_creator import ReactNovelCreator
@@ -108,8 +262,10 @@ def run_create(mode: str, raw_input: str, project_id: Optional[str] = None) -> T
         plan = creator.create_novel_plan(
             genre=genre,
             theme=theme,
-            target_chapters=20,
+            target_chapters=target_ch,
             words_per_chapter=2048,
+            previous_volume_context=prev_ctx,
+            start_chapter=start_ch,
         )
         ***REMOVED*** 生成简短摘要供前端展示
         lines = []
@@ -157,19 +313,33 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None) ->
         return 1, "大纲中无章节信息", None
 
     existing = list(chapters_dir.glob("chapter_*.txt")) if chapters_dir.exists() else []
-    next_num = len(existing) + 1
-    if next_num > len(co):
+    existing_nums = []
+    for f in existing:
+        try:
+            suffix = f.stem.replace("chapter_", "").strip()
+            if suffix.isdigit():
+                existing_nums.append(int(suffix))
+        except Exception:
+            pass
+    start_chapter = plan.get("start_chapter", 1)
+    ***REMOVED*** 下一章号：有文件则 max+1，否则用 start_chapter（多卷时为本卷起始章，如 101）
+    next_num = (max(existing_nums) + 1) if existing_nums else start_chapter
+    ***REMOVED*** 大纲索引：本卷内第几章（0-based），多卷时 co 仅含本卷 100 章
+    outline_index = next_num - start_chapter
+    if outline_index < 0 or outline_index >= len(co):
         return 1, "已写完所有大纲章节", None
 
-    ch = co[next_num - 1]
+    ch = co[outline_index]
     if not isinstance(ch, dict):
         return 1, "大纲章节格式异常", None
-    title = ch.get("title") or f"第{next_num}章"
+    ***REMOVED*** 使用大纲中的章节号（多卷时为 101、102…），用于正文与文件名
+    chapter_number = ch.get("chapter_number", next_num)
+    title = ch.get("title") or f"第{chapter_number}章"
     summary = ch.get("summary") or ""
 
     prev_summary = ""
-    if next_num > 1 and isinstance(co[next_num - 2], dict):
-        prev_summary = co[next_num - 2].get("summary") or ""
+    if outline_index > 0 and isinstance(co[outline_index - 1], dict):
+        prev_summary = co[outline_index - 1].get("summary") or ""
 
     try:
         from novel_creation.react_novel_creator import ReactNovelCreator
@@ -200,14 +370,14 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None) ->
                 logger.warning("Could not load semantic mesh for continue: %s", ex)
 
         chapter = creator.create_chapter(
-            chapter_number=next_num,
+            chapter_number=chapter_number,
             chapter_title=title,
             chapter_summary=summary,
             previous_chapters_summary=prev_summary or None,
             target_words=2048,
         )
         content = (chapter.content or "").strip()
-        return 0, "续写成功", {"content": content, "mode": "continue", "project_id": project_id, "chapter_number": next_num}
+        return 0, "续写成功", {"content": content, "mode": "continue", "project_id": project_id, "chapter_number": chapter_number}
     except Exception as e:
         logger.exception("run_continue failed")
         return 1, f"续写失败：{str(e)}", None
@@ -255,10 +425,24 @@ def run_chat(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tup
         return 1, f"对话失败：{str(e)}", None
 
 
-def run(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tuple[int, str, Optional[Dict]]:
-    """统一入口."""
-    handlers = {"create": run_create, "continue": run_continue, "polish": run_polish, "chat": run_chat}
-    h = handlers.get((mode or "").strip().lower())
-    if not h:
-        return 1, f"不支持的 mode：{mode}", None
-    return h(mode, raw_input, project_id)
+def run(
+    mode: str,
+    raw_input: str,
+    project_id: Optional[str] = None,
+    previous_project_id: Optional[str] = None,
+    start_chapter: Optional[int] = None,
+    target_chapters: Optional[int] = None,
+) -> Tuple[int, str, Optional[Dict]]:
+    """统一入口。create 模式可传 previous_project_id、start_chapter、target_chapters 用于接续前卷。"""
+    mode_key = (mode or "").strip().lower()
+    if mode_key == "create":
+        return run_create(
+            mode, raw_input, project_id=project_id,
+            previous_project_id=previous_project_id,
+            start_chapter=start_chapter,
+            target_chapters=target_chapters,
+        )
+    if mode_key in ("continue", "polish", "chat"):
+        h = {"continue": run_continue, "polish": run_polish, "chat": run_chat}[mode_key]
+        return h(mode, raw_input, project_id)
+    return 1, f"不支持的 mode：{mode}", None

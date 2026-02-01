@@ -338,7 +338,9 @@ class ReactNovelCreator:
         theme: str,
         target_chapters: int = 20,
         words_per_chapter: int = 3000,
-        use_progressive: Optional[bool] = None  ***REMOVED*** None = 自动选择（章节数 >= 50 时使用渐进式）
+        use_progressive: Optional[bool] = None,  ***REMOVED*** None = 自动选择（章节数 >= 50 时使用渐进式）
+        previous_volume_context: Optional[Dict[str, Any]] = None,
+        start_chapter: int = 1,
     ) -> Dict[str, Any]:
         """
         创建小说大纲
@@ -347,55 +349,98 @@ class ReactNovelCreator:
         1. 一次性生成（适合 <= 30 章）
         2. 渐进式生成（适合 > 30 章，特别是 100 章）
         
-        Args:
-            genre: 小说类型（如：科幻、玄幻、都市等）
-            theme: 主题
-            target_chapters: 目标章节数
-            words_per_chapter: 每章目标字数
-            use_progressive: 是否使用渐进式大纲（None = 自动选择，章节数 >= 50 时使用渐进式）
-        
-        Returns:
-            小说大纲
-        """
-        ***REMOVED*** 自动选择：章节数 >= 50 时使用渐进式
-        if use_progressive is None:
-            use_progressive = target_chapters >= 50
-        
-        if use_progressive:
-            logger.info(f"使用渐进式大纲生成（适合 {target_chapters} 章长篇小说）")
-            return self._create_novel_plan_progressive(genre, theme, target_chapters, words_per_chapter)
-        else:
-            logger.info(f"使用一次性大纲生成（适合 {target_chapters} 章中短篇小说）")
-            return self._create_novel_plan_onetime(genre, theme, target_chapters, words_per_chapter)
-    
-    def _create_novel_plan_onetime(
-        self,
-        genre: str,
-        theme: str,
-        target_chapters: int,
-        words_per_chapter: int
-    ) -> Dict[str, Any]:
-        """
-        一次性生成小说大纲（原有方法）
-        
-        适合中短篇小说（<= 30 章）
+        若提供 previous_volume_context，则生成接续前卷的本卷大纲（章节号从 start_chapter 起）。
         
         Args:
             genre: 小说类型
             theme: 主题
             target_chapters: 目标章节数
             words_per_chapter: 每章目标字数
+            use_progressive: 是否使用渐进式
+            previous_volume_context: 前卷接续上下文（含 background、characters、last_chapters_outline 等）
+            start_chapter: 本卷起始章节号（如 101 表示第二卷从第 101 章起）
         
         Returns:
             小说大纲
         """
-        prompt = f"""请为小说《{self.novel_title}》创建详细的大纲（一次性生成所有章节）。
+        if use_progressive is None:
+            use_progressive = target_chapters >= 50
+        
+        if use_progressive:
+            logger.info(f"使用渐进式大纲生成（适合 {target_chapters} 章长篇小说）")
+            return self._create_novel_plan_progressive(
+                genre, theme, target_chapters, words_per_chapter,
+                previous_volume_context=previous_volume_context,
+                start_chapter=start_chapter,
+            )
+        else:
+            logger.info(f"使用一次性大纲生成（适合 {target_chapters} 章中短篇小说）")
+            return self._create_novel_plan_onetime(
+                genre, theme, target_chapters, words_per_chapter,
+                previous_volume_context=previous_volume_context,
+                start_chapter=start_chapter,
+            )
+
+    def _deduplicate_chapter_titles(self, chapter_outline: list) -> list:
+        """
+        保证章节标题在一部作品内不重复。对重复标题追加（二）（三）等后缀。
+        """
+        if not chapter_outline:
+            return chapter_outline
+        _SUFFIX = ("", "（二）", "（三）", "（四）", "（五）", "（六）", "（七）", "（八）", "（九）", "（十）")
+        seen: Dict[str, int] = {}
+        out = []
+        for ch in chapter_outline:
+            if not isinstance(ch, dict):
+                out.append(ch)
+                continue
+            raw_title = (ch.get("title") or "").strip() or f"第{ch.get('chapter_number', len(out)+1)}章"
+            count = seen.get(raw_title, 0) + 1
+            seen[raw_title] = count
+            if count > 1:
+                suffix = _SUFFIX[count] if count < len(_SUFFIX) else f"（{count}）"
+                title = raw_title + suffix
+                ch = {**ch, "title": title}
+            out.append(ch)
+        return out
+
+    def _create_novel_plan_onetime(
+        self,
+        genre: str,
+        theme: str,
+        target_chapters: int,
+        words_per_chapter: int,
+        previous_volume_context: Optional[Dict[str, Any]] = None,
+        start_chapter: int = 1,
+    ) -> Dict[str, Any]:
+        """
+        一次性生成小说大纲。支持接续前卷（previous_volume_context + start_chapter）。
+        """
+        continuation_block = ""
+        if previous_volume_context:
+            prev_id = previous_volume_context.get("previous_project_id", "前卷")
+            continuation_block = f"""
+**【接续前卷】本卷为《{self.novel_title}》，接续前卷「{prev_id}」。请严格延续前卷设定与剧情，章节号从第 {start_chapter} 章开始。**
+
+前卷接续信息（必须沿用并在此基础上发展）：
+- 背景设定：{previous_volume_context.get("background", "")[:800]}
+- 主要角色：{json.dumps(previous_volume_context.get("characters", [])[:15], ensure_ascii=False)[:1200]}
+- 故事主线：{previous_volume_context.get("main_plot", "")[:600]}
+- 前卷结尾方向/未解决伏笔：{previous_volume_context.get("ending_direction", "")[:500]}
+- 最后几章大纲摘要：{previous_volume_context.get("last_chapters_outline", "")[:1000]}
+- 前卷结尾正文片段（当前状态）：{previous_volume_context.get("end_state_snippets", "")[:800]}
+{("- " + previous_volume_context.get("semantic_mesh_summary", "")) if previous_volume_context.get("semantic_mesh_summary") else ""}
+
+要求：本卷大纲的 chapter_number 必须从 {start_chapter} 连续到 {start_chapter + target_chapters - 1}，且情节、人物、世界观与前卷无缝衔接。
+"""
+        prompt = f"""请为小说《{self.novel_title}》创建详细的大纲（一次性生成所有章节）。{continuation_block}
 
 小说信息：
 - 类型：{genre}
 - 主题：{theme}
 - 目标章节数：{target_chapters}
 - 每章目标字数：{words_per_chapter}
+- 本卷章节号范围：第 {start_chapter} 章 至 第 {start_chapter + target_chapters - 1} 章
 
 请提供：
 1. 故事背景设定
@@ -550,11 +595,12 @@ class ReactNovelCreator:
                     "background": "待完善",
                     "characters": [],
                     "chapter_outline": [
-                        {"chapter_number": i+1, "title": f"第{i+1}章", "summary": "待创作"}
+                        {"chapter_number": start_chapter + i, "title": f"第{start_chapter + i}章", "summary": "待创作"}
                         for i in range(target_chapters)
                     ],
                     "main_plot": "待完善",
-                    "key_plot_points": []
+                    "key_plot_points": [],
+                    "start_chapter": start_chapter,
                 }
         except Exception as e:
             logger.error(f"解析大纲时发生未知错误: {e}", exc_info=True)
@@ -563,13 +609,25 @@ class ReactNovelCreator:
                 "background": "待完善",
                 "characters": [],
                 "chapter_outline": [
-                    {"chapter_number": i+1, "title": f"第{i+1}章", "summary": "待创作"}
+                    {"chapter_number": start_chapter + i, "title": f"第{start_chapter + i}章", "summary": "待创作"}
                     for i in range(target_chapters)
                 ],
                 "main_plot": "待完善",
-                "key_plot_points": []
+                "key_plot_points": [],
+                "start_chapter": start_chapter,
             }
         
+        ***REMOVED*** 接续前卷时：章节号从 start_chapter 起
+        if start_chapter > 1 and plan.get("chapter_outline") and isinstance(plan["chapter_outline"], list):
+            for ch in plan["chapter_outline"]:
+                if isinstance(ch, dict) and "chapter_number" in ch:
+                    ch["chapter_number"] = ch.get("chapter_number", 0) + (start_chapter - 1)
+        if previous_volume_context:
+            plan["previous_project_id"] = previous_volume_context.get("previous_project_id", "")
+        plan["start_chapter"] = start_chapter
+        ***REMOVED*** 保证章节标题不重复后再保存
+        if plan.get("chapter_outline") and isinstance(plan["chapter_outline"], list):
+            plan["chapter_outline"] = self._deduplicate_chapter_titles(plan["chapter_outline"])
         ***REMOVED*** 保存大纲
         try:
             plan_file = self.output_dir / "novel_plan.json"
@@ -600,31 +658,21 @@ class ReactNovelCreator:
         theme: str,
         target_chapters: int,
         words_per_chapter: int,
-        phase_size: int = 20  ***REMOVED*** 每个阶段20章
+        phase_size: int = 20,
+        previous_volume_context: Optional[Dict[str, Any]] = None,
+        start_chapter: int = 1,
     ) -> Dict[str, Any]:
         """
-        渐进式生成小说大纲
-        
-        适合长篇小说（>= 50 章），分阶段生成详细大纲
-        
-        Args:
-            genre: 小说类型
-            theme: 主题
-            target_chapters: 目标章节数
-            words_per_chapter: 每章目标字数
-            phase_size: 每个阶段的章节数（默认20章）
-        
-        Returns:
-            三级大纲结构（整体大纲 + 阶段大纲）
+        渐进式生成小说大纲。支持接续前卷（previous_volume_context + start_chapter）。
         """
         logger.info("Stage 1: 生成整体大纲...")
-        
-        ***REMOVED*** Stage 1: 生成整体大纲（粗略）
-        overall_outline = self._generate_overall_outline(genre, theme, target_chapters, words_per_chapter)
+        overall_outline = self._generate_overall_outline(
+            genre, theme, target_chapters, words_per_chapter,
+            previous_volume_context=previous_volume_context,
+            start_chapter=start_chapter,
+        )
         
         logger.info("Stage 2: 生成第一阶段详细大纲...")
-        
-        ***REMOVED*** Stage 2: 生成第一阶段详细大纲（1-20章）
         phase_1_outline = self._generate_phase_outline(
             phase_number=1,
             phase_size=phase_size,
@@ -632,25 +680,28 @@ class ReactNovelCreator:
             previous_phases=[],
             genre=genre,
             theme=theme,
-            words_per_chapter=words_per_chapter
+            words_per_chapter=words_per_chapter,
+            volume_start_chapter=start_chapter,
+            target_chapters_total=target_chapters,
         )
         
-        ***REMOVED*** 构建三级大纲结构
+        phase_1_chapters = self._deduplicate_chapter_titles(phase_1_outline.get("chapters", []))
         plan = {
             "plan_type": "progressive",
             "phase_size": phase_size,
             "overall": overall_outline,
             "phases": [phase_1_outline],
             "current_phase": 1,
-            ***REMOVED*** 为了向后兼容，提供 chapter_outline（基于第一阶段）
-            "chapter_outline": phase_1_outline.get("chapters", []),
-            ***REMOVED*** 其他字段（向后兼容）
+            "chapter_outline": phase_1_chapters,
             "background": overall_outline.get("background", ""),
             "characters": overall_outline.get("characters", []),
             "main_plot": overall_outline.get("main_plot", ""),
             "key_plot_points": overall_outline.get("key_plot_points", []),
-            "target_chapters": target_chapters
+            "target_chapters": target_chapters,
+            "start_chapter": start_chapter,
         }
+        if previous_volume_context:
+            plan["previous_project_id"] = previous_volume_context.get("previous_project_id", "")
         
         ***REMOVED*** 保存大纲
         try:
@@ -679,31 +730,35 @@ class ReactNovelCreator:
         genre: str,
         theme: str,
         target_chapters: int,
-        words_per_chapter: int
+        words_per_chapter: int,
+        previous_volume_context: Optional[Dict[str, Any]] = None,
+        start_chapter: int = 1,
     ) -> Dict[str, Any]:
         """
-        生成整体大纲（粗略规划）
-        
-        包含：背景设定、主要角色、故事主线、关键转折点
-        
-        Args:
-            genre: 小说类型
-            theme: 主题
-            target_chapters: 目标章节数
-            words_per_chapter: 每章目标字数
-        
-        Returns:
-            整体大纲
+        生成整体大纲（粗略规划）。支持接续前卷时注入前卷信息。
         """
-        num_phases = (target_chapters + 19) // 20  ***REMOVED*** 向上取整
-        
-        prompt = f"""请为小说《{self.novel_title}》创建整体大纲（粗略规划）。
+        num_phases = (target_chapters + 19) // 20
+        continuation_block = ""
+        if previous_volume_context:
+            prev_id = previous_volume_context.get("previous_project_id", "前卷")
+            continuation_block = f"""
+**【接续前卷】本卷《{self.novel_title}》接续前卷「{prev_id}」，章节从第 {start_chapter} 章开始。请严格延续前卷设定与主线，在此基础上规划本卷 {target_chapters} 章的整体发展。**
+
+前卷接续信息：
+- 背景：{previous_volume_context.get("background", "")[:600]}
+- 主要角色：{json.dumps(previous_volume_context.get("characters", [])[:12], ensure_ascii=False)[:800]}
+- 主线：{previous_volume_context.get("main_plot", "")[:500]}
+- 结尾方向/未解决伏笔：{previous_volume_context.get("ending_direction", "")[:400]}
+- 最后几章摘要：{previous_volume_context.get("last_chapters_outline", "")[:600]}
+"""
+        prompt = f"""请为小说《{self.novel_title}》创建整体大纲（粗略规划）。{continuation_block}
 
 小说信息：
 - 类型：{genre}
 - 主题：{theme}
 - 目标章节数：{target_chapters}
 - 每章目标字数：{words_per_chapter}
+- 本卷章节号：第 {start_chapter} 章 至 第 {start_chapter + target_chapters - 1} 章
 
 请提供：
 1. **故事背景设定**：世界观、时代背景、主要设定
@@ -806,26 +861,18 @@ class ReactNovelCreator:
         previous_phases: List[Dict[str, Any]],
         genre: str,
         theme: str,
-        words_per_chapter: int
+        words_per_chapter: int,
+        volume_start_chapter: int = 1,
+        target_chapters_total: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
-        生成阶段详细大纲（每20章一组）
-        
-        Args:
-            phase_number: 阶段编号（从1开始）
-            phase_size: 每阶段的章节数
-            overall_outline: 整体大纲
-            previous_phases: 前面阶段的大纲列表
-            genre: 小说类型
-            theme: 主题
-            words_per_chapter: 每章目标字数
-        
-        Returns:
-            阶段大纲（包含该阶段所有章节的详细大纲）
+        生成阶段详细大纲。支持多卷：volume_start_chapter 为本卷起始章（如 101），
+        target_chapters_total 为本卷总章数，则阶段章节号为 101-120、121-140 等。
         """
-        start_chapter = (phase_number - 1) * phase_size + 1
-        target_chapters = overall_outline.get('target_chapters', phase_number * phase_size)
-        end_chapter = min(phase_number * phase_size, target_chapters)
+        if target_chapters_total is None:
+            target_chapters_total = overall_outline.get('target_chapters', phase_number * phase_size)
+        start_chapter = volume_start_chapter + (phase_number - 1) * phase_size
+        end_chapter = min(volume_start_chapter + phase_number * phase_size - 1, volume_start_chapter + target_chapters_total - 1)
         num_chapters = end_chapter - start_chapter + 1
         
         ***REMOVED*** 获取该阶段的关键转折点描述
@@ -850,8 +897,7 @@ class ReactNovelCreator:
         
         ***REMOVED*** 判断是否是最后一个阶段（需要悬念结局）
         is_final_phase = False
-        target_chapters = overall_outline.get('target_chapters', phase_number * phase_size)
-        if end_chapter >= target_chapters - phase_size // 2:  ***REMOVED*** 最后阶段或接近最后
+        if end_chapter >= volume_start_chapter + target_chapters_total - phase_size // 2:
             is_final_phase = True
         
         ending_note = ""
@@ -2464,11 +2510,11 @@ class ReactNovelCreator:
                     phases.append(new_phase_outline)
                     plan["phases"] = phases
                     plan["current_phase"] = current_phase
-                    ***REMOVED*** 更新 chapter_outline（合并所有阶段的章节）
+                    ***REMOVED*** 更新 chapter_outline（合并所有阶段的章节，并去重标题）
                     all_chapters = []
                     for phase in phases:
                         all_chapters.extend(phase.get("chapters", []))
-                    plan["chapter_outline"] = all_chapters
+                    plan["chapter_outline"] = self._deduplicate_chapter_titles(all_chapters)
                     
                     ***REMOVED*** 保存更新后的大纲
                     try:

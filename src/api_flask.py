@@ -127,7 +127,7 @@ def chat():
 ***REMOVED*** ---------- P0 创作与记忆 API ----------
 
 try:
-    from api.creator_handlers import run as creator_run
+    from api.creator_handlers import run as creator_run, list_projects as creator_list_projects, get_project_chapters as creator_get_chapters
     from api.memory_handlers import (
         get_entities as memory_get_entities,
         get_graph as memory_get_graph,
@@ -147,14 +147,20 @@ _CREATOR_TASKS_MAX = 200
 _continue_lock = threading.Lock()
 
 
-def _run_creator_task(task_id, mode, raw, project_id):
+def _run_creator_task(task_id, mode, raw, project_id, options=None):
+    options = options or {}
     try:
         with _creator_tasks_lock:
             _creator_tasks[task_id]['status'] = 'running'
         if mode == 'continue':
             _continue_lock.acquire()
         try:
-            code, msg, extra = creator_run(mode, raw, project_id)
+            code, msg, extra = creator_run(
+                mode, raw, project_id,
+                previous_project_id=options.get('previous_project_id'),
+                start_chapter=options.get('start_chapter'),
+                target_chapters=options.get('target_chapters'),
+            )
         finally:
             if mode == 'continue':
                 _continue_lock.release()
@@ -174,7 +180,7 @@ def _run_creator_task(task_id, mode, raw, project_id):
 
 @app.route('/api/creator/run', methods=['POST'])
 def creator_run_endpoint():
-    """POST /api/creator/run  body: { mode, input, project_id? } 立即返回 task_id，结果通过轮询 GET /api/creator/task/<task_id> 获取"""
+    """POST /api/creator/run  body: { mode, input, project_id?, previous_project_id?, start_chapter?, target_chapters? } 立即返回 task_id"""
     if not _CREATOR_MEMORY_AVAILABLE:
         return jsonify({'code': 1, 'message': '创作服务未就绪', 'content': ''})
     try:
@@ -182,15 +188,19 @@ def creator_run_endpoint():
         mode = data.get('mode', 'chat')
         raw = data.get('input', '')
         project_id = data.get('project_id')
+        options = {
+            'previous_project_id': data.get('previous_project_id'),
+            'start_chapter': data.get('start_chapter'),
+            'target_chapters': data.get('target_chapters'),
+        }
         task_id = str(uuid.uuid4())
         with _creator_tasks_lock:
             if len(_creator_tasks) >= _CREATOR_TASKS_MAX:
-                ***REMOVED*** 简单清理：删掉最早的一批
                 keys = list(_creator_tasks.keys())[:_CREATOR_TASKS_MAX // 2]
                 for k in keys:
                     del _creator_tasks[k]
             _creator_tasks[task_id] = {'status': 'pending'}
-        t = threading.Thread(target=_run_creator_task, args=(task_id, mode, raw, project_id), daemon=True)
+        t = threading.Thread(target=_run_creator_task, args=(task_id, mode, raw, project_id, options), daemon=True)
         t.start()
         return jsonify({'code': 0, 'task_id': task_id, 'message': '任务已提交，请轮询状态'})
     except Exception as e:
@@ -222,6 +232,33 @@ def creator_task_status(task_id):
 def api_config():
     """GET /api/config 返回后端配置（如 backend_url），供前端或调试使用"""
     return jsonify({'backend_url': backend_url})
+
+
+@app.route('/api/creator/projects', methods=['GET'])
+def creator_projects():
+    """GET /api/creator/projects 返回已创作小说列表（project_id 数组），用于前端选择/加载项目"""
+    if not _CREATOR_MEMORY_AVAILABLE:
+        return jsonify([])
+    try:
+        return jsonify(creator_list_projects())
+    except Exception as e:
+        app.logger.exception('List projects error')
+        return jsonify([])
+
+
+@app.route('/api/creator/chapters', methods=['GET'])
+def creator_chapters():
+    """GET /api/creator/chapters?project_id= 返回当前作品章节列表（number, title, summary, has_file）"""
+    if not _CREATOR_MEMORY_AVAILABLE:
+        return jsonify({'chapters': [], 'total': 0})
+    project_id = request.args.get('project_id')
+    try:
+        code, chapters = creator_get_chapters(project_id)
+        lst = chapters if code == 0 and chapters is not None else []
+        return jsonify({'chapters': lst, 'total': len(lst)})
+    except Exception as e:
+        app.logger.exception('Chapters list error')
+        return jsonify({'chapters': [], 'total': 0})
 
 
 @app.route('/api/memory/entities', methods=['GET'])
