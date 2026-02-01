@@ -9,6 +9,11 @@ import {
   Tooltip,
   Spin,
   Segmented,
+  Select,
+  Modal,
+  List,
+  Checkbox,
+  InputNumber,
 } from 'antd';
 import {
   SendOutlined,
@@ -22,6 +27,7 @@ import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
   LinkOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OrchestrationFlow } from '@/components/creator/OrchestrationFlow';
@@ -35,6 +41,16 @@ import { md } from '@/utils/markdown';
 declare const API_URL: string;
 
 const T = CREATOR_THEME;
+/** 顶栏表单控件统一字号，保证前卷/本卷/当前作品视觉一致 */
+const HEADER_CONTROL_FONT_SIZE = 13;
+
+const CREATOR_STORAGE_KEYS = {
+  projectId: 'creator_projectId',
+  mode: 'creator_mode',
+  messages: 'creator_messages',
+} as const;
+const CREATOR_MESSAGES_MAX = 50;
+const CREATOR_MESSAGE_CONTENT_MAX = 3000;
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -155,6 +171,15 @@ const CreatorPage: React.FC = () => {
   const [activeAgent, setActiveAgent] = useState<AgentKey | null>(null);
   const [graphSize, setGraphSize] = useState({ width: 420, height: 340 });
   const [projectId, setProjectId] = useState('完美之墙');
+  const [projectList, setProjectList] = useState<string[]>([]);
+  const [projectChapters, setProjectChapters] = useState<{ number: number; title: string; summary?: string; has_file: boolean }[]>([]);
+  const [chapterListOpen, setChapterListOpen] = useState(false);
+  /** 接续前卷（仅大纲模式）：前卷作品、本卷起始章、本卷章数、本卷作品名 */
+  const [continueFromVolume, setContinueFromVolume] = useState(false);
+  const [previousProjectId, setPreviousProjectId] = useState('');
+  const [volumeStartChapter, setVolumeStartChapter] = useState(101);
+  const [volumeTargetChapters, setVolumeTargetChapters] = useState(100);
+  const [newVolumeProjectId, setNewVolumeProjectId] = useState('');
   const [memoryListPage, setMemoryListPage] = useState(1);
   const MEMORY_LIST_PAGE_SIZE = 20;
 
@@ -166,6 +191,65 @@ const CreatorPage: React.FC = () => {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const streamEndRef = useRef<Set<string>>(new Set());
+  /** 刷新后是否已追加过「可输入写N章继续」提示，避免重复追加 */
+  const hasAppendedResumeHintRef = useRef(false);
+
+  /** 刷新后恢复：当前作品、模式、最近对话 */
+  useEffect(() => {
+    try {
+      const savedProjectId = localStorage.getItem(CREATOR_STORAGE_KEYS.projectId);
+      if (savedProjectId && typeof savedProjectId === 'string' && savedProjectId.trim()) {
+        setProjectId(savedProjectId.trim());
+      }
+      const savedMode = localStorage.getItem(CREATOR_STORAGE_KEYS.mode);
+      if (savedMode && ['create', 'continue', 'polish', 'chat'].includes(savedMode)) {
+        setMode(savedMode as 'create' | 'continue' | 'polish' | 'chat');
+      }
+      const raw = localStorage.getItem(CREATOR_STORAGE_KEYS.messages);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const restored: Message[] = parsed.slice(0, CREATOR_MESSAGES_MAX).map((m: { id?: string; role?: string; content?: string; agent?: AgentKey; ts?: string }) => ({
+            id: typeof m.id === 'string' ? m.id : `restored_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: m.role === 'user' || m.role === 'assistant' ? m.role : 'assistant',
+            content: typeof m.content === 'string' ? m.content : '',
+            ts: m.ts ? new Date(m.ts) : new Date(),
+            agent: m.agent,
+            streaming: false,
+          }));
+          setMessages(restored);
+          // 刷新后任务已中断，不再恢复写手为「执行中」，指挥中心保持待机，避免误导
+        }
+      }
+    } catch (_) {
+      // ignore parse/storage errors
+    }
+  }, []);
+
+  /** 持久化当前作品、模式 */
+  useEffect(() => {
+    try {
+      if (projectId) localStorage.setItem(CREATOR_STORAGE_KEYS.projectId, projectId);
+      localStorage.setItem(CREATOR_STORAGE_KEYS.mode, mode);
+    } catch (_) {}
+  }, [projectId, mode]);
+
+  /** 持久化最近对话（保留进度可见） */
+  useEffect(() => {
+    if (messages.length === 0) return;
+    try {
+      const toSave = messages.slice(-CREATOR_MESSAGES_MAX).map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: typeof m.content === 'string' && m.content.length > CREATOR_MESSAGE_CONTENT_MAX
+          ? m.content.slice(0, CREATOR_MESSAGE_CONTENT_MAX) + '…'
+          : m.content,
+        agent: m.agent,
+        ts: m.ts instanceof Date ? m.ts.toISOString() : new Date().toISOString(),
+      }));
+      localStorage.setItem(CREATOR_STORAGE_KEYS.messages, JSON.stringify(toSave));
+    } catch (_) {}
+  }, [messages]);
 
   useEffect(() => {
     const el = graphContainerRef.current;
@@ -207,6 +291,48 @@ const CreatorPage: React.FC = () => {
   useEffect(() => {
     setMemoryListPage(1);
   }, [projectId]);
+
+  const fetchProjectList = useCallback(() => {
+    fetch(`${API_BASE}/api/creator/projects`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: string[]) => setProjectList(Array.isArray(list) ? list : []))
+      .catch(() => setProjectList([]));
+  }, []);
+  useEffect(() => {
+    fetchProjectList();
+  }, [fetchProjectList]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    fetch(`${API_BASE}/api/creator/chapters?project_id=${encodeURIComponent(projectId)}`)
+      .then((r) => (r.ok ? r.json() : { chapters: [], total: 0 }))
+      .then((data: { chapters?: { number: number; title: string; summary?: string; has_file: boolean }[]; total?: number }) => {
+        setProjectChapters(Array.isArray(data.chapters) ? data.chapters : []);
+      })
+      .catch(() => setProjectChapters([]));
+  }, [projectId]);
+
+  /** 刷新后：若最后一条是「撰写中」且当前作品已有章节写入，追加一次「可输入写N章继续」提示 */
+  useEffect(() => {
+    if (hasAppendedResumeHintRef.current || messages.length === 0 || projectChapters.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last?.role !== 'assistant' || typeof last.content !== 'string') return;
+    const c = last.content;
+    if (!c.includes('撰写中') || c.includes('共完成') || c.includes('已写入，可输入')) return;
+    const writtenCount = projectChapters.filter((ch) => ch.has_file).length;
+    if (writtenCount < 1) return;
+    const totalMatch = c.match(/正在连续撰写\s*(\d+)\s*章/);
+    const total = totalMatch ? Math.min(100, Math.max(1, parseInt(totalMatch[1], 10))) : writtenCount + 1;
+    const remaining = Math.max(0, total - writtenCount);
+    const hint =
+      remaining > 0
+        ? `\n\n（第 ${writtenCount} 章已写入，可输入「写 ${remaining} 章」继续剩余章节）`
+        : `\n\n（全部 ${writtenCount} 章已写入）`;
+    hasAppendedResumeHintRef.current = true;
+    setMessages((prev) =>
+      prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: m.content + hint } : m))
+    );
+  }, [messages, projectChapters]);
 
   useEffect(() => {
     const maxPage = Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE) || 1;
@@ -347,6 +473,7 @@ const CreatorPage: React.FC = () => {
           streamEndRef.current.add(aid);
           setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
           if (completedCount > 0 && memoryOpen) fetchMemory();
+          if (completedCount > 0) fetchProjectChapters();
           setOrchestration(['planner', 'memory', 'writer', 'editor', 'qa']);
           setActiveAgent(null);
         } else {
@@ -356,6 +483,14 @@ const CreatorPage: React.FC = () => {
               mode,
               input: raw,
               ...(mode !== 'create' ? { project_id: projectId } : {}),
+              ...(mode === 'create' && continueFromVolume && previousProjectId
+                ? {
+                    previous_project_id: previousProjectId,
+                    start_chapter: volumeStartChapter,
+                    target_chapters: volumeTargetChapters,
+                    project_id: newVolumeProjectId.trim() || undefined,
+                  }
+                : {}),
             });
           } catch (e) {
             const msg =
@@ -414,7 +549,10 @@ const CreatorPage: React.FC = () => {
           }
           let text = data.code === 0 ? (data.content || '') : (data.message || '请求失败');
           if (data.code === 0 && mode === 'create') {
-            if (data.project_id) setProjectId(data.project_id);
+            if (data.project_id) {
+              setProjectId(data.project_id);
+              setProjectList((prev) => (prev.includes(data.project_id!) ? prev : [...prev, data.project_id!].sort()));
+            }
             text += '\n\n---\n💡 大纲已生成。请切换到「章节」并发送任意内容（如「写第一章」或「写10章」），将按大纲逐章生成正文。';
           }
           if (data.code === 0 && mode === 'continue' && data.chapter_number) {
@@ -426,6 +564,7 @@ const CreatorPage: React.FC = () => {
             prev.map((m) => (m.id === aid ? { ...m, content: text, streaming: false } : m))
           );
           if (data.code === 0 && memoryOpen) fetchMemory();
+          if (data.code === 0 && mode === 'continue') fetchProjectChapters();
           setOrchestration(['planner', 'memory', 'writer', 'editor', 'qa']);
           setActiveAgent(null);
         }
@@ -510,11 +649,10 @@ const CreatorPage: React.FC = () => {
       <header
         className="creator-header"
         style={{
-          height: 64,
+          minHeight: 64,
           borderBottom: `1px solid ${T.borderHeader}`,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           padding: '0 24px',
           flexShrink: 0,
           background: T.bgHeader,
@@ -522,48 +660,229 @@ const CreatorPage: React.FC = () => {
           WebkitBackdropFilter: T.headerBlur,
         }}
       >
-        <Space size="middle">
-          <Avatar
-            icon={<RobotOutlined />}
-            style={{
-              background: T.avatarBot,
-              width: 36,
-              height: 36,
-              fontSize: 16,
-            }}
-          />
-          <div>
+        {/* 左侧：Logo + 标题 */}
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <Space size="middle">
+            <Avatar
+              icon={<RobotOutlined />}
+              style={{
+                background: T.avatarBot,
+                width: 36,
+                height: 36,
+                fontSize: 16,
+              }}
+            />
+            <div>
+              <div
+                style={{
+                  color: T.textBright,
+                  fontSize: 17,
+                  fontWeight: T.fontWeightSemibold,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.3,
+                }}
+              >
+                创作助手
+              </div>
+              <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
+                多智能体动态编排 · 记忆系统
+              </div>
+            </div>
+          </Space>
+        </div>
+        {/* 中部：模式 + 接续设置（居中） */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '8px 16px',
+            minWidth: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Segmented
+              className="creator-segmented-mode"
+              value={mode}
+              onChange={(v) => setMode(v as typeof mode)}
+              options={[
+                { value: 'create', label: '大纲' },
+                { value: 'continue', label: '章节' },
+                { value: 'polish', label: '润色' },
+                { value: 'chat', label: '对话' },
+              ]}
+              style={{ background: T.segBg }}
+            />
+            {mode === 'create' && (
+              <Checkbox
+                checked={continueFromVolume}
+                onChange={(e) => {
+                  setContinueFromVolume(e.target.checked);
+                  if (e.target.checked && !newVolumeProjectId && previousProjectId) {
+                    setNewVolumeProjectId(previousProjectId.replace(/_第一卷$/, '_第二卷') || previousProjectId + '_第二卷');
+                  }
+                }}
+                style={{ color: T.textMuted, fontSize: HEADER_CONTROL_FONT_SIZE }}
+              >
+                接续前卷
+              </Checkbox>
+            )}
+          </div>
+          {mode === 'create' && continueFromVolume && (
             <div
               style={{
-                color: T.textBright,
-                fontSize: 17,
-                fontWeight: T.fontWeightSemibold,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.3,
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 16,
+                justifyContent: 'center',
+                padding: '10px 20px',
+                borderRadius: 10,
+                background: 'rgba(255,255,255,0.06)',
+                border: `1px solid ${T.border}`,
               }}
             >
-              创作助手
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: HEADER_CONTROL_FONT_SIZE, color: T.textMuted, width: 56, textAlign: 'right' }}>前卷</span>
+                <Select
+                  placeholder="选择前卷作品"
+                  value={previousProjectId || undefined}
+                  onChange={(v) => {
+                    setPreviousProjectId(v || '');
+                    if (!newVolumeProjectId && v) setNewVolumeProjectId((v as string).replace(/_第一卷$/, '_第二卷') || (v as string) + '_第二卷');
+                  }}
+                  options={projectList.map((id) => ({ value: id, label: id }))}
+                  style={{ width: 160, fontSize: HEADER_CONTROL_FONT_SIZE }}
+                  styles={{ selector: { fontSize: HEADER_CONTROL_FONT_SIZE } as React.CSSProperties }}
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: HEADER_CONTROL_FONT_SIZE, color: T.textMuted, width: 56, textAlign: 'right' }}>起始章</span>
+                <InputNumber
+                  min={2}
+                  max={9999}
+                  value={volumeStartChapter}
+                  onChange={(v) => setVolumeStartChapter(typeof v === 'number' ? v : 101)}
+                  style={{ width: 72, fontSize: HEADER_CONTROL_FONT_SIZE }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: HEADER_CONTROL_FONT_SIZE, color: T.textMuted, width: 56, textAlign: 'right' }}>本卷章数</span>
+                <InputNumber
+                  min={1}
+                  max={500}
+                  value={volumeTargetChapters}
+                  onChange={(v) => setVolumeTargetChapters(typeof v === 'number' ? v : 100)}
+                  style={{ width: 72, fontSize: HEADER_CONTROL_FONT_SIZE }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: HEADER_CONTROL_FONT_SIZE, color: T.textMuted, width: 56, textAlign: 'right' }}>本卷名</span>
+                <Input
+                  placeholder="如：完美之墙_第二卷"
+                  value={newVolumeProjectId}
+                  onChange={(e) => setNewVolumeProjectId(e.target.value)}
+                  style={{ width: 168, fontSize: HEADER_CONTROL_FONT_SIZE }}
+                />
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
-              多智能体动态编排 · 记忆系统
-            </div>
-          </div>
-        </Space>
-        <Segmented
-          className="creator-segmented-mode"
-          value={mode}
-          onChange={(v) => setMode(v as typeof mode)}
-          options={[
-            { value: 'create', label: '大纲' },
-            { value: 'continue', label: '章节' },
-            { value: 'polish', label: '润色' },
-            { value: 'chat', label: '对话' },
-          ]}
-          style={{ background: T.segBg }}
-        />
+          )}
+        </div>
+        {/* 右侧：当前作品 + 刷新 + 章节数 */}
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <Space size="middle">
+            <span style={{ fontSize: HEADER_CONTROL_FONT_SIZE, color: T.textMuted }}>当前作品</span>
+            <Select
+              value={projectId}
+              onChange={(v) => setProjectId(v || '完美之墙')}
+              options={[
+                ...(projectId && !projectList.includes(projectId)
+                  ? [{ value: projectId, label: `${projectId}（当前）` }]
+                  : []),
+                ...projectList.map((id) => ({ value: id, label: id })),
+              ]}
+              placeholder="选择作品"
+              style={{ width: 180, background: T.segBg, fontSize: HEADER_CONTROL_FONT_SIZE }}
+              styles={{ selector: { fontSize: HEADER_CONTROL_FONT_SIZE } as React.CSSProperties }}
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              filterOption={(input, opt) => (opt?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
+            />
+            <Tooltip title="刷新作品列表">
+              <Button
+                type="text"
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={fetchProjectList}
+                style={{ color: T.textMuted }}
+                className="creator-icon-btn"
+              />
+            </Tooltip>
+            {projectChapters.length > 0 && (
+              <Tooltip title="点击查看完整章节列表">
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setChapterListOpen(true)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChapterListOpen(true); } }}
+                  style={{
+                    fontSize: HEADER_CONTROL_FONT_SIZE,
+                    color: T.accent,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    userSelect: 'none',
+                  }}
+                >
+                  共 {projectChapters.length} 章，已写 {projectChapters.filter((c) => c.has_file).length} 章
+                </span>
+              </Tooltip>
+            )}
+          </Space>
+        </div>
+        <Modal
+          title={`章节列表 · ${projectId}`}
+          open={chapterListOpen}
+          onCancel={() => setChapterListOpen(false)}
+          footer={null}
+          width={520}
+          styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
+        >
+          <List
+            dataSource={projectChapters}
+            renderItem={(ch) => (
+              <List.Item style={{ alignItems: 'flex-start' }}>
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <span style={{ color: 'rgba(0,0,0,0.45)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                      第 {ch.number} 章
+                    </span>
+                    <span style={{ fontWeight: 600, color: 'rgba(0,0,0,0.88)', flex: 1, minWidth: 0 }}>
+                      {ch.title}
+                    </span>
+                    {ch.has_file && (
+                      <Tag color="green" style={{ margin: 0, flexShrink: 0 }}>已写</Tag>
+                    )}
+                  </div>
+                  {ch.summary && (
+                    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 4, lineHeight: 1.5 }}>
+                      {ch.summary}
+                    </div>
+                  )}
+                </div>
+              </List.Item>
+            )}
+          />
+        </Modal>
       </header>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
         {/* 左侧：游戏化编排流水线 */}
         <motion.aside
           initial={false}
@@ -630,15 +949,17 @@ const CreatorPage: React.FC = () => {
           )}
         </motion.aside>
 
-        {/* 中间：创作画布 */}
+        {/* 中间：创作画布（minHeight:0 保证在 flex 中可收缩，消息区单独滚动、输入框始终贴底） */}
         <div
           style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             minWidth: 0,
+            minHeight: 0,
             position: 'relative',
             background: T.bgCanvas,
+            overflow: 'hidden',
           }}
         >
           {/* 网格背景 */}
@@ -686,9 +1007,11 @@ const CreatorPage: React.FC = () => {
             ref={containerRef}
             style={{
               flex: 1,
+              minHeight: 0,
               overflowY: 'auto',
               overflowX: 'hidden',
               padding: 40,
+              paddingBottom: 120,
               position: 'relative',
               zIndex: 1,
             }}
@@ -859,12 +1182,18 @@ const CreatorPage: React.FC = () => {
             )}
           </div>
 
-          {/* 输入区 */}
+          {/* 输入区：固定视窗底部，上下滚动时始终可见 */}
           <div
             style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 100,
               borderTop: `1px solid ${T.border}`,
               padding: '24px 40px 28px',
               background: T.bgInput,
+              boxShadow: '0 -4px 24px rgba(0,0,0,0.15)',
             }}
           >
             <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', gap: 16, alignItems: 'flex-end' }}>
