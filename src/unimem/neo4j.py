@@ -75,10 +75,10 @@ def get_graph(
     if not NEO4J_AVAILABLE:
         raise AdapterNotAvailableError("Neo4j library (py2neo) not available", adapter_name="Neo4jClient")
     
-    ***REMOVED*** 读取配置（简化版）
+    ***REMOVED*** 读取配置：环境变量 NEO4J_URI/USER/PASSWORD/DATABASE（默认 bolt 端口 7680）
     uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7680")
     user = user or os.getenv("NEO4J_USER", "neo4j")
-    password = password or os.getenv("NEO4J_PASSWORD", "seeme_db")  ***REMOVED*** 默认密码
+    password = password or os.getenv("NEO4J_PASSWORD", "seeme_db")
     database = database or os.getenv("NEO4J_DATABASE", "neo4j")
     ***REMOVED*** py2neo 的 Graph 不支持 max_connections 参数，移除它
     if not uri.startswith(("bolt://", "neo4j://")):
@@ -1390,7 +1390,7 @@ def create_decision_event(
         ***REMOVED*** 查找记忆节点
         memory_node = node_matcher.match("Memory", id=memory_id).first()
         if not memory_node:
-            logger.warning(f"Memory {memory_id} not found, cannot create decision event")
+            logger.debug(f"Memory {memory_id} not found in Neo4j, cannot create decision event (LTM may be memory backend)")
             return False
         
         ***REMOVED*** 创建决策事件节点

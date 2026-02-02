@@ -24,7 +24,7 @@ UniMem 核心实现
 import logging
 import time
 from typing import List, Optional, Dict, Any, Set, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from contextlib import contextmanager
 import threading
 import concurrent.futures
@@ -284,12 +284,20 @@ class UniMem:
         
         注意：适配器初始化失败不会导致整个系统失败，系统会以降级模式运行
         """
+        storage_cfg = {
+            **self.config.get("layered_storage", {}),
+            **self.config.get("storage", {}),
+        }
+        ***REMOVED*** 若 config 未指定 foa/da/ltm backend，用构造函数参数兜底，确保 LTM 可写 Neo4j
+        if "foa_backend" not in storage_cfg:
+            storage_cfg["foa_backend"] = self.storage_backend
+        if "da_backend" not in storage_cfg:
+            storage_cfg["da_backend"] = self.storage_backend
+        if "ltm_backend" not in storage_cfg:
+            storage_cfg["ltm_backend"] = self.graph_backend
         adapters_config = [
             ("operation", OperationAdapter, self.config.get("operation", {}), True),  ***REMOVED*** 必需
-            ("layered_storage", LayeredStorageAdapter, {
-                **self.config.get("layered_storage", {}),
-                **self.config.get("storage", {}),  ***REMOVED*** 合并 storage 配置
-            }, True),  ***REMOVED*** 必需
+            ("layered_storage", LayeredStorageAdapter, storage_cfg, True),  ***REMOVED*** 必需
             ("memory_type", MemoryTypeAdapter, self.config.get("memory_type", {}), False),  ***REMOVED*** 可选
             ("graph", GraphAdapter, {**self.config.get("graph", {}), "backend": self.graph_backend}, False),  ***REMOVED*** 可选
             ("network", AtomLinkAdapter, self.config.get("network", {}), False),  ***REMOVED*** 可选
@@ -522,9 +530,16 @@ class UniMem:
                         )
                     )
                     
-                    ***REMOVED*** 等待实体提取完成
-                    entities, relations = future_entities.result()
-                    logger.debug(f"Extracted {len(entities)} entities and {len(relations)} relations")
+                    ***REMOVED*** 等待实体提取完成（失败时用空实体继续，保证仍写入 Qdrant/Neo4j）
+                    try:
+                        entities, relations = future_entities.result()
+                        logger.debug(f"Extracted {len(entities)} entities and {len(relations)} relations")
+                    except Exception as entity_err:
+                        logger.warning(
+                            "Entity extraction failed, retaining without entities (storage/vector will still be written): %s",
+                            entity_err,
+                        )
+                        entities, relations = [], []
                     
                     ***REMOVED*** 获取原子笔记
                     atomic_note = future_note.result()
@@ -573,12 +588,14 @@ class UniMem:
                     memory_type = MemoryType.EXPERIENCE
                 
                 ***REMOVED*** 4. 构建完整的 Memory 对象
-                ***REMOVED*** 合并context的metadata到memory的metadata
+                ***REMOVED*** 合并context的metadata到memory的metadata；显式写入 session_id 供会话级检索与重要性评分
                 memory_metadata = {}
                 if hasattr(atomic_note, 'metadata') and atomic_note.metadata:
                     memory_metadata.update(atomic_note.metadata)
                 if context.metadata:
                     memory_metadata.update(context.metadata)
+                if context.session_id:
+                    memory_metadata["session_id"] = context.session_id
                 
                 ***REMOVED*** 捕获决策痕迹和理由（Context Graph增强）
                 ***REMOVED*** 优先使用metadata中已有的decision_trace
@@ -642,6 +659,11 @@ class UniMem:
                 if decision_trace:
                     logger.debug(f"RETAIN: decision_trace content: keys={list(decision_trace.keys()) if isinstance(decision_trace, dict) else 'N/A'}")
                 
+                ***REMOVED*** 合并 tags：原子笔记 + context.metadata（过程记忆等角色/范围标签）
+                base_tags = getattr(atomic_note, 'tags', []) if hasattr(atomic_note, 'tags') else []
+                meta_tags = (context.metadata.get("tags") or []) if context.metadata else []
+                memory_tags = list(set((base_tags or []) + (meta_tags or [])))
+
                 memory = Memory(
                     id=atomic_note.id,
                     content=atomic_note.content,
@@ -649,7 +671,7 @@ class UniMem:
                     memory_type=memory_type,
                     layer=MemoryLayer.FOA,
                     keywords=getattr(atomic_note, 'keywords', []) if hasattr(atomic_note, 'keywords') else [],
-                    tags=getattr(atomic_note, 'tags', []) if hasattr(atomic_note, 'tags') else [],
+                    tags=memory_tags,
                     context=getattr(atomic_note, 'context', None) or experience.context,
                     entities=[e.id for e in entities] if entities else [],
                     metadata=memory_metadata,  ***REMOVED*** 确保metadata被正确传递
@@ -894,18 +916,22 @@ class UniMem:
                                 else:
                                     logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
                         else:
-                            ***REMOVED*** skip_storage情况下，Memory是更新已有记忆，应该已经在Neo4j中
-                            related_entity_ids = memory.entities if memory.entities else []
-                            logger.debug(f"RETAIN: Creating DecisionEvent for updated memory {memory.id} with decision_trace keys: {list(decision_trace_for_event.keys()) if isinstance(decision_trace_for_event, dict) else 'N/A'}")
-                            if create_decision_event(
-                                memory_id=memory.id,
-                                decision_trace=decision_trace_for_event,
-                                reasoning=reasoning_for_event,
-                                related_entity_ids=related_entity_ids
-                            ):
-                                logger.info(f"Created decision event for memory {memory.id}")
+                            ***REMOVED*** skip_storage 时先确认 Memory 在 Neo4j 中再创建 DecisionEvent（否则 LTM 为 memory 时无节点）
+                            neo4j_memory = get_memory(memory.id)
+                            if neo4j_memory:
+                                related_entity_ids = memory.entities if memory.entities else []
+                                logger.debug(f"RETAIN: Creating DecisionEvent for updated memory {memory.id} with decision_trace keys: {list(decision_trace_for_event.keys()) if isinstance(decision_trace_for_event, dict) else 'N/A'}")
+                                if create_decision_event(
+                                    memory_id=memory.id,
+                                    decision_trace=decision_trace_for_event,
+                                    reasoning=reasoning_for_event,
+                                    related_entity_ids=related_entity_ids
+                                ):
+                                    logger.info(f"Created decision event for memory {memory.id}")
+                                else:
+                                    logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
                             else:
-                                logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
+                                logger.debug(f"Memory {memory.id} not in Neo4j (LTM may be memory backend), skipping DecisionEvent")
                     except Exception as e:
                         ***REMOVED*** 决策事件创建失败不影响主流程
                         logger.warning(f"Failed to create decision event for memory {memory.id}: {e}", exc_info=True)
@@ -1036,6 +1062,7 @@ class UniMem:
         query: str,
         context: Optional[Context] = None,
         memory_type: Optional[MemoryType] = None,
+        tags_include: Optional[List[str]] = None,
         top_k: int = 10,
     ) -> List[RetrievalResult]:
         """
@@ -1045,12 +1072,13 @@ class UniMem:
         1. 存储层快速检索（FoA/DA）
         2. 多维检索引擎（实体/抽象/语义/图/时间）
         3. RRF 融合和重排序
-        4. 过滤和去重
+        4. 过滤和去重（支持 memory_type 与 tags_include 角色感知过滤）
         
         Args:
             query: 查询字符串
             context: 上下文信息
             memory_type: 记忆类型过滤
+            tags_include: 必须包含的标签（用于角色感知，如 role:orchestrator, scope:full_task）
             top_k: 返回结果数量
             
         Returns:
@@ -1066,8 +1094,8 @@ class UniMem:
                 context = Context()
             
             try:
-                ***REMOVED*** 1. 快速检索：FoA 和 DA
-                foa_results = self.storage.search_foa(query, top_k=top_k)
+                ***REMOVED*** 1. 快速检索：FoA 和 DA（带 session 时优先会话级工作/快速记忆）
+                foa_results = self.storage.search_foa(query, top_k=top_k, context=context)
                 da_results = self.storage.search_da(query, context, top_k=top_k)
                 
                 logger.debug(f"FoA: {len(foa_results)} results, DA: {len(da_results)} results")
@@ -1075,7 +1103,7 @@ class UniMem:
                 ***REMOVED*** 如果快速检索已有足够结果，直接返回
                 if len(foa_results) >= top_k:
                     logger.debug(f"FoA retrieved {len(foa_results)} results, returning early")
-                    return self._filter_results(foa_results, memory_type)[:top_k]
+                    return self._filter_results(foa_results, memory_type, tags_include)[:top_k]
                 
                 ***REMOVED*** 2. 多维检索引擎：并行检索并融合
                 multi_results = self.retrieval.multi_dimensional_retrieval(
@@ -1089,14 +1117,20 @@ class UniMem:
                 ***REMOVED*** 3. 合并所有结果
                 all_results = foa_results + da_results + multi_results
                 
-                ***REMOVED*** 4. 去重和过滤
+                ***REMOVED*** 4. 去重和过滤（含角色感知 tags_include）
                 final_results = self._deduplicate_and_filter(
                     all_results,
                     memory_type=memory_type,
+                    tags_include=tags_include,
                 )
                 
-                ***REMOVED*** 5. 重排序
+                ***REMOVED*** 5. 重排序（检索分数）
                 ranked_results = self._rank_results(final_results)
+                
+                ***REMOVED*** 6. 重要性评分融合（可选）：时间衰减 + 访问次数 + 会话/任务匹配
+                importance_weight = self._get_importance_weight()
+                if importance_weight > 0:
+                    ranked_results = self._blend_importance_scores(ranked_results, context, importance_weight)
                 
                 logger.info(f"RECALL completed: {len(ranked_results)} results")
                 return ranked_results[:top_k]
@@ -1111,6 +1145,103 @@ class UniMem:
                     adapter_name="UniMem",
                     cause=e
                 ) from e
+    
+    def recall_for_agent(
+        self,
+        query: str,
+        context: Optional[Context] = None,
+        role: Optional[str] = None,
+        task_id: Optional[str] = None,
+        top_k: int = 10,
+        memory_type: Optional[MemoryType] = None,
+        tags_include: Optional[List[str]] = None,
+    ) -> List[RetrievalResult]:
+        """
+        编排层专用检索 API：供决策编排 Agent 或任务 Agent 使用。
+        
+        在 recall 基础上统一注入 session/task/role 上下文，便于：
+        - 决策编排 Agent：传入 role=\"orchestrator\"、task_id，可检索全任务相关记忆
+        - 任务 Agent：传入 role=\"task_agent\" 或具体角色（如 writer）、task_id，可检索本任务/本角色相关记忆
+        
+        Args:
+            query: 查询字符串
+            context: 上下文；若为 None 会创建空 Context 并注入 role/task_id
+            role: 角色标识，如 \"orchestrator\"、\"task_agent\"、\"writer\"；会写入 context.metadata[\"role\"]
+            task_id: 任务 ID；会写入 context.metadata[\"task_id\"]
+            top_k: 返回条数
+            memory_type: 记忆类型过滤
+            tags_include: 必须包含的标签（如 scope:full_task、scope:subtask）
+            
+        Returns:
+            检索结果列表（已按检索分 + 重要性融合排序）
+        """
+        if context is None:
+            context = Context()
+        meta = dict(context.metadata or {})
+        if role is not None:
+            meta["role"] = role
+        if task_id is not None:
+            meta["task_id"] = task_id
+        if meta != (context.metadata or {}):
+            context = Context(
+                session_id=context.session_id,
+                user_id=context.user_id,
+                metadata=meta,
+            )
+        return self.recall(
+            query=query,
+            context=context,
+            memory_type=memory_type,
+            tags_include=tags_include,
+            top_k=top_k,
+        )
+    
+    def retain_for_agent(
+        self,
+        experience: Experience,
+        context: Optional[Context] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        role: Optional[str] = None,
+        task_id: Optional[str] = None,
+        operation_id: Optional[str] = None,
+        **metadata,
+    ) -> Memory:
+        """
+        编排层专用存储 API：供决策编排 Agent 或任务 Agent 写入记忆。
+        
+        在 retain 基础上统一注入 session_id / task_id / role 到 context，
+        便于会话级 FoA/DA 检索与重要性评分中的会话/任务匹配。
+        
+        Args:
+            experience: 经验数据（内容、时间戳等）
+            context: 已有上下文；若为 None 会创建并注入下方参数
+            session_id: 会话 ID（会写入 context 与 memory.metadata）
+            user_id: 用户 ID
+            role: 角色，如 \"orchestrator\"、\"writer\"
+            task_id: 任务 ID（会写入 context.metadata 与 memory.metadata）
+            operation_id: 可选操作 ID（幂等）
+            **metadata: 其他 metadata 字段
+            
+        Returns:
+            创建的记忆对象
+        """
+        from .memory_types import context_for_agent
+        if context is None:
+            context = context_for_agent(session_id=session_id, user_id=user_id, task_id=task_id, role=role, **metadata)
+        else:
+            meta = dict(context.metadata or {})
+            if role is not None:
+                meta["role"] = role
+            if task_id is not None:
+                meta["task_id"] = task_id
+            meta.update(metadata)
+            context = Context(
+                session_id=session_id if session_id is not None else context.session_id,
+                user_id=user_id if user_id is not None else context.user_id,
+                metadata=meta,
+            )
+        return self.retain(experience, context, operation_id)
     
     def recall_batch(self, queries: List[str], context: Optional[Context] = None, top_k: int = 10) -> List[List[RetrievalResult]]:
         """
@@ -1567,19 +1698,89 @@ class UniMem:
         """对结果进行排序"""
         return sorted(results, key=lambda x: x.score, reverse=True)
     
+    def _get_importance_weight(self) -> float:
+        """从配置读取重要性权重，0 表示不启用重要性融合"""
+        try:
+            return float(self.config.get("retrieval", {}).get("importance_weight", 0.0))
+        except (TypeError, ValueError):
+            return 0.0
+    
+    def _compute_importance_score(self, memory: Memory, context: Optional[Context]) -> float:
+        """
+        计算单条记忆的重要性分数（0~1），用于 recall 重排序。
+        考虑：时间衰减（越新越高）、访问次数（越常被召回越高）、会话/任务匹配（同会话/同任务加分）。
+        """
+        score = 0.0
+        now = datetime.now()
+        decay_days = 30
+        try:
+            decay_days = float(self.config.get("retrieval", {}).get("importance_decay_days", 30))
+        except (TypeError, ValueError):
+            pass
+        
+        ***REMOVED*** 1. 时间衰减：越新越高，指数衰减
+        age_days = (now - memory.timestamp).total_seconds() / 86400.0
+        recency = 1.0 / (1.0 + age_days / max(decay_days, 0.1))
+        score += 0.5 * recency
+        
+        ***REMOVED*** 2. 访问次数：被召回越多次说明越重要（归一化到 0~0.3）
+        count = getattr(memory, "retrieval_count", 0) or 0
+        count_score = min(1.0, count / 10.0) * 0.3
+        score += count_score
+        
+        ***REMOVED*** 3. 会话匹配：同 session 加分
+        if context and context.session_id and memory.metadata:
+            if memory.metadata.get("session_id") == context.session_id:
+                score += 0.1
+        
+        ***REMOVED*** 4. 任务匹配：同 task_id 加分
+        if context and context.metadata and memory.metadata:
+            task_id = context.metadata.get("task_id")
+            if task_id and memory.metadata.get("task_id") == task_id:
+                score += 0.05
+        
+        return min(1.0, score)
+    
+    def _blend_importance_scores(
+        self,
+        results: List[RetrievalResult],
+        context: Optional[Context],
+        importance_weight: float,
+    ) -> List[RetrievalResult]:
+        """将检索分数与重要性分数融合并重新排序"""
+        if not results or importance_weight <= 0:
+            return results
+        retrieval_weight = 1.0 - importance_weight
+        blended = []
+        for r in results:
+            imp = self._compute_importance_score(r.memory, context)
+            blended_score = retrieval_weight * r.score + importance_weight * imp
+            blended.append(
+                RetrievalResult(
+                    memory=r.memory,
+                    score=blended_score,
+                    retrieval_method=r.retrieval_method,
+                    metadata={**(r.metadata or {}), "original_score": r.score, "importance_score": imp},
+                )
+            )
+        return sorted(blended, key=lambda x: x.score, reverse=True)
+    
     def _filter_results(
         self,
         results: List[RetrievalResult],
         memory_type: Optional[MemoryType] = None,
+        tags_include: Optional[List[str]] = None,
     ) -> List[RetrievalResult]:
-        """过滤结果"""
-        if memory_type is None:
-            return results
-        
-        return [
-            r for r in results
-            if r.memory.memory_type == memory_type
-        ]
+        """过滤结果（类型 + 角色感知标签）"""
+        filtered = results
+        if memory_type is not None:
+            filtered = [r for r in filtered if r.memory.memory_type == memory_type]
+        if tags_include:
+            filtered = [
+                r for r in filtered
+                if (getattr(r.memory, "tags", None) or []) and all(t in (r.memory.tags or []) for t in tags_include)
+            ]
+        return filtered
     
     def _check_duplicate_memory(self, memory: Memory, similarity_threshold: float = 0.9) -> Optional[Memory]:
         """
@@ -1911,23 +2112,24 @@ class UniMem:
         self,
         results: List[RetrievalResult],
         memory_type: Optional[MemoryType] = None,
+        tags_include: Optional[List[str]] = None,
     ) -> List[RetrievalResult]:
-        """去重和过滤"""
+        """去重和过滤（类型 + 角色感知标签）"""
         seen_ids = set()
         filtered = []
-        
+
         for result in results:
-            ***REMOVED*** 去重
             if result.memory.id in seen_ids:
                 continue
             seen_ids.add(result.memory.id)
-            
-            ***REMOVED*** 类型过滤
             if memory_type and result.memory.memory_type != memory_type:
                 continue
-            
+            if tags_include:
+                rtags = getattr(result.memory, "tags", None) or []
+                if not all(t in rtags for t in tags_include):
+                    continue
             filtered.append(result)
-        
+
         return filtered
     
     def get_orchestrator(self):

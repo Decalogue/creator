@@ -91,6 +91,9 @@ class UniMemConfig:
             "retrieval": {
                 "top_k": 10,
                 "rrf_k": 60,
+                ***REMOVED*** 记忆重要性评分（用于 recall 重排序）
+                "importance_weight": 0.3,   ***REMOVED*** 与检索分数融合时重要性权重，0=仅检索分，1=仅重要性
+                "importance_decay_days": 30, ***REMOVED*** 时间衰减：超过 N 天未访问的记忆重要性衰减
             },
             "update": {
                 "sleep_interval": 3600,  ***REMOVED*** 1小时
@@ -269,6 +272,14 @@ class UniMemConfig:
                 rrf_k = retrieval_config["rrf_k"]
                 if not isinstance(rrf_k, int) or rrf_k <= 0:
                     errors.append(f"Invalid rrf_k: {rrf_k}. Must be a positive integer")
+            if "importance_weight" in retrieval_config:
+                w = retrieval_config["importance_weight"]
+                if not isinstance(w, (int, float)) or not (0.0 <= w <= 1.0):
+                    errors.append(f"Invalid importance_weight: {w}. Must be between 0.0 and 1.0")
+            if "importance_decay_days" in retrieval_config:
+                d = retrieval_config["importance_decay_days"]
+                if not isinstance(d, (int, float)) or d <= 0:
+                    errors.append(f"Invalid importance_decay_days: {d}. Must be positive")
         
         ***REMOVED*** 验证 ripple 配置
         if "ripple" in self.config:

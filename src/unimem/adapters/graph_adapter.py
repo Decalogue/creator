@@ -115,27 +115,39 @@ class GraphAdapter(BaseAdapter):
             self._available = False
             return
         
-        ***REMOVED*** API 配置
-        api_base_url = self.config.get("api_base_url", "http://localhost:9621")
+        ***REMOVED*** API 配置：api_base_url 为空时表示不启用 LightRAG，不做任何请求（避免连 localhost:9621）
+        raw_url = self.config.get("api_base_url")
+        if raw_url is not None and isinstance(raw_url, str):
+            api_base_url = raw_url.strip()
+        else:
+            api_base_url = str(raw_url) if raw_url is not None else "http://localhost:9621"
+        if not api_base_url:
+            logger.info(
+                "GraphAdapter: api_base_url empty, LightRAG disabled (no POST /query). "
+                "Set UNIMEM_LIGHTRAG_URL to enable."
+            )
+            self.api_base_url = ""
+            self.api_timeout = 30.0
+            self.api_key = None
+            self._session = None
+            self.max_retries = 3
+            self.retry_delay = 1.0
+            self.metrics = RequestMetrics()
+            self._available = False
+            return
+
         api_timeout = float(self.config.get("api_timeout", 30.0))
         api_key = self.config.get("api_key")  ***REMOVED*** 可选，用于认证
-        
-        ***REMOVED*** 配置验证
-        if not api_base_url or not isinstance(api_base_url, str):
-            raise AdapterConfigurationError(
-                "api_base_url must be a non-empty string",
-                adapter_name=self.__class__.__name__
-            )
         if api_timeout <= 0:
             raise AdapterConfigurationError(
                 f"api_timeout must be positive, got {api_timeout}",
                 adapter_name=self.__class__.__name__
             )
-        
+
         self.api_base_url = api_base_url
         self.api_timeout = api_timeout
         self.api_key = api_key
-        
+
         ***REMOVED*** 初始化连接池（Session）
         self._session = requests.Session()
         if self.api_key:
@@ -145,14 +157,14 @@ class GraphAdapter(BaseAdapter):
         self._session.headers.update({
             "Content-Type": "application/json"
         })
-        
+
         ***REMOVED*** 重试配置
         self.max_retries = int(self.config.get("max_retries", 3))
         self.retry_delay = float(self.config.get("retry_delay", 1.0))
-        
+
         ***REMOVED*** 初始化请求指标
         self.metrics = RequestMetrics()
-        
+
         ***REMOVED*** 健康检查
         try:
             health_url = f"{self.api_base_url}/health"
@@ -191,7 +203,10 @@ class GraphAdapter(BaseAdapter):
         if not self.is_available():
             logger.warning(f"Cannot make API request: adapter not available")
             return None
-        
+        if self._session is None:
+            logger.warning("Cannot make API request: LightRAG disabled (no session)")
+            return None
+
         url = f"{self.api_base_url}{endpoint}"
         start_time = time.time()
         self.metrics.total_requests += 1

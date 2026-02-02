@@ -138,21 +138,32 @@ class AtomLinkAdapter(BaseAdapter):
             try:
                 from qdrant_client import QdrantClient
                 from qdrant_client.models import Distance, VectorParams
-                
+
+                default_dim = int(self.config.get("embedding_dimension", 384))
                 self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
-                
-                ***REMOVED*** 创建集合（如果不存在）
+
+                ***REMOVED*** 获取集合信息或创建集合；若 get_collection 因客户端/服务端响应格式不匹配抛 ValidationError 则用默认维度
                 try:
                     collection_info = self.qdrant_client.get_collection(collection_name)
-                    self.embedding_dimension = collection_info.config.params.vectors.size
+                    params = getattr(getattr(collection_info, "config", None), "params", None)
+                    vectors = getattr(params, "vectors", None) if params else None
+                    dim = getattr(vectors, "size", None) if vectors is not None else None
+                    self.embedding_dimension = dim if dim is not None else default_dim
                     logger.info(f"Using existing Qdrant collection: {collection_name} (dim={self.embedding_dimension})")
                 except Exception as get_error:
-                    ***REMOVED*** 集合不存在，尝试创建它
-                    error_str = str(get_error).lower()
-                    if "not found" in error_str or "404" in error_str:
-                        ***REMOVED*** 集合确实不存在，创建它
+                    err_str = str(get_error).lower()
+                    is_validation = "validation" in err_str or "ValidationError" in type(get_error).__name__
+                    is_not_found = "not found" in err_str or "404" in err_str
+                    if is_validation:
+                        self.embedding_dimension = default_dim
+                        logger.info(
+                            "Qdrant get_collection response schema mismatch (client/server version?), "
+                            "using default dimension %s for %s.",
+                            default_dim,
+                            collection_name,
+                        )
+                    elif is_not_found:
                         try:
-                            default_dim = int(self.config.get("embedding_dimension", 384))
                             self.qdrant_client.create_collection(
                                 collection_name=collection_name,
                                 vectors_config=VectorParams(
@@ -164,24 +175,21 @@ class AtomLinkAdapter(BaseAdapter):
                             logger.info(f"Created Qdrant collection: {collection_name} (dim={default_dim})")
                         except Exception as create_error:
                             create_error_str = str(create_error).lower()
-                            ***REMOVED*** 如果创建时遇到409（集合已存在），说明集合在创建过程中被创建了，重新获取
                             if "409" in create_error_str or "already exists" in create_error_str or "conflict" in create_error_str:
-                                try:
-                                    collection_info = self.qdrant_client.get_collection(collection_name)
-                                    self.embedding_dimension = collection_info.config.params.vectors.size
-                                    logger.info(f"Qdrant collection already exists (recovered): {collection_name} (dim={self.embedding_dimension})")
-                                except Exception:
-                                    logger.warning(f"Collection {collection_name} exists but cannot access: {create_error}")
-                                    self.embedding_dimension = default_dim
+                                self.embedding_dimension = default_dim
+                                logger.info(f"Qdrant collection {collection_name} already exists, using default dim: {default_dim}")
                             else:
-                                ***REMOVED*** 其他创建错误
-                                logger.warning(f"Failed to create Qdrant collection {collection_name}: {create_error}")
+                                logger.warning("Failed to create Qdrant collection %s: %s", collection_name, create_error)
                                 raise create_error
                     else:
-                        ***REMOVED*** get_collection失败但不是"not found"，记录警告但使用默认维度
-                        logger.warning(f"Failed to get Qdrant collection {collection_name}: {get_error}. Using default dimension.")
-                        self.embedding_dimension = int(self.config.get("embedding_dimension", 384))
-                
+                        self.embedding_dimension = default_dim
+                        logger.warning(
+                            "Failed to get Qdrant collection %s: %s. Using default dimension %s.",
+                            collection_name,
+                            get_error,
+                            default_dim,
+                        )
+
                 self.collection_name = collection_name
                 logger.info(f"Qdrant client connected: {qdrant_host}:{qdrant_port}")
             except Exception as e:

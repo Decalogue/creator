@@ -61,6 +61,82 @@ const API_BASE = API_URL;
 const CREATOR_SUBMIT_TIMEOUT_MS = 15 * 1000;
 /** 轮询间隔 */
 const CREATOR_POLL_INTERVAL_MS = 2500;
+/** Stream 超时（单次创作/续写） */
+/** 流式创作单次请求最长等待 300s，超时则前端 abort */
+const CREATOR_STREAM_TIMEOUT_MS = 300 * 1000;
+
+/** 后端 step 与前端 Agent 映射（P1 编排事件） */
+function stepToAgentKey(step: string): AgentKey | null {
+  const map: Record<string, AgentKey> = { plan: 'planner', memory: 'memory', write: 'writer' };
+  return map[step] ?? null;
+}
+
+/** 创作流式 API：POST /api/creator/stream，解析 SSE 事件并回调；返回 stream_end 的 payload */
+async function fetchCreatorStream(
+  body: Record<string, unknown>,
+  onEvent: (ev: { type: string; step?: string; data?: Record<string, unknown>; code?: number; message?: string; content?: string; project_id?: string; chapter_number?: number }) => void
+): Promise<{ code: number; message: string; content?: string; project_id?: string; chapter_number?: number }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CREATOR_STREAM_TIMEOUT_MS);
+  const res = await fetch(`${API_BASE}/api/creator/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
+  if (!res.ok || !res.body) {
+    throw new Error(res.status === 503 ? '创作服务未就绪' : res.status === 400 ? 'stream 仅支持 mode=create 或 continue' : `HTTP ${res.status}`);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buffer = '';
+  let streamEnd: { code?: number; message?: string; content?: string; project_id?: string; chapter_number?: number } = { code: 1, message: '未收到 stream_end' };
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += dec.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const json = JSON.parse(line.slice(6).trim()) as {
+            type?: string;
+            step?: string;
+            data?: Record<string, unknown>;
+            code?: number;
+            message?: string;
+            content?: string;
+            project_id?: string;
+            chapter_number?: number;
+          };
+          onEvent(json);
+          if (json.type === 'stream_end') {
+            streamEnd = {
+              code: json.code ?? 0,
+              message: json.message ?? '',
+              content: json.content,
+              project_id: json.project_id,
+              chapter_number: json.chapter_number,
+            };
+          }
+        } catch (_) {
+          // ignore parse
+        }
+      }
+    }
+  }
+  if (buffer.startsWith('data: ')) {
+    try {
+      const json = JSON.parse(buffer.slice(6).trim()) as { type?: string; step?: string; data?: Record<string, unknown>; code?: number; message?: string; content?: string };
+      onEvent(json);
+      if (json.type === 'stream_end') {
+        streamEnd = { code: json.code ?? 0, message: json.message ?? '', content: json.content, project_id: json.project_id, chapter_number: json.chapter_number };
+      }
+    } catch (_) {}
+  }
+  return streamEnd as { code: number; message: string; content?: string; project_id?: string; chapter_number?: number };
+}
 
 function fetchCreatorSubmit(body: Record<string, unknown>): Promise<Response> {
   const controller = new AbortController();
@@ -137,11 +213,11 @@ async function parseCreatorRunResponse(
   return { data, error: null };
 }
 
-// 智能体定义
+// 智能体定义：记忆为通用支撑（实体/关系/事实/原子笔记），排首位；其余为创作流水线
 const AGENTS = [
+  { key: 'memory', name: '记忆', icon: <DatabaseOutlined />, color: '***REMOVED***06b6d4' },
   { key: 'planner', name: '大纲', icon: <BulbOutlined />, color: '***REMOVED***f59e0b' },
   { key: 'writer', name: '写手', icon: <EditOutlined />, color: '***REMOVED***8b5cf6' },
-  { key: 'memory', name: '记忆', icon: <DatabaseOutlined />, color: '***REMOVED***06b6d4' },
   { key: 'editor', name: '润色', icon: <EditOutlined />, color: '***REMOVED***10b981' },
   { key: 'qa', name: '质检', icon: <SafetyCertificateOutlined />, color: '***REMOVED***ec4899' },
 ] as const;
@@ -350,7 +426,7 @@ const CreatorPage: React.FC = () => {
   }, [messages, scrollToBottom]);
 
   const runOrchestration = useCallback(async () => {
-    const order: AgentKey[] = ['planner', 'memory', 'writer', 'editor', 'qa'];
+    const order: AgentKey[] = ['memory', 'planner', 'writer', 'editor', 'qa'];
     setOrchestration([]);
     for (const a of order) {
       setActiveAgent(a);
@@ -360,9 +436,25 @@ const CreatorPage: React.FC = () => {
     setActiveAgent(null);
   }, []);
 
+  const clearConversation = useCallback(() => {
+    setMessages([]);
+    setInput('');
+    setOrchestration([]);
+    setActiveAgent(null);
+    hasAppendedResumeHintRef.current = false;
+    try {
+      localStorage.removeItem(CREATOR_STORAGE_KEYS.messages);
+    } catch (_) {}
+  }, []);
+
   const handleSend = async () => {
     const raw = input.trim();
     if (!raw || loading) return;
+
+    if (raw === '清空历史' || raw === '清空') {
+      clearConversation();
+      return;
+    }
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
@@ -420,10 +512,11 @@ const CreatorPage: React.FC = () => {
             try {
               res = await fetchCreatorSubmit({ mode: 'continue', input: '', project_id: projectId });
             } catch (e) {
+              const detail = e instanceof Error ? e.message : String(e);
               const msg =
                 (e instanceof Error && e.name === 'AbortError')
                   ? '提交超时，请检查网络'
-                  : '无法连接后端，请确认 creator_api 已启动且前端 API_URL 指向正确地址。';
+                  : `无法连接后端（${detail}）。请确认 creator_api 已启动且浏览器能访问 API_URL。`;
               progress += `\n第 ${i + 1} 章失败：${msg}`;
               setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
               break;
@@ -472,31 +565,75 @@ const CreatorPage: React.FC = () => {
           if (lastContent) progress += `\n\n最后章节摘要：\n${lastContent}…`;
           streamEndRef.current.add(aid);
           setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: progress, streaming: false } : m)));
-          if (completedCount > 0 && memoryOpen) fetchMemory();
-          if (completedCount > 0) fetchProjectChapters();
+          try {
+            if (completedCount > 0 && memoryOpen) await fetchMemory();
+            if (completedCount > 0) await fetchProjectChapters();
+          } catch (_) {
+            // 刷新记忆/章节列表失败不覆盖已展示的成功内容
+          }
           setOrchestration(['planner', 'memory', 'writer', 'editor', 'qa']);
           setActiveAgent(null);
         } else {
-          let res: Response;
+          // 单次 create/continue：走流式 API，用编排事件驱动指挥中心
+          const streamBody = {
+            mode,
+            input: raw,
+            ...(mode !== 'create' ? { project_id: projectId } : {}),
+            ...(mode === 'create' && continueFromVolume && previousProjectId
+              ? {
+                  previous_project_id: previousProjectId,
+                  start_chapter: volumeStartChapter,
+                  target_chapters: volumeTargetChapters,
+                  project_id: newVolumeProjectId.trim() || undefined,
+                }
+              : {}),
+          };
+          let streamEnd: { code: number; message: string; content?: string; project_id?: string; chapter_number?: number };
           try {
-            res = await fetchCreatorSubmit({
-              mode,
-              input: raw,
-              ...(mode !== 'create' ? { project_id: projectId } : {}),
-              ...(mode === 'create' && continueFromVolume && previousProjectId
-                ? {
-                    previous_project_id: previousProjectId,
-                    start_chapter: volumeStartChapter,
-                    target_chapters: volumeTargetChapters,
-                    project_id: newVolumeProjectId.trim() || undefined,
-                  }
-                : {}),
+            streamEnd = await fetchCreatorStream(streamBody, (ev) => {
+              if (ev.type === 'step_start' && ev.step) {
+                const agentKey = stepToAgentKey(ev.step);
+                if (agentKey) setActiveAgent(agentKey);
+              } else if (ev.type === 'step_done' && ev.step) {
+                const agentKey = stepToAgentKey(ev.step);
+                if (agentKey) {
+                  setOrchestration((prev) => (prev.includes(agentKey) ? prev : [...prev, agentKey]));
+                  setActiveAgent(null);
+                }
+              } else if (ev.type === 'step_error' && ev.data?.error) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aid ? { ...m, content: `${m.content}\n\n⚠️ 步骤异常: ${ev.data!.error}` } : m
+                  )
+                );
+                setActiveAgent(null);
+              } else if (ev.type === 'stream_end') {
+                const code = ev.code ?? 1;
+                const msg = ev.message ?? '';
+                const content = ev.content ?? '';
+                let text = code === 0 ? content : msg;
+                if (code === 0 && mode === 'create' && ev.project_id) {
+                  setProjectId(ev.project_id);
+                  setProjectList((prev) => (prev.includes(ev.project_id!) ? prev : [...prev, ev.project_id!].sort()));
+                  text += '\n\n---\n💡 大纲已生成。请切换到「章节」并发送任意内容（如「写第一章」或「写10章」），将按大纲逐章生成正文。';
+                }
+                if (code === 0 && mode === 'continue' && ev.chapter_number != null) {
+                  const ch = ev.chapter_number;
+                  text += `\n\n---\n📄 第 ${ch} 章已写入项目目录 \`chapters/chapter_${String(ch).padStart(3, '0')}.txt\`。继续点击「章节」可写下一章。`;
+                }
+                setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, content: text, streaming: false } : m)));
+                setOrchestration(['planner', 'memory', 'writer', 'editor', 'qa']);
+                setActiveAgent(null);
+                if (code === 0 && memoryOpen) fetchMemory().catch(() => {});
+                if (code === 0 && mode === 'continue') fetchProjectChapters().catch(() => {});
+              }
             });
           } catch (e) {
+            const detail = e instanceof Error ? e.message : String(e);
             const msg =
-              (e instanceof Error && e.name === 'AbortError')
+              e instanceof Error && e.name === 'AbortError'
                 ? '提交超时，请检查网络'
-                : '无法连接后端，请确认 creator_api 已启动且前端 API_URL 指向正确地址。';
+                : `无法连接后端（${detail}）。请确认 creator_api 已启动、API_URL 正确，且当前浏览器能访问该地址（若 API 在服务器端口映射，需从能访问该映射的终端打开前端）。`;
             streamEndRef.current.add(aid);
             setMessages((prev) =>
               prev.map((m) => (m.id === aid ? { ...m, content: msg, streaming: false } : m))
@@ -507,64 +644,15 @@ const CreatorPage: React.FC = () => {
             scrollToBottom();
             return;
           }
-          const { data: submitData, error } = await parseCreatorRunResponse(res);
-          if (error) {
-            streamEndRef.current.add(aid);
+          // 若 SSE 未携带 stream_end 或需兜底展示，用返回值再更新一次
+          if (streamEnd.code !== 0 && streamEnd.message) {
             setMessages((prev) =>
-              prev.map((m) => (m.id === aid ? { ...m, content: error, streaming: false } : m))
+              prev.map((m) =>
+                m.id === aid ? { ...m, content: m.content ? `${m.content}\n\n${streamEnd.message}` : streamEnd.message, streaming: false } : m
+              )
             );
-            setOrchestration([]);
-            setActiveAgent(null);
-            setLoading(false);
-            scrollToBottom();
-            return;
-          }
-          const taskId = submitData.task_id as string | undefined;
-          let data: { code?: number; message?: string; content?: string; project_id?: string; chapter_number?: number };
-          if (taskId) {
-            setMessages((prev) =>
-              prev.map((m) => (m.id === aid ? { ...m, content: '任务已提交，正在生成…', streaming: false } : m))
-            );
-            const pollResult = await pollCreatorTask(taskId);
-            if (pollResult.status === 'failed') {
-              streamEndRef.current.add(aid);
-              setMessages((prev) =>
-                prev.map((m) => (m.id === aid ? { ...m, content: pollResult.error || '任务失败', streaming: false } : m))
-              );
-              setOrchestration([]);
-              setActiveAgent(null);
-              setLoading(false);
-              scrollToBottom();
-              return;
-            }
-            data = {
-              code: pollResult.code,
-              message: pollResult.message,
-              content: pollResult.content,
-              project_id: pollResult.project_id,
-              chapter_number: pollResult.chapter_number,
-            };
-          } else {
-            data = submitData;
-          }
-          let text = data.code === 0 ? (data.content || '') : (data.message || '请求失败');
-          if (data.code === 0 && mode === 'create') {
-            if (data.project_id) {
-              setProjectId(data.project_id);
-              setProjectList((prev) => (prev.includes(data.project_id!) ? prev : [...prev, data.project_id!].sort()));
-            }
-            text += '\n\n---\n💡 大纲已生成。请切换到「章节」并发送任意内容（如「写第一章」或「写10章」），将按大纲逐章生成正文。';
-          }
-          if (data.code === 0 && mode === 'continue' && data.chapter_number) {
-            const ch = data.chapter_number;
-            text += `\n\n---\n📄 第 ${ch} 章已写入项目目录 \`chapters/chapter_${String(ch).padStart(3, '0')}.txt\`。继续点击「章节」可写下一章。`;
           }
           streamEndRef.current.add(aid);
-          setMessages((prev) =>
-            prev.map((m) => (m.id === aid ? { ...m, content: text, streaming: false } : m))
-          );
-          if (data.code === 0 && memoryOpen) fetchMemory();
-          if (data.code === 0 && mode === 'continue') fetchProjectChapters();
           setOrchestration(['planner', 'memory', 'writer', 'editor', 'qa']);
           setActiveAgent(null);
         }
@@ -608,7 +696,7 @@ const CreatorPage: React.FC = () => {
     } catch {
       streamEndRef.current.add(aid);
       const fallback = useCreatorApi
-        ? '创作服务请求失败，请确认后端已启动且 /api/creator/run 可用。'
+        ? '创作服务请求失败，请确认后端已启动且创作接口（/api/creator/run 或 /api/creator/stream）可用。'
         : '多智能体创作助手已就绪。当前为演示模式，正在模拟编排流程；实际创作需对接后端编排与记忆服务。';
       setMessages((prev) =>
         prev.map((m) => (m.id === aid ? { ...m, content: fallback, streaming: false } : m))
@@ -1196,7 +1284,7 @@ const CreatorPage: React.FC = () => {
               boxShadow: '0 -4px 24px rgba(0,0,0,0.15)',
             }}
           >
-            <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', gap: 16, alignItems: 'flex-end' }}>
+            <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', gap: 12, alignItems: 'flex-end' }}>
               <TextArea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1228,13 +1316,24 @@ const CreatorPage: React.FC = () => {
                   disabled={!input.trim()}
                   className="creator-send-btn"
                   style={{
-                    height: 44,
-                    minWidth: 44,
+                    height: 36,
+                    minWidth: 36,
                     background: T.primaryBg,
                     border: 'none',
                     borderRadius: T.radiusMd,
                   }}
                 />
+              </Tooltip>
+              <Tooltip title="清空对话历史">
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={clearConversation}
+                  disabled={loading}
+                  style={{ color: T.textMuted, height: 36, minWidth: 36, padding: '0 8px' }}
+                >
+                  清空
+                </Button>
               </Tooltip>
             </div>
             <div

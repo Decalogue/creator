@@ -25,6 +25,75 @@ UniMem 采用**功能导向的适配器设计**，按照功能需求而非架构
 3. **易于扩展**：新增功能只需实现适配器接口
 4. **解耦设计**：各适配器独立，易于维护和测试
 
+***REMOVED******REMOVED*** 编排层记忆 API（决策编排 Agent / 任务 Agent）
+
+为「决策编排 Agent + 记忆 Agent 做通用上层、任务 Agent 组」架构提供统一检索入口：
+
+```python
+from unimem import UniMem, context_for_agent
+
+memory = UniMem(...)
+
+***REMOVED*** 构建编排/任务上下文
+ctx = context_for_agent(session_id="s1", task_id="t1", role="orchestrator")
+
+***REMOVED*** 编排层专用检索：自动注入 session/task/role，并参与重要性评分
+results = memory.recall_for_agent(
+    query="当前任务的约束与偏好",
+    context=ctx,
+    role="orchestrator",
+    task_id="t1",
+    top_k=5,
+)
+
+***REMOVED*** 编排层专用存储：自动注入 session/task/role，便于会话级检索与重要性匹配
+from unimem.memory_types import Experience
+mem = memory.retain_for_agent(
+    Experience(content="用户偏好：喜欢短句。", timestamp=datetime.now()),
+    session_id="s1",
+    task_id="t1",
+    role="writer",
+)
+```
+
+- **recall_for_agent**：在 `recall` 基础上统一注入 `session_id`、`task_id`、`role`，便于按会话/任务/角色过滤与重要性加分。
+- **context_for_agent**：便捷构建带 `task_id`、`role` 的 `Context`，用于 recall/retain。
+- **retain_for_agent**：编排层专用存储，自动注入 `session_id`/`task_id`/`role`，便于会话级 FoA/DA 与重要性评分（见下）。
+
+检索结果会与**重要性评分**融合（见下）后排序；当 `context.session_id` 存在时，FoA/DA 优先按**会话**返回（会话级工作记忆 / 快速访问）。
+
+***REMOVED******REMOVED*** 记忆重要性评分（Recall 重排序）
+
+Recall 支持将「检索分数」与「重要性分数」融合后重排序，便于优先返回更相关、更新、更常被访问的记忆：
+
+- **时间衰减**：越新的记忆分数越高（可配置 `retrieval.importance_decay_days`，默认 30 天）。
+- **访问次数**：`retrieval_count` 越高分数越高。
+- **会话/任务匹配**：与当前 `context.session_id`、`context.metadata["task_id"]` 一致时加分。
+
+配置（可选）：
+
+```json
+"retrieval": {
+  "importance_weight": 0.3,
+  "importance_decay_days": 30
+}
+```
+
+- `importance_weight`：与检索分数融合时的重要性权重，0=仅用检索分，1=仅用重要性；默认 0.3。
+- `importance_decay_days`：时间衰减半衰期（天）。
+
+***REMOVED******REMOVED*** 会话级 FoA/DA（工作记忆与快速访问）
+
+当 `context.session_id` 存在时，**FoA** 与 **DA** 的检索会优先按会话返回：
+
+- **Redis 后端**：使用 `foa:session:{session_id}`、`da:session:{session_id}` 的键，只返回该会话的记忆。
+- **内存后端**：按 `memory.metadata["session_id"]` 过滤，只返回同会话记忆。
+
+这样编排层 / 任务 Agent 传入同一 `session_id` 时，recall 会优先拿到「当前会话」的工作记忆与快速访问记忆；长期记忆（LTM）仍为全局检索。  
+存储时通过 **retain** 或 **retain_for_agent** 传入的 `context.session_id` 会写入 `memory.metadata["session_id"]`，供上述检索与重要性评分中的「会话匹配」使用。
+
+---
+
 ***REMOVED******REMOVED*** 快速开始
 
 ***REMOVED******REMOVED******REMOVED*** 安装依赖
@@ -562,18 +631,22 @@ unimem/
 
 ***REMOVED******REMOVED*** 测试
 
-运行测试前需要激活 `seeme` 环境：
+运行测试及**连接检查脚本**前需先激活 `seeme` 环境（Redis、Neo4j、Qdrant 等依赖在该环境中）：
 
 ```bash
+conda activate seeme
+
+***REMOVED*** 检查 Redis / Neo4j / Qdrant 连接状态
+python unimem/scripts/check_connections.py
+
 ***REMOVED*** 方式一：使用自动测试脚本
 python tests/run_tests.py
 
-***REMOVED*** 方式二：手动激活环境
-conda activate seeme
+***REMOVED*** 方式二：手动运行 pytest
 python -m pytest tests/ -v
 ```
 
-更多测试信息请参考 [tests/README.md](tests/README.md)。
+或单条命令：`conda run -n seeme python unimem/scripts/check_connections.py`。更多测试信息请参考 [tests/README.md](tests/README.md)。
 
 ***REMOVED******REMOVED*** 相关文档
 

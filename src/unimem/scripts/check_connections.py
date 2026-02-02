@@ -2,6 +2,12 @@
 """
 检查 UniMem 服务连接状态
 检查 Redis、Neo4j、Qdrant 的连接状态
+
+运行前请先激活 seeme 环境：
+  conda activate seeme
+  python unimem/scripts/check_connections.py
+或：
+  conda run -n seeme python unimem/scripts/check_connections.py
 """
 
 import sys

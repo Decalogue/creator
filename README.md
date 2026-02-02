@@ -27,3 +27,10 @@
 
 结合当前 Agent 与 Memory 领域发展，各阶段优先级与落地顺序见 **[docs/ROADMAP.md](docs/ROADMAP.md)**：  
 闭环打通（创作 API + 记忆/图谱 API + 前端）→ 编排可观测 & UniMem 贯通 → Agent/Memory 升级 → 稳定性与成本。
+
+***REMOVED******REMOVED******REMOVED*** 运行与故障排查
+
+- **「无法连接后端（network error）」但后端已生成 novel_plan.json**  
+  说明请求已到达后端且创作已完成，但浏览器在等待流式响应时连接被断开。常见原因：**反向代理/网关读超时**（如 Nginx 默认 60s）短于创作耗时（数分钟）。  
+  - **处理**：若前面有 Nginx 等代理，对该流式接口调大读超时，例如 `proxy_read_timeout 300s;` 或更长。  
+  - 服务端已对 `/api/creator/stream` 每 30 秒发送 SSE 心跳（`: keepalive`），可减少因“空闲”被断开的概率，但总耗时若超过代理配置的读超时仍会断开。

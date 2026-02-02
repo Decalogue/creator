@@ -207,6 +207,7 @@ def run_create(
     previous_project_id: Optional[str] = None,
     start_chapter: Optional[int] = None,
     target_chapters: Optional[int] = None,
+    on_event: Optional[Any] = None,
 ) -> Tuple[int, str, Optional[Dict]]:
     """
     执行「大纲」：创建小说大纲。
@@ -266,6 +267,7 @@ def run_create(
             words_per_chapter=2048,
             previous_volume_context=prev_ctx,
             start_chapter=start_ch,
+            on_event=on_event,
         )
         ***REMOVED*** 生成简短摘要供前端展示
         lines = []
@@ -280,13 +282,18 @@ def run_create(
                         t = ch.get("title") or ch.get("summary", "")[:30]
                         lines.append(f"第{ch.get('chapter_number', i+1)}章：{t}")
         content = "\n".join(lines) if lines else json.dumps(plan, ensure_ascii=False)[:1500]
+        try:
+            from api.memory_handlers import retain_plan_to_unimem
+            retain_plan_to_unimem(project_id, content)
+        except Exception as ex:
+            logger.warning("UniMem retain plan failed: %s", ex)
         return 0, "创作成功", {"content": content, "mode": "create", "project_id": project_id}
     except Exception as e:
         logger.exception("run_create failed")
         return 1, f"创作失败：{str(e)}", None
 
 
-def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tuple[int, str, Optional[Dict]]:
+def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on_event: Optional[Any] = None) -> Tuple[int, str, Optional[Dict]]:
     """
     执行「续写」：写下一章。
     Returns: (code, message, extra)
@@ -375,8 +382,14 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None) ->
             chapter_summary=summary,
             previous_chapters_summary=prev_summary or None,
             target_words=2048,
+            on_event=on_event,
         )
         content = (chapter.content or "").strip()
+        try:
+            from api.memory_handlers import retain_chapter_to_unimem
+            retain_chapter_to_unimem(project_id, chapter_number, content)
+        except Exception as ex:
+            logger.warning("UniMem retain chapter failed: %s", ex)
         return 0, "续写成功", {"content": content, "mode": "continue", "project_id": project_id, "chapter_number": chapter_number}
     except Exception as e:
         logger.exception("run_continue failed")
@@ -432,8 +445,9 @@ def run(
     previous_project_id: Optional[str] = None,
     start_chapter: Optional[int] = None,
     target_chapters: Optional[int] = None,
+    on_event: Optional[Any] = None,
 ) -> Tuple[int, str, Optional[Dict]]:
-    """统一入口。create 模式可传 previous_project_id、start_chapter、target_chapters 用于接续前卷。"""
+    """统一入口。create 模式可传 previous_project_id、start_chapter、target_chapters 用于接续前卷。on_event 用于 P1 编排事件推送。"""
     mode_key = (mode or "").strip().lower()
     if mode_key == "create":
         return run_create(
@@ -441,8 +455,11 @@ def run(
             previous_project_id=previous_project_id,
             start_chapter=start_chapter,
             target_chapters=target_chapters,
+            on_event=on_event,
         )
     if mode_key in ("continue", "polish", "chat"):
         h = {"continue": run_continue, "polish": run_polish, "chat": run_chat}[mode_key]
+        if mode_key == "continue":
+            return run_continue(mode, raw_input, project_id, on_event=on_event)
         return h(mode, raw_input, project_id)
     return 1, f"不支持的 mode：{mode}", None

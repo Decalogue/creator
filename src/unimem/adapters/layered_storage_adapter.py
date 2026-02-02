@@ -36,9 +36,11 @@ try:
         add_to_foa as redis_add_to_foa,
         get_from_foa as redis_get_from_foa,
         remove_from_foa as redis_remove_from_foa,
+        get_foa_memories_by_session as redis_get_foa_by_session,
         add_to_da as redis_add_to_da,
         get_from_da as redis_get_from_da,
         remove_from_da as redis_remove_from_da,
+        get_da_memories_by_session as redis_get_da_by_session,
         get_redis_client,
         REDIS_AVAILABLE,
     )
@@ -47,9 +49,11 @@ except ImportError:
     redis_add_to_foa = None
     redis_get_from_foa = None
     redis_remove_from_foa = None
+    redis_get_foa_by_session = None
     redis_add_to_da = None
     redis_get_from_da = None
     redis_remove_from_da = None
+    redis_get_da_by_session = None
     get_redis_client = None
 
 try:
@@ -354,13 +358,14 @@ class LayeredStorageAdapter(BaseAdapter):
             logger.error(f"Error adding memory to LTM: {e}", exc_info=True)
             return False
     
-    def search_foa(self, query: str, top_k: int = 10) -> List[Memory]:
+    def search_foa(self, query: str, top_k: int = 10, context: Optional[Context] = None) -> List[Memory]:
         """
-        在 FoA 中搜索
+        在 FoA 中搜索；当 context.session_id 存在时优先按会话检索（会话级工作记忆）。
         
         Args:
             query: 查询字符串（当前未使用，保留用于接口一致性）
             top_k: 返回结果数量
+            context: 上下文；若带 session_id 则优先返回该会话的 FoA 记忆
             
         Returns:
             List[Memory]: 最近的记忆列表（最新的在前）
@@ -368,20 +373,22 @@ class LayeredStorageAdapter(BaseAdapter):
         Note:
             - 线程安全
             - 返回副本，避免外部修改内部存储
-            - 当前实现为简单实现（返回最近的记忆），实际应该实现语义搜索
-            - 根据配置使用 Redis 或内存存储
+            - 根据配置使用 Redis 或内存存储；Redis 下按 session 使用 foa:session:{id}
         """
         if not self.is_available():
             return []
         
+        session_id = context.session_id if context and getattr(context, "session_id", None) else None
+        
         try:
             with self._foa_lock:
                 if self.foa_backend == "redis":
-                    ***REMOVED*** 使用 Redis 后端
                     if REDIS_AVAILABLE and get_redis_client:
                         client = get_redis_client()
                         if client:
-                            ***REMOVED*** 从 Redis 列表获取最近的记忆 ID
+                            if session_id and redis_get_foa_by_session:
+                                memories = redis_get_foa_by_session(session_id, limit=top_k, client=client)
+                                return memories[:top_k]
                             list_key = "foa:memories"
                             memory_ids = client.lrange(list_key, 0, top_k - 1)
                             memories = []
@@ -391,19 +398,22 @@ class LayeredStorageAdapter(BaseAdapter):
                                     memories.append(memory)
                             return memories
                 
-                ***REMOVED*** 使用内存存储（默认或降级）
-                return self.foa_storage[-top_k:].copy()  ***REMOVED*** 返回副本，避免外部修改
+                ***REMOVED*** 使用内存存储：有 session_id 时只返回该会话的 FoA
+                if session_id:
+                    by_session = [m for m in self.foa_storage if (getattr(m, "metadata", None) or {}).get("session_id") == session_id]
+                    return by_session[-top_k:].copy()
+                return self.foa_storage[-top_k:].copy()
         except Exception as e:
             logger.error(f"Error searching FoA: {e}", exc_info=True)
             return []
     
     def search_da(self, query: str, context: Context, top_k: int = 10) -> List[Memory]:
         """
-        在 DA 中搜索
+        在 DA 中搜索；当 context.session_id 存在时优先按会话检索（会话级快速访问）。
         
         Args:
             query: 查询字符串（当前未使用，保留用于接口一致性）
-            context: 上下文信息（当前未使用，保留用于接口一致性）
+            context: 上下文信息；若带 session_id 则优先返回该会话的 DA 记忆
             top_k: 返回结果数量
             
         Returns:
@@ -411,20 +421,22 @@ class LayeredStorageAdapter(BaseAdapter):
             
         Note:
             - 线程安全
-            - 当前实现为简单实现（返回所有记忆），实际应该实现语义搜索
-            - 根据配置使用 Redis 或内存存储
+            - 根据配置使用 Redis 或内存存储；Redis 下按 session 使用 da:session:{id}
         """
         if not self.is_available():
             return []
         
+        session_id = context.session_id if context and getattr(context, "session_id", None) else None
+        
         try:
             with self._da_lock:
                 if self.da_backend == "redis":
-                    ***REMOVED*** 使用 Redis 后端
                     if REDIS_AVAILABLE and get_redis_client:
                         client = get_redis_client()
                         if client:
-                            ***REMOVED*** 从 Redis 集合获取记忆 ID
+                            if session_id and redis_get_da_by_session:
+                                memories = redis_get_da_by_session(session_id, limit=top_k, client=client)
+                                return memories[:top_k]
                             set_key = "da:memories"
                             memory_ids = list(client.smembers(set_key))[:top_k]
                             memories = []
@@ -434,7 +446,10 @@ class LayeredStorageAdapter(BaseAdapter):
                                     memories.append(memory)
                             return memories
                 
-                ***REMOVED*** 使用内存存储（默认或降级）
+                ***REMOVED*** 使用内存存储：有 session_id 时只返回该会话的 DA
+                if session_id:
+                    by_session = [m for m in self.da_storage.values() if (getattr(m, "metadata", None) or {}).get("session_id") == session_id]
+                    return by_session[:top_k]
                 return list(self.da_storage.values())[:top_k]
         except Exception as e:
             logger.error(f"Error searching DA: {e}", exc_info=True)

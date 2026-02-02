@@ -1,6 +1,8 @@
 import time
 import uuid
 import threading
+import queue
+import json
 import requests
 
 from flask import Flask
@@ -178,6 +180,36 @@ def _run_creator_task(task_id, mode, raw, project_id, options=None):
             _creator_tasks[task_id] = {'status': 'failed', 'error': str(e)}
 
 
+def _run_creator_stream_task(ev_queue, mode, raw, project_id, options=None):
+    """在后台线程中执行创作，将编排事件放入 ev_queue，最后放入 stream_end 与 None。"""
+    options = options or {}
+    try:
+        if mode == 'continue':
+            _continue_lock.acquire()
+        try:
+            code, msg, extra = creator_run(
+                mode, raw, project_id,
+                previous_project_id=options.get('previous_project_id'),
+                start_chapter=options.get('start_chapter'),
+                target_chapters=options.get('target_chapters'),
+                on_event=ev_queue.put,
+            )
+            ev_queue.put({
+                'type': 'stream_end',
+                'code': code,
+                'message': msg,
+                'content': (extra or {}).get('content', ''),
+                **(extra or {}),
+            })
+        finally:
+            if mode == 'continue':
+                _continue_lock.release()
+    except Exception as e:
+        app.logger.exception('Creator stream task failed: %s', e)
+        ev_queue.put({'type': 'stream_end', 'code': 1, 'message': str(e), 'content': ''})
+    ev_queue.put(None)
+
+
 @app.route('/api/creator/run', methods=['POST'])
 def creator_run_endpoint():
     """POST /api/creator/run  body: { mode, input, project_id?, previous_project_id?, start_chapter?, target_chapters? } 立即返回 task_id"""
@@ -208,6 +240,46 @@ def creator_run_endpoint():
         return jsonify({'code': 1, 'message': str(e), 'content': ''})
 
 
+@app.route('/api/creator/stream', methods=['POST'])
+def creator_stream_endpoint():
+    """POST /api/creator/stream  body 同 /api/creator/run，返回 SSE：编排事件（step_start/step_done/step_error） + 最后一条 stream_end。"""
+    if not _CREATOR_MEMORY_AVAILABLE:
+        return jsonify({'code': 1, 'message': '创作服务未就绪', 'content': ''}), 503
+    try:
+        data = request.json or {}
+        mode = data.get('mode', 'chat')
+        raw = data.get('input', '')
+        project_id = data.get('project_id')
+        options = {
+            'previous_project_id': data.get('previous_project_id'),
+            'start_chapter': data.get('start_chapter'),
+            'target_chapters': data.get('target_chapters'),
+        }
+        if mode not in ('create', 'continue'):
+            return jsonify({'code': 1, 'message': 'stream 仅支持 mode=create 或 continue'}), 400
+        ev_queue = queue.Queue()
+        t = threading.Thread(target=_run_creator_stream_task, args=(ev_queue, mode, raw, project_id, options), daemon=True)
+        t.start()
+
+        @stream_with_context
+        def sse_gen():
+            _SSE_KEEPALIVE_SEC = 30  ***REMOVED*** 每 30s 无事件时发心跳，避免代理因“空闲”断开；代理读超时建议 >= 300s
+            while True:
+                try:
+                    ev = ev_queue.get(timeout=_SSE_KEEPALIVE_SEC)
+                except queue.Empty:
+                    yield ': keepalive\n\n'
+                    continue
+                if ev is None:
+                    break
+                yield 'data: ' + json.dumps(ev, ensure_ascii=False) + '\n\n'
+
+        return Response(sse_gen(), mimetype='text/event-stream')
+    except Exception as e:
+        app.logger.exception('Creator stream error')
+        return jsonify({'code': 1, 'message': str(e), 'content': ''}), 500
+
+
 @app.route('/api/creator/task/<task_id>', methods=['GET'])
 def creator_task_status(task_id):
     """GET /api/creator/task/<task_id> 轮询任务状态。status: pending|running|done|failed"""
@@ -230,8 +302,39 @@ def creator_task_status(task_id):
 
 @app.route('/api/config', methods=['GET'])
 def api_config():
-    """GET /api/config 返回后端配置（如 backend_url），供前端或调试使用"""
-    return jsonify({'backend_url': backend_url})
+    """GET /api/config 返回后端配置（如 backend_url、unimem_enabled），供前端或调试使用"""
+    unimem_enabled = False
+    if _CREATOR_MEMORY_AVAILABLE:
+        try:
+            from api.memory_handlers import _unimem_enabled
+            unimem_enabled = _unimem_enabled()
+        except Exception:
+            pass
+    return jsonify({'backend_url': backend_url, 'unimem_enabled': unimem_enabled})
+
+
+@app.route('/api/memory/neo4j/health', methods=['GET'])
+def memory_neo4j_health():
+    """GET /api/memory/neo4j/health 检查 Neo4j 连接是否正常（用于 LTM Memory 节点写入）"""
+    out = {'ok': False, 'uri': None, 'error': None}
+    if not _CREATOR_MEMORY_AVAILABLE:
+        out['error'] = 'memory module not available'
+        return jsonify(out), 200
+    try:
+        from unimem.neo4j import get_graph, NEO4J_AVAILABLE
+        import os
+        uri = os.getenv('NEO4J_URI', 'bolt://localhost:7680')
+        out['uri'] = uri
+        if not NEO4J_AVAILABLE:
+            out['error'] = 'py2neo not installed'
+            return jsonify(out), 200
+        g = get_graph()
+        if g:
+            g.run('RETURN 1').data()
+            out['ok'] = True
+    except Exception as e:
+        out['error'] = str(e)
+    return jsonify(out), 200
 
 
 @app.route('/api/creator/projects', methods=['GET'])

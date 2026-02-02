@@ -70,6 +70,17 @@
 若要在页面上进一步「看到整个流程」的**步骤**（非仅结果）：  
 - **中期**：阶段二编排事件 + 流式/WS 推送后，可展示真实步骤（正在写大纲、正在写第 N 章、正在更新记忆等）。
 
+**近期记忆改进（UniMem，为 P1 2.3 / P2 打基础）**：
+
+| 改进项 | 说明 |
+|--------|------|
+| 编排层 API | `recall_for_agent`、`retain_for_agent`、`context_for_agent`，供决策编排 Agent / 任务 Agent 统一使用 |
+| 重要性评分 | recall 重排序：时间衰减 + 访问次数 + 会话/任务匹配，可配置 `retrieval.importance_weight`、`importance_decay_days` |
+| 会话级 FoA/DA | 当 `context.session_id` 存在时，FoA/DA 优先按会话检索（Redis 用 session key，内存按 metadata 过滤） |
+| retain 写 session_id | 存储时把 `context.session_id` 写入 `memory.metadata`，便于会话检索与重要性匹配 |
+
+详见 `src/unimem/README.md`「编排层记忆 API」「记忆重要性评分」「会话级 FoA/DA」小节。2.3 做 UniMem 贯通时可直接复用上述 API。
+
 ---
 
 ***REMOVED******REMOVED******REMOVED*** 阶段二：编排可观测 & UniMem 贯通（P1）— 建议 2–3 周
@@ -84,6 +95,44 @@
 | **2.4** | **图谱数据融合** | `graph` API 支持 semantic_mesh + UniMem 图（若可实现），前端 2D/3D 图可展示真实混合图 | 记忆图与真实数据一致 |
 
 **优先级**：2.1 ≈ 2.2 > 2.3 > 2.4。先可观测，再丰富记忆源。
+
+**P1 实施检查清单与接口草案（2.1 / 2.2）**：
+
+| 任务 | 检查项 | 接口/约定草案 |
+|------|--------|----------------|
+| **2.1 编排事件** | 创作 pipeline 各步骤在开始/结束/失败时 emit 事件 | 事件 payload 建议：`{ "type": "step_start" \| "step_done" \| "step_error", "step": "plan" \| "write" \| "memory" \| "polish" \| "qa", "data"?: { ... }, "ts": ISO8601 }`；在 `ReactNovelCreator` 或调用链中插入 emit 点 |
+| **2.2 事件推送 API** | 前端能收到流式文本 + 编排事件，驱动工作流面板 | 方案 A：`GET /api/creator/stream?mode=...&input=...` 返回 SSE，每行一个 JSON 事件或文本块。方案 B：WebSocket 订阅同一会话，服务端在 pipeline 执行时 push 事件。前端：监听 stream/WS，根据 `step` 更新编排区状态（高亮当前 step、done/error 样式） |
+
+落地顺序建议：先 2.1（在现有 create/continue 路径上加 emit），再 2.2（新增 stream 或 WS 路由并让前端接上）。
+
+**P1 2.1 / 2.2 实施记录**（已落地）：
+
+| 任务 | 产出 | 说明 |
+|------|------|------|
+| **2.1 编排事件** | ✅ | `api/orchestration_events.py`：`emit_step_start` / `emit_step_done` / `emit_step_error`；`ReactNovelCreator.create_novel_plan` 与 `create_chapter` 在 plan / memory / write 步骤开始/结束/失败时调用；`creator_handlers.run_create` / `run_continue` / `run` 支持 `on_event` 并传入 creator |
+| **2.2 事件推送 API** | ✅ | `POST /api/creator/stream`：body 同 `/api/creator/run`（mode、input、project_id 等），返回 SSE；每条 `data: { "type": "step_start" \| "step_done" \| "step_error", "step": "plan" \| "memory" \| "write", "data": {...}, "ts": ISO8601 }`，最后一条 `type: "stream_end"` 含 code、message、content；仅支持 mode=create 或 continue |
+
+前端对接（已落地）：创作页单次「生成大纲」「写一章」改为请求 `POST /api/creator/stream`（`fetchCreatorStream` + fetch ReadableStream），根据 `step_start` / `step_done` / `step_error` 更新编排区（`stepToAgentKey` 映射 plan→planner、memory→memory、write→writer），收到 `stream_end` 后展示最终 content 并刷新项目/章节列表；批量「写 N 章」仍走 submit + 轮询。
+
+**P1 2.3 / 2.4 实施记录**（已落地）：
+
+| 任务 | 产出 | 说明 |
+|------|------|------|
+| **2.3 UniMem 为可选记忆后端** | ✅ | 默认启用（`UNIMEM_ENABLED=0` 可关闭）；`memory_handlers._get_unimem()` 懒加载 UniMem（可配 `UNIMEM_STORAGE/GRAPH/VECTOR_BACKEND`）；创作大纲成功调用 `retain_plan_to_unimem(project_id, plan_summary)`，续写成功调用 `retain_chapter_to_unimem(project_id, chapter_number, content)`；`get_entities` / `get_graph` / `get_recents` / `get_note` 启用时合并 UniMem 数据（recall_for_agent + project_id） |
+| **2.4 图谱数据融合** | ✅ | `get_graph` 在启用 UniMem 时追加 recall 结果为节点（id 前缀 `unimem_`，source=UniMem），并用 `memory.links` 生成边；`get_note` 对 `unimem_` 节点从 UniMem（neo4j.get_memory）取详情与 related |
+
+启用方式：默认开启；可选设置 `UNIMEM_ENABLED=0` 关闭。后端写入：默认均为 `memory`（仅内存，进程退出即丢）；**要让 Qdrant / Neo4j 有内容**，需设置 `UNIMEM_STORAGE_BACKEND=redis`、`UNIMEM_GRAPH_BACKEND=neo4j`、`UNIMEM_VECTOR_BACKEND=qdrant`，并确保 Redis / Neo4j / Qdrant 已启动；`memory_handlers._get_unimem()` 会按上述环境变量构建 config 并传给 UniMem，使 LayeredStorageAdapter 的 FoA/DA 用 Redis、LTM 用 Neo4j，AtomLinkAdapter 用 Qdrant 写入向量；可选 `UNIMEM_QDRANT_HOST`、`UNIMEM_QDRANT_PORT`、`UNIMEM_COLLECTION_NAME`。
+
+**P1 贯通下 UniMem 存的记忆有哪些？**
+
+| 来源 | 何时写入 | 内容 | metadata 标识 |
+|------|----------|------|----------------|
+| **创作 API（P1 2.3）** | create 成功 | 大纲摘要（最多 8000 字） | source=creator_plan, project_id, role=creator |
+| **创作 API（P1 2.3）** | continue 成功 | 章节前 500 字摘要 | source=creator_chapter, project_id, chapter_number, role=writer |
+| **ReactNovelCreator 内嵌** | create_chapter 完成后（enable_unimem=True） | 整章正文 | chapter_number, title, summary, word_count, novel_title |
+| 其他 | 过程记忆、视频脚本、学习流水线、Puppeteer unimem_retain、Reflect 等 | 各异 | 各流程自定 |
+
+前端/记忆 API 启用 UniMem 时：entities、graph、recents 会合并上述记忆（recall 按 project_id）；图谱中 UniMem 节点 id 前缀为 `unimem_`，source=UniMem。
 
 ---
 

@@ -258,7 +258,7 @@ class RetrievalEngine:
         ***REMOVED*** 2. 存储层检索（如果 storage_manager 可用，串行执行以避免线程安全问题）
         if self.storage_manager:
             for layer_name, search_func in [
-                ("FoA", lambda: self.storage_manager.search_foa(query, top_k)),
+                ("FoA", lambda: self.storage_manager.search_foa(query, top_k, context)),
                 ("DA", lambda: self.storage_manager.search_da(query, context, top_k)),
                 ("LTM", lambda: self.storage_manager.search_ltm(query, top_k)),
             ]:

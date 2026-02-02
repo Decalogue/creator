@@ -279,15 +279,15 @@ class StorageManager:
                     cause=e
                 ) from e
     
-    def search_foa(self, query: str, top_k: int = 10) -> List[RetrievalResult]:
+    def search_foa(self, query: str, top_k: int = 10, context: Optional[Context] = None) -> List[RetrievalResult]:
         """
-        在 FoA (Focus of Attention) 中搜索（线程安全，性能监控）
-        
-        FoA 是工作记忆层，包含当前正在处理的记忆。
+        在 FoA (Focus of Attention) 中搜索（线程安全，性能监控）。
+        当 context.session_id 存在时优先按会话检索（会话级工作记忆）。
         
         Args:
             query: 查询字符串
             top_k: 返回结果数量
+            context: 上下文；若带 session_id 则优先返回该会话的 FoA 记忆
             
         Returns:
             检索结果列表
@@ -300,7 +300,7 @@ class StorageManager:
         
         try:
             memories = self._retry_operation(
-                lambda: self.storage_adapter.search_foa(query, top_k),
+                lambda: self.storage_adapter.search_foa(query, top_k, context or Context()),
                 operation_name="search_foa",
                 required=False
             ) or []

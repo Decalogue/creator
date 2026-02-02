@@ -46,6 +46,22 @@ class MemoryLayer(Enum):
     LTM = "ltm"  ***REMOVED*** Long-Term Memory（长期存储）
 
 
+***REMOVED*** ---------------------------------------------------------------------------
+***REMOVED*** 过程记忆与角色感知（Procedural & Role-Aware Memory，参考 LEGOMem）
+***REMOVED*** 用于区分「编排器」与「任务 Agent」的记忆，支持按角色检索
+***REMOVED*** ---------------------------------------------------------------------------
+PROCEDURAL_TAG = "procedural"
+ROLE_ORCHESTRATOR = "role:orchestrator"
+ROLE_TASK_AGENT = "role:task_agent"
+SCOPE_FULL_TASK = "scope:full_task"
+SCOPE_SUBTASK = "scope:subtask"
+
+
+def agent_tag(name: str) -> str:
+    """任务 Agent 标签，如 agent:writer, agent:planner"""
+    return f"agent:{name}"
+
+
 @dataclass
 class Experience:
     """
@@ -267,6 +283,37 @@ class Context:
             raise TypeError(f"user_id must be str or None, got {type(self.user_id)}")
         if not isinstance(self.metadata, dict):
             raise TypeError(f"metadata must be dict, got {type(self.metadata)}")
+
+
+def context_for_agent(
+    session_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    task_id: Optional[str] = None,
+    role: Optional[str] = None,
+    **metadata: Any,
+) -> Context:
+    """
+    为编排层 / 任务 Agent 构建检索与存储用的 Context。
+    
+    用于 recall_for_agent、retain 等调用时统一注入 session/task/role，
+    便于记忆按会话、任务、角色过滤与重要性评分。
+    
+    Args:
+        session_id: 会话 ID
+        user_id: 用户 ID
+        task_id: 任务 ID（会写入 metadata）
+        role: 角色，如 \"orchestrator\"、\"task_agent\"、\"writer\"（会写入 metadata）
+        **metadata: 其他 metadata 字段
+        
+    Returns:
+        Context 实例
+    """
+    meta = dict(metadata)
+    if task_id is not None:
+        meta["task_id"] = task_id
+    if role is not None:
+        meta["role"] = role
+    return Context(session_id=session_id, user_id=user_id, metadata=meta)
 
 
 @dataclass

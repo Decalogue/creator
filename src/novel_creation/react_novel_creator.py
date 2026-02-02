@@ -43,9 +43,21 @@ try:
         PubSubMemoryBus,
         Topic
     )
+    from creative_context.procedural_memory import (
+        store_procedural,
+        recall_procedural,
+    )
+    from unimem.memory_types import (
+        ROLE_ORCHESTRATOR,
+        ROLE_TASK_AGENT,
+        SCOPE_FULL_TASK,
+        SCOPE_SUBTASK,
+    )
     CREATIVE_CONTEXT_AVAILABLE = True
 except ImportError:
     CREATIVE_CONTEXT_AVAILABLE = False
+    store_procedural = recall_procedural = None
+    ROLE_ORCHESTRATOR = ROLE_TASK_AGENT = SCOPE_FULL_TASK = SCOPE_SUBTASK = None
     logger.warning("Creative context system not available, running in basic mode")
 
 logger = logging.getLogger(__name__)
@@ -341,6 +353,7 @@ class ReactNovelCreator:
         use_progressive: Optional[bool] = None,  ***REMOVED*** None = 自动选择（章节数 >= 50 时使用渐进式）
         previous_volume_context: Optional[Dict[str, Any]] = None,
         start_chapter: int = 1,
+        on_event: Optional[Any] = None,  ***REMOVED*** 编排事件回调 (dict) -> None，用于 P1 可观测
     ) -> Dict[str, Any]:
         """
         创建小说大纲
@@ -359,27 +372,47 @@ class ReactNovelCreator:
             use_progressive: 是否使用渐进式
             previous_volume_context: 前卷接续上下文（含 background、characters、last_chapters_outline 等）
             start_chapter: 本卷起始章节号（如 101 表示第二卷从第 101 章起）
+            on_event: 编排事件回调，步骤开始/结束/失败时调用 (payload: dict) -> None
         
         Returns:
             小说大纲
         """
-        if use_progressive is None:
-            use_progressive = target_chapters >= 50
-        
-        if use_progressive:
-            logger.info(f"使用渐进式大纲生成（适合 {target_chapters} 章长篇小说）")
-            return self._create_novel_plan_progressive(
-                genre, theme, target_chapters, words_per_chapter,
-                previous_volume_context=previous_volume_context,
-                start_chapter=start_chapter,
-            )
-        else:
-            logger.info(f"使用一次性大纲生成（适合 {target_chapters} 章中短篇小说）")
-            return self._create_novel_plan_onetime(
-                genre, theme, target_chapters, words_per_chapter,
-                previous_volume_context=previous_volume_context,
-                start_chapter=start_chapter,
-            )
+        try:
+            from api.orchestration_events import emit_step_start, emit_step_done, emit_step_error
+            emit_step_start("plan", {"target_chapters": target_chapters}, on_event)
+        except Exception:
+            pass
+        try:
+            if use_progressive is None:
+                use_progressive = target_chapters >= 50
+
+            if use_progressive:
+                logger.info(f"使用渐进式大纲生成（适合 {target_chapters} 章长篇小说）")
+                result = self._create_novel_plan_progressive(
+                    genre, theme, target_chapters, words_per_chapter,
+                    previous_volume_context=previous_volume_context,
+                    start_chapter=start_chapter,
+                )
+            else:
+                logger.info(f"使用一次性大纲生成（适合 {target_chapters} 章中短篇小说）")
+                result = self._create_novel_plan_onetime(
+                    genre, theme, target_chapters, words_per_chapter,
+                    previous_volume_context=previous_volume_context,
+                    start_chapter=start_chapter,
+                )
+            try:
+                from api.orchestration_events import emit_step_done
+                emit_step_done("plan", {"summary": "大纲生成完成"}, on_event)
+            except Exception:
+                pass
+            return result
+        except Exception as e:
+            try:
+                from api.orchestration_events import emit_step_error
+                emit_step_error("plan", e, on_event)
+            except Exception:
+                pass
+            raise
 
     def _deduplicate_chapter_titles(self, chapter_outline: list) -> list:
         """
@@ -839,18 +872,26 @@ class ReactNovelCreator:
         return outline
     
     def _try_parse_phase_outline_json(self, json_str: str) -> Tuple[Optional[Dict[str, Any]], Optional[Exception]]:
-        """解析阶段大纲 JSON，尝试修复常见 LLM 输出问题（如尾部逗号）。成功返回 (dict, None)，失败返回 (None, error)。"""
+        """解析阶段大纲 JSON，尝试修复常见 LLM 输出问题（尾部逗号、控制字符等）。成功返回 (dict, None)，失败返回 (None, error)。"""
         err = None
         try:
             return json.loads(json_str), None
         except json.JSONDecodeError as e:
             err = e
-        
+
+        ***REMOVED*** 修复尾部逗号：, ] 或 , }
         repaired = re.sub(r',\s*([}\]])', r'\1', json_str)
         try:
             return json.loads(repaired), None
         except json.JSONDecodeError as e2:
             err = e2
+
+        ***REMOVED*** 去除控制字符（如 \x00），有时会导致 Expecting value
+        cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', repaired)
+        try:
+            return json.loads(cleaned), None
+        except json.JSONDecodeError as e3:
+            err = e3
         return None, err
     
     def _generate_phase_outline(
@@ -1181,7 +1222,8 @@ class ReactNovelCreator:
         chapter_title: str,
         chapter_summary: str,
         previous_chapters_summary: Optional[str] = None,
-        target_words: int = 3000
+        target_words: int = 3000,
+        on_event: Optional[Any] = None,  ***REMOVED*** 编排事件回调 (dict) -> None，用于 P1 可观测
     ) -> NovelChapter:
         """
         创作单个章节
@@ -1192,10 +1234,34 @@ class ReactNovelCreator:
             chapter_summary: 章节摘要（来自大纲）
             previous_chapters_summary: 前面章节的摘要（用于保持连贯性）
             target_words: 目标字数
+            on_event: 编排事件回调，步骤开始/结束/失败时调用 (payload: dict) -> None
         
         Returns:
             NovelChapter 对象
         """
+        def _emit_start(step: str, data: Optional[Dict[str, Any]] = None) -> None:
+            try:
+                from api.orchestration_events import emit_step_start
+                emit_step_start(step, data or {}, on_event)
+            except Exception:
+                pass
+
+        def _emit_done(step: str, data: Optional[Dict[str, Any]] = None) -> None:
+            try:
+                from api.orchestration_events import emit_step_done
+                emit_step_done(step, data or {}, on_event)
+            except Exception:
+                pass
+
+        def _emit_err(step: str, err: Exception) -> None:
+            try:
+                from api.orchestration_events import emit_step_error
+                emit_step_error(step, err, on_event)
+            except Exception:
+                pass
+
+        ***REMOVED*** 步骤：memory（检索相关记忆）
+        _emit_start("memory", {"chapter_number": chapter_number})
         ***REMOVED*** 从 UniMem 检索相关记忆（如果启用）
         unimem_context = ""
         if self.enable_unimem and self.unimem:
@@ -1236,6 +1302,7 @@ class ReactNovelCreator:
                     logger.debug(f"第{chapter_number}章：未检索到前面章节的实体信息")
             except Exception as e:
                 logger.warning(f"语义网格实体检索失败: {e}")
+        _emit_done("memory", {"chapter_number": chapter_number})
         
         ***REMOVED*** 构建创作提示词
         context_info = ""
@@ -1442,6 +1509,8 @@ class ReactNovelCreator:
 请直接返回章节正文内容，不要包含标题或其他格式。
 """
         
+        ***REMOVED*** 步骤：write（生成正文）
+        _emit_start("write", {"chapter_number": chapter_number, "chapter_title": chapter_title})
         ***REMOVED*** 使用 ReActAgent 创作章节（限制迭代次数，避免工具搜索循环）
         logger.info(f"开始创作第{chapter_number}章：{chapter_title}（目标字数：{target_words}字，上限：{max_words_allowed}字）")
         original_max_iterations = self.agent.max_iterations
@@ -1468,6 +1537,9 @@ class ReactNovelCreator:
         ***REMOVED*** 生成内容
         try:
             content = self.agent.run(query=prompt, verbose=False)  ***REMOVED*** 关闭详细输出以加快速度
+        except Exception as e:
+            _emit_err("write", e)
+            raise
         finally:
             self.agent.max_iterations = original_max_iterations  ***REMOVED*** 恢复原始值
             self.agent.max_new_tokens = original_max_new_tokens  ***REMOVED*** 恢复原始值
@@ -1525,6 +1597,7 @@ class ReactNovelCreator:
             except Exception as e:
                 logger.warning(f"第{chapter_number}章重试生成失败: {e}，保留原始内容")
         
+        _emit_done("write", {"chapter_number": chapter_number, "words": actual_words})
         ***REMOVED*** 计算字数差异（基于截断后的实际字数）
         word_diff = actual_words - target_words
         word_diff_percent = (word_diff / target_words * 100) if target_words > 0 else 0
