@@ -123,7 +123,7 @@ print(f"脚本路径: {script_path}")
 
 ***REMOVED******REMOVED******REMOVED*** 在 ReActAgent 中的应用
 
-`react.py` 中的 `ReActAgent` 已经集成了分层行动空间：
+`orchestrator/react.py` 中的 `ReActAgent` 已经集成了分层行动空间：
 
 1. **系统提示词**：包含 L1/L2/L3 的描述
 2. **工具执行**：Agent 可以直接使用 L1 函数
@@ -277,7 +277,7 @@ compact_record = manager.compact_tool_call(
 
 ***REMOVED******REMOVED******REMOVED*** 在 ReActAgent 中的应用
 
-`react.py` 中的 `ReActAgent` 已经集成了上下文管理器：
+`orchestrator/react.py` 中的 `ReActAgent` 已经集成了上下文管理器：
 
 1. **自动卸载工具结果**：结果超过500字符时自动写入文件
 2. **自动检查上下文长度**：每轮迭代检查，超过128K tokens时卸载历史
@@ -286,7 +286,7 @@ compact_record = manager.compact_tool_call(
 ***REMOVED******REMOVED******REMOVED******REMOVED*** 使用示例
 
 ```python
-from react import ReActAgent
+from orchestrator import ReActAgent
 
 ***REMOVED*** 启用上下文卸载（默认启用）
 agent = ReActAgent(
@@ -427,7 +427,7 @@ summary = manager._generate_summary(conversation_history, use_llm=True)
 
 ***REMOVED******REMOVED******REMOVED*** 在 ReActAgent 中的应用
 
-`react.py` 中的 `ReActAgent` 已经集成了完整的 Compaction + Summarization：
+`orchestrator/react.py` 中的 `ReActAgent` 已经集成了完整的 Compaction + Summarization：
 
 1. **自动检查上下文长度**：每轮迭代检查，超过128K tokens时触发缩减
 2. **第一步：Compaction**：对早期历史进行紧凑化，保留最近3条完整记录
@@ -495,7 +495,7 @@ manager = get_context_manager(pre_rot_threshold=100000)  ***REMOVED*** 100K toke
 ***REMOVED******REMOVED******REMOVED*** 创建启用所有功能的 ReActAgent
 
 ```python
-from react import ReActAgent
+from orchestrator import ReActAgent
 from agent.layered_action_space import get_layered_action_space
 from agent.context_manager import get_context_manager
 

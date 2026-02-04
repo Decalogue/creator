@@ -35,7 +35,7 @@
 ***REMOVED******REMOVED******REMOVED*** 1. 启用可观测性（默认已启用）
 
 ```python
-from react import ReActAgent
+from orchestrator import ReActAgent
 
 ***REMOVED*** 默认启用可观测性
 agent = ReActAgent(enable_observability=True)

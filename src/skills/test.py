@@ -1,11 +1,11 @@
 """
-Skills 系统测试
-验证所有功能是否正常工作
+Skills 系统测试（创作相关）
+
+验证 SkillManager 与渐进式披露；当前无内置 Skill 示例时仅测试管理器 API。
 """
 import sys
 from pathlib import Path
 
-***REMOVED*** 添加项目根目录到 Python 路径
 if __name__ == "__main__" and not __package__:
     src_dir = Path(__file__).parent.parent
     if str(src_dir) not in sys.path:
@@ -14,145 +14,56 @@ if __name__ == "__main__" and not __package__:
 from skills import default_manager, Skill
 
 
-def test_skill_loading():
-    """测试 Skill 加载"""
-    print("测试 Skill 加载...")
-    
+def test_manager_api():
+    """测试管理器 API"""
+    print("测试 Skill Manager API...")
+
     skills = default_manager.list_skills()
-    assert len(skills) >= 2, "应该至少加载 2 个 Skills"
-    assert 'calculator' in skills, "应该包含 calculator"
-    assert 'weather' in skills, "应该包含 weather"
-    print("  ✓ Skill 加载正常")
+    print(f"  当前 Skills: {skills}")
+
+    all_metadata = default_manager.get_all_metadata()
+    assert len(all_metadata) == len(skills), "metadata 数量应与 list_skills 一致"
+    print(f"  ✓ list_skills / get_all_metadata 一致")
+
+    not_found = default_manager.get_skill("not_exist")
+    assert not_found is None
+    print("  ✓ 不存在的 Skill 返回 None")
+
+    selected = default_manager.select_skills("创作相关查询", max_skills=3)
+    assert isinstance(selected, list)
+    print(f"  ✓ select_skills 返回列表，长度 {len(selected)}")
+
+    context = default_manager.get_context_for_query("创作", level=2)
+    assert isinstance(context, str)
+    print(f"  ✓ get_context_for_query 返回字符串，长度 {len(context)}")
 
 
-def test_metadata():
-    """测试元数据（第一层）"""
-    print("\n测试元数据（第一层）...")
-    
-    calculator = default_manager.get_skill('calculator')
-    assert calculator is not None, "calculator 应该存在"
-    
-    metadata = calculator.metadata
-    assert metadata.name == 'calculator', "名称应该正确"
-    assert len(metadata.description) > 0, "描述应该存在"
-    assert len(metadata.tags) > 0, "应该有标签"
-    assert len(metadata.triggers) > 0, "应该有触发词"
-    
-    print(f"  ✓ 元数据: {metadata.name}")
-    print(f"  ✓ 描述: {metadata.description[:50]}...")
-    print(f"  ✓ 标签: {metadata.tags}")
-    print(f"  ✓ 触发词: {metadata.triggers}")
+def test_skill_structure_when_present():
+    """当存在至少一个 Skill 时，测试其结构"""
+    skills = default_manager.list_skills()
+    if not skills:
+        print("\n跳过 Skill 结构测试（当前无 Skill 目录，可添加创作相关 Skill 到 skills/）")
+        return
 
-
-def test_progressive_disclosure():
-    """测试渐进式披露"""
-    print("\n测试渐进式披露...")
-    
-    calculator = default_manager.get_skill('calculator')
-    
-    ***REMOVED*** 第一层：元数据
-    context_level1 = calculator.get_context(level=1)
-    tokens_level1 = calculator.estimate_tokens(level=1)
-    assert tokens_level1 < 200, "第一层应该在 ~100 tokens 左右"
-    assert 'calculator' in context_level1, "应该包含名称"
-    print(f"  ✓ 第一层: {tokens_level1} tokens")
-    
-    ***REMOVED*** 第二层：主体
-    context_level2 = calculator.get_context(level=2)
-    tokens_level2 = calculator.estimate_tokens(level=2)
-    assert tokens_level2 > tokens_level1, "第二层应该比第一层大"
-    assert tokens_level2 < 6000, "第二层应该在 <5k tokens"
-    assert '功能描述' in context_level2, "应该包含主体内容"
-    print(f"  ✓ 第二层: {tokens_level2} tokens")
-    
-    ***REMOVED*** 第三层：所有资源
-    context_level3 = calculator.get_context(level=3)
-    tokens_level3 = calculator.estimate_tokens(level=3)
-    assert tokens_level3 > tokens_level2, "第三层应该比第二层大"
-    print(f"  ✓ 第三层: {tokens_level3} tokens")
-
-
-def test_resource_loading():
-    """测试资源文件加载"""
-    print("\n测试资源文件加载...")
-    
-    calculator = default_manager.get_skill('calculator')
-    resources = calculator.list_resources()
-    
-    assert len(resources) > 0, "应该有资源文件"
-    print(f"  ✓ 资源文件: {resources}")
-    
-    ***REMOVED*** 加载资源
-    if 'examples.md' in resources:
-        content = calculator.load_resource('examples.md')
-        assert len(content) > 0, "资源内容应该存在"
-        print(f"  ✓ 成功加载 examples.md ({len(content)} 字符)")
-
-
-def test_skill_selection():
-    """测试 Skill 选择"""
-    print("\n测试 Skill 选择...")
-    
-    ***REMOVED*** 测试计算相关查询
-    query1 = "帮我计算 10 * 5"
-    selected1 = default_manager.select_skills(query1)
-    assert len(selected1) > 0, "应该选择到 Skills"
-    assert any(s.name == 'calculator' for s in selected1), "应该选择 calculator"
-    print(f"  ✓ 查询 '{query1}' -> {[s.name for s in selected1]}")
-    
-    ***REMOVED*** 测试天气相关查询
-    query2 = "查询北京的天气"
-    selected2 = default_manager.select_skills(query2)
-    assert len(selected2) > 0, "应该选择到 Skills"
-    assert any(s.name == 'weather' for s in selected2), "应该选择 weather"
-    print(f"  ✓ 查询 '{query2}' -> {[s.name for s in selected2]}")
-
-
-def test_context_generation():
-    """测试上下文生成"""
-    print("\n测试上下文生成...")
-    
-    query = "帮我计算 25 * 8"
-    context = default_manager.get_context_for_query(query, level=2)
-    
-    assert len(context) > 0, "应该生成上下文"
-    assert 'calculator' in context.lower(), "上下文应该包含 calculator"
-    print(f"  ✓ 上下文长度: {len(context)} 字符")
-    print(f"  ✓ 上下文预览: {context[:100]}...")
-
-
-def test_skill_structure():
-    """测试 Skill 结构"""
-    print("\n测试 Skill 结构...")
-    
-    calculator = default_manager.get_skill('calculator')
-    
-    ***REMOVED*** 检查路径
-    assert calculator.skill_path.exists(), "Skill 路径应该存在"
-    assert calculator.skill_md_path.exists(), "SKILL.md 应该存在"
-    print(f"  ✓ Skill 路径: {calculator.skill_path}")
-    
-    ***REMOVED*** 检查属性
-    assert calculator.name == 'calculator', "名称应该正确"
-    assert len(calculator.description) > 0, "描述应该存在"
-    print(f"  ✓ Skill 名称: {calculator.name}")
-    print(f"  ✓ Skill 描述: {calculator.description}")
+    name = skills[0]
+    skill = default_manager.get_skill(name)
+    assert skill is not None
+    assert skill.name == name
+    assert hasattr(skill, "metadata")
+    assert hasattr(skill, "get_context")
+    assert hasattr(skill, "list_resources")
+    print(f"\n  ✓ Skill 结构正常: {name}")
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Skills 系统测试")
+    print("Skills 系统测试（创作相关）")
     print("=" * 60)
-    
+
     try:
-        test_skill_loading()
-        test_metadata()
-        test_progressive_disclosure()
-        test_resource_loading()
-        test_skill_selection()
-        test_context_generation()
-        test_skill_structure()
-        
+        test_manager_api()
+        test_skill_structure_when_present()
+
         print("\n" + "=" * 60)
         print("✓ 所有测试通过！")
         print("=" * 60)

@@ -43,22 +43,24 @@ def test_discovery_layer():
     print(f"已同步 {len(docs)} 个工具文档: {docs}")
     print()
     
-    ***REMOVED*** 测试搜索
-    print("【搜索测试 1: '计算'】")
-    result = discovery.search_tool_docs("计算", max_results=3)
+    ***REMOVED*** 测试搜索（创作相关：工具、文档）
+    print("【搜索测试 1: '工具'】")
+    result = discovery.search_tool_docs("工具", max_results=3)
     print(result)
     print()
-    
-    print("【搜索测试 2: '天气'】")
-    result = discovery.search_tool_docs("天气", max_results=3)
+
+    print("【搜索测试 2: '文档'】")
+    result = discovery.search_tool_docs("文档", max_results=3)
     print(result)
     print()
-    
-    ***REMOVED*** 测试读取完整文档
-    print("【读取完整文档: calculator】")
-    doc = discovery.get_tool_doc("calculator")
+
+    ***REMOVED*** 测试读取完整文档（当前内置：search_tool_docs, read_tool_doc）
+    print("【读取完整文档: search_tool_docs】")
+    doc = discovery.get_tool_doc("search_tool_docs")
     if doc:
         print(doc[:500] + "..." if len(doc) > 500 else doc)
+    else:
+        print("(无文档)")
     print()
 
 

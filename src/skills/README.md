@@ -1,13 +1,13 @@
-***REMOVED*** Skills 系统使用指南
+***REMOVED*** skills — 技能/能力层（创作相关）
 
 ***REMOVED******REMOVED*** 简介
 
-基于 Anthropic Skills 设计的技能系统，实现渐进式披露机制。Skills 是一个包含"说明文档、脚本和资源"的文件夹，提供可重复调用的专业 SOP（标准操作程序）+ 说明书，由模型按需加载。
+基于 Anthropic Skills 设计的技能系统，实现渐进式披露机制，**主要服务于 Creator 创作流程**：提供可重复调用的 SOP（标准操作程序）、风格说明、创作规范等，由编排层或创作助手按需加载，与 `tools` 互补（tools 侧重可执行工具调用，skills 侧重文档与流程说明）。
 
 **核心特点**：
 - **渐进式披露**：按需加载，节省 token
 - **自动选择**：根据触发词和标签自动选择相关 Skills
-- **模块化**：每个 Skill 是独立的文件夹
+- **模块化**：每个 Skill 是独立文件夹
 - **标准化**：统一的 SKILL.md 格式
 
 ***REMOVED******REMOVED*** 核心概念
@@ -29,17 +29,14 @@ skills/
 ├── __init__.py          ***REMOVED*** 模块导出
 ├── skill.py             ***REMOVED*** Skill 类定义
 ├── manager.py          ***REMOVED*** Skill Manager
-├── example.py          ***REMOVED*** 使用示例
-├── test.py             ***REMOVED*** 测试代码
-├── calculator/          ***REMOVED*** Calculator Skill
-│   ├── SKILL.md        ***REMOVED*** 核心文件（元数据 + 主体）
-│   ├── examples.md     ***REMOVED*** 资源文件（第三层）
-│   └── calculator.py   ***REMOVED*** 脚本文件（第三层）
-└── weather/            ***REMOVED*** Weather Skill
-    ├── SKILL.md
-    ├── cities.md
-    └── weather_api.md
+├── example.py           ***REMOVED*** 使用示例
+├── test.py              ***REMOVED*** 测试代码
+└── <your_skill>/        ***REMOVED*** 创作相关 Skill（自行添加）
+    ├── SKILL.md         ***REMOVED*** 必需：元数据 + 主体
+    └── ...              ***REMOVED*** 可选：资源文件
 ```
+
+**当前无内置 Skill 示例**；请按「创建新 Skill」添加创作相关 Skill（如短剧节奏规范、对话质量 SOP 等）。
 
 ***REMOVED******REMOVED*** 快速开始（5 分钟上手）
 
@@ -53,42 +50,33 @@ from skills import default_manager
 
 ```python
 skills = default_manager.list_skills()
-print(skills)  ***REMOVED*** ['calculator', 'weather']
+print(skills)  ***REMOVED*** 例如 []，添加创作相关 Skill 后为 ['节奏规范', '对话SOP', ...]
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 3. 获取 Skill 元数据（第一层）
 
 ```python
-calculator = default_manager.get_skill('calculator')
-metadata = calculator.metadata
-
-print(metadata.name)        ***REMOVED*** calculator
-print(metadata.description) ***REMOVED*** 执行数学计算...
-print(metadata.tags)        ***REMOVED*** ['math', 'calculation', 'calculator']
-print(metadata.triggers)   ***REMOVED*** ['计算', '算', '数学', ...]
+skill = default_manager.get_skill('your_skill_name')  ***REMOVED*** 创作相关 Skill 名称
+if skill:
+    metadata = skill.metadata
+    print(metadata.name, metadata.description, metadata.tags, metadata.triggers)
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 4. 渐进式加载
 
 ```python
-***REMOVED*** 第一层：元数据（~100 tokens，始终加载）
-context_level1 = calculator.get_context(level=1)
-
-***REMOVED*** 第二层：主体内容（<5k tokens，触发时加载）
-context_level2 = calculator.get_context(level=2)
-
-***REMOVED*** 第三层：所有资源（无限制，按需加载）
-context_level3 = calculator.get_context(level=3)
+skill = default_manager.get_skill('your_skill_name')
+if skill:
+    context_level1 = skill.get_context(level=1)   ***REMOVED*** 元数据
+    context_level2 = skill.get_context(level=2)   ***REMOVED*** 主体
+    context_level3 = skill.get_context(level=3)   ***REMOVED*** 含资源
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 5. 根据查询选择 Skills
 
 ```python
-query = "帮我计算 10 * 5 + 20"
-selected_skills = default_manager.select_skills(query)
-***REMOVED*** 返回: [<Skill: calculator>]
-
-***REMOVED*** 获取相关 Skills 的上下文
+query = "本章对话占比与节奏要求"
+selected_skills = default_manager.select_skills(query, max_skills=3)
 context = default_manager.get_context_for_query(query, level=2)
 ```
 
@@ -148,41 +136,31 @@ triggers:
 ```python
 from skills import default_manager
 
-***REMOVED*** 列出所有 Skills
+***REMOVED*** 列出所有 Skills（添加创作相关 Skill 后会有内容）
 skills = default_manager.list_skills()
-print(skills)  ***REMOVED*** ['calculator', 'weather']
+print(skills)
 
 ***REMOVED*** 获取 Skill
-calculator = default_manager.get_skill('calculator')
-
-***REMOVED*** 获取元数据（第一层，轻量级）
-metadata = calculator.metadata
-print(metadata.name)  ***REMOVED*** calculator
-print(metadata.description)  ***REMOVED*** 执行数学计算...
-
-***REMOVED*** 加载主体内容（第二层）
-body = calculator.load_body()
-
-***REMOVED*** 加载资源文件（第三层）
-examples = calculator.load_resource('examples.md')
+skill = default_manager.get_skill('your_skill_name')  ***REMOVED*** 创作相关 Skill 名称
+if skill:
+    metadata = skill.metadata
+    print(metadata.name, metadata.description)
+    body = skill.load_body()
+    resources = skill.list_resources()
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 根据查询选择 Skills
 
 ```python
-***REMOVED*** 根据用户查询自动选择相关 Skills
-query = "帮我计算 10 * 5 + 20"
-selected_skills = default_manager.select_skills(query)
-***REMOVED*** 返回: [<Skill: calculator>]
-
-***REMOVED*** 获取相关 Skills 的上下文（用于传递给 LLM）
+query = "本章对话占比与节奏要求"
+selected_skills = default_manager.select_skills(query, max_skills=3)
 context = default_manager.get_context_for_query(query, level=2)
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 渐进式加载
 
 ```python
-skill = default_manager.get_skill('calculator')
+skill = default_manager.get_skill('your_skill_name')
 
 ***REMOVED*** 第一层：只加载元数据（~100 tokens）
 context_level1 = skill.get_context(level=1)
@@ -194,63 +172,28 @@ context_level2 = skill.get_context(level=2)
 context_level3 = skill.get_context(level=3)
 ```
 
-***REMOVED******REMOVED******REMOVED*** 与 LLM 集成
+***REMOVED******REMOVED******REMOVED*** 与创作流程集成
 
 ```python
 from skills import default_manager
-from llm.chat import ark_deepseek_v3_2
 
-def chat_with_skills(user_query: str):
-    ***REMOVED*** 1. 根据查询选择相关 Skills
-    selected_skills = default_manager.select_skills(user_query)
-    
-    ***REMOVED*** 2. 获取 Skills 上下文（第二层：主体内容）
-    skills_context = default_manager.get_context_for_query(user_query, level=2)
-    
-    ***REMOVED*** 3. 构建消息
-    messages = [
-        {
-            "role": "system",
-            "content": f"你是一个 AI 助手，可以使用以下 Skills：\n\n{skills_context}"
-        },
-        {
-            "role": "user",
-            "content": user_query
-        }
-    ]
-    
-    ***REMOVED*** 4. 调用 LLM
-    _, response = ark_deepseek_v3_2(messages)
-    return response
+def get_creation_context(user_query: str) -> str:
+    """根据创作相关查询获取 Skill 上下文，供编排层或创作助手注入"""
+    selected = default_manager.select_skills(user_query, max_skills=3)
+    return default_manager.get_context_for_query(user_query, level=2)
 
-***REMOVED*** 使用示例
-result = chat_with_skills("帮我计算 25 * 8 + 100")
-print(result)
+***REMOVED*** 示例：获取「对话占比与节奏」相关规范
+context = get_creation_context("本章对话占比与节奏要求")
+***REMOVED*** 将 context 加入 system 或 user 消息后调用 LLM
 ```
 
 ***REMOVED******REMOVED*** 内置 Skills
 
-***REMOVED******REMOVED******REMOVED*** 1. Calculator Skill（计算器）
+**当前无内置 Skill**。请按「创建新 Skill」在 `skills/` 下添加创作相关 Skill，例如：
 
-- **Skill 名**: `calculator`
-- **功能**: 执行数学计算，支持基本运算和复杂表达式
-- **标签**: `math`, `calculation`, `calculator`
-- **触发词**: `计算`, `算`, `数学`, `加减乘除`, `calculator`, `calculate`
-
-**资源文件**:
-- `examples.md`: 更多计算示例
-- `calculator.py`: Python 实现脚本
-
-***REMOVED******REMOVED******REMOVED*** 2. Weather Skill（天气查询）
-
-- **Skill 名**: `weather`
-- **功能**: 查询指定城市的天气信息
-- **标签**: `weather`, `天气`, `forecast`, `预报`
-- **触发词**: `天气`, `温度`, `预报`, `weather`, `temperature`, `forecast`
-
-**资源文件**:
-- `cities.md`: 支持的城市列表
-- `weather_api.md`: 天气 API 使用说明
+- 短剧节奏规范、每集时长与悬念节奏
+- 对话质量 SOP（占比、心理活动上限等）
+- 世界观/角色一致性检查清单
 
 ***REMOVED******REMOVED*** API 参考
 
@@ -334,9 +277,14 @@ triggers:
 5. 主体内容建议控制在 <5k tokens
 6. 触发词和标签应该准确反映 Skill 的功能，以便自动选择
 
+***REMOVED******REMOVED*** 与创作流程的关系
+
+- **定位**：与 `tools` 互补。tools 提供可执行工具（计算、查询、文档检索等），skills 提供 SOP、风格指南、创作规范等文档与资源，供编排层或创作助手按需注入上下文。
+- **扩展**：新增创作相关 Skill（如「短剧节奏规范」「对话质量 SOP」等）时，在 `skills/` 下新建目录、编写 `SKILL.md` 与资源文件，由 `default_manager` 扫描即可被 `select_skills` / `get_context_for_query` 使用。
+
 ***REMOVED******REMOVED*** 下一步
 
-1. 查看 `example.py` 学习更多用法和完整示例
-2. 运行 `python -m skills.example` 查看所有示例
+1. 查看 `example.py` 学习用法
+2. 运行 `python -m skills.example` 查看示例
 3. 运行 `python -m skills.test` 验证功能
-4. 参考现有 Skills 实现创建自己的 Skill
+4. 在 `skills/` 下新建目录、编写 `SKILL.md` 与资源文件，添加创作相关 Skill

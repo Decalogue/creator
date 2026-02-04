@@ -15,9 +15,9 @@ from enum import Enum
 import logging
 
 try:
-    from react import ReActAgent
+    from orchestrator.react import ReActAgent
 except ImportError:
-    ***REMOVED*** 如果 react 模块不可用，定义占位类
+    ***REMOVED*** 如果 orchestrator.react 不可用，定义占位类
     class ReActAgent:
         def __init__(self, *args, **kwargs):
             pass

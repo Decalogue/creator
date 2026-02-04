@@ -1,6 +1,8 @@
 """
-Skill 类定义
-表示一个 Skill，包含元数据、主体内容和资源文件
+Skill 类：单技能表示（元数据 + 主体 + 资源）
+
+创作相关：表示一个可被 Creator 按需加载的 SOP/规范/说明，含元数据、
+主体内容和资源文件，供 skills.manager 扫描与披露。
 """
 import yaml
 from pathlib import Path

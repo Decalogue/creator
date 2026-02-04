@@ -1,8 +1,8 @@
-***REMOVED*** 工具动态发现系统使用指南
+***REMOVED*** 工具动态发现系统（创作相关）
 
 ***REMOVED******REMOVED*** 概述
 
-实现了 Cursor 风格的 **Index Layer + Discovery Layer** 架构，显著减少 Token 消耗（预期减少 40-50%）。
+实现 Cursor 风格的 **Index Layer + Discovery Layer** 架构，**主要服务于 Creator 编排层**：ReActAgent 等仅将工具索引注入系统提示词，按需通过本发现层获取详细文档，显著减少 Token 消耗（预期 40-50%）。
 
 ***REMOVED******REMOVED*** 核心思想
 
@@ -41,9 +41,8 @@ print(index_content)
 ```
 可用工具列表：
 
-- calculator: 执行数学计算，支持加减乘除、幂运算等...
-- get_weather: 查询指定城市的天气信息...
-- get_current_time: 获取当前时间和日期信息...
+- search_tool_docs: 按关键词搜索工具文档...
+- read_tool_doc: 读取指定工具的完整文档...
 
 注意：如需查看工具的详细描述、参数定义和使用方法，请使用 `search_tool_docs` 工具搜索工具文档。
 ```
@@ -70,7 +69,7 @@ doc = discovery.get_tool_doc("calculator")
 
 ***REMOVED******REMOVED*** 在 ReActAgent 中的应用
 
-`react.py` 中的 `ReActAgent` 已经集成了工具发现系统：
+`orchestrator/react.py` 中的 `ReActAgent` 已经集成了工具发现系统：
 
 1. **系统提示词**：只包含工具名称列表（Index Layer）
 2. **Agent 能力**：可以使用 `search_tool_docs` 和 `read_tool_doc` 主动查找工具文档
@@ -107,9 +106,7 @@ custom_docs_dir = Path("/path/to/custom/docs")
 discovery = ToolDiscovery(default_registry, docs_dir=custom_docs_dir)
 ```
 
-***REMOVED******REMOVED*** 与 MCP 和 Skills 的集成
+***REMOVED******REMOVED*** 与创作流程的关系
 
-未来可以扩展支持：
-- MCP 工具的文档同步
-- Skills 的文档同步
-- 统一的工具发现接口
+- **编排层**：`orchestrator/react.py` 的 ReActAgent 已集成本发现系统；系统提示词使用 Index Layer，Agent 通过 `search_tool_docs`、`read_tool_doc` 按需拉取 Discovery Layer。
+- **与 Skills**：未来可扩展 Skills 的文档同步与发现，与 tools 统一为创作可用的能力层。

@@ -11,12 +11,17 @@
 | 文件 | 描述 | 状态 |
 |------|------|------|
 | `code.mdc` | 代码规范 | ✅ 已配置 |
+| `engineering-principles.mdc` | 工程原则（复利、模块化、可复用、降复杂度、提稳定性） | ✅ 已配置 |
 | `env.mdc` | 虚拟环境激活规则 | ✅ 已配置 |
 | `instructions.mdc` | Instructions 目录上下文规则 | ✅ 已配置 |
 | `copy.mdc` | 迁移和复制功能规则 | ✅ 已配置 |
-| `import.mdc` | Python 导入优先级规则 | ✅ 已配置 |
+| `import.mdc` | Python 导入优先级规则（仅 `**/*.py` 生效） | ✅ 已配置 |
+| `testing.mdc` | 测试与回归（何时写、放哪、如何运行） | ✅ 已配置 |
+| `security.mdc` | 安全与敏感信息（不提交密钥、配置用环境变量） | ✅ 已配置 |
 
 所有规则文件格式都正确，应该能正常工作。
+
+**规则优先级**（冲突时）：Instructions/工程原则 > code > env / import / copy / testing / security。
 
 ---
 
@@ -38,30 +43,9 @@ alwaysApply: true
 2. 代码架构一定要可靠优雅，不要过多的嵌套和深层逻辑处理
 3. 集百家之所长，超越顶级架构师
 4. 每个模块目录下如果有文档，就只要 README.md
-
-**配置检查**：
-- ✅ YAML frontmatter 格式正确
-- ✅ `description` 字段已设置
-- ✅ `alwaysApply: true` 已设置（应该始终应用）
-- ⚠️ `globs: []` 为空数组（但 `alwaysApply: true` 应该能覆盖）
-
-**优化建议**（可选）：
-如果需要更明确地指定规则应用范围，可以更新 `globs`：
-
-```yaml
----
-description: 代码规范
-globs:
-  - "**/*.py"
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
-alwaysApply: true
----
-```
-
-但当前配置（`globs: []` + `alwaysApply: true`）应该也能正常工作。
+5. 每次改动某个模块目录内的文件，需要同时更新该目录内的 README.md
+6. 重视复利、模块化与可复用（详见 Instructions/工程原则.md）
+7. 禁止：不绕过主路径直接改底层实现；不新增平行入口或重复实现；不提交含密钥的配置或 .env；不硬编码生产 URL/Key
 
 ***REMOVED******REMOVED******REMOVED*** 2. env.mdc - 虚拟环境激活规则
 
@@ -107,17 +91,35 @@ alwaysApply: true
 
 ***REMOVED******REMOVED******REMOVED*** 5. import.mdc - Python 导入优先级规则
 
-**配置**：
-```yaml
----
-description: Python代码导入库的优先级规则
-globs: []
-alwaysApply: true
----
-```
+**配置**：`globs: ["**/*.py"]`，`alwaysApply: false`（仅编辑 Python 文件时加载）。
 
-**规则内容**：
-Python 代码导入库时，优先 `import`，然后 `from xxx import xxx`。优先系统基础库，然后 AI 基础库，然后自定义库。
+**规则内容**：Python 代码导入库时，优先 `import`，然后 `from xxx import xxx`。优先系统基础库，然后 AI 基础库，然后自定义库。
+
+***REMOVED******REMOVED******REMOVED*** 6. engineering-principles.mdc - 工程原则
+
+**配置**：`alwaysApply: true`。详见 Instructions/工程原则.md。
+
+**规则内容**：产品与架构目标（顶级产品、去冗余、性能、高复用/高扩展/高清晰）；复利、模块化与可复用、降复杂度、提稳定性。
+
+***REMOVED******REMOVED******REMOVED*** 7. testing.mdc - 测试与回归
+
+**配置**：`alwaysApply: true`。
+
+**规则内容**：改动主路径或共享模块需跑/补测试；主路径集成测试 `src/api/test_creator_integration.py`；运行 `cd src && conda run -n seeme python -m pytest api/test_creator_integration.py -v`；执行前 `conda activate seeme`。
+
+***REMOVED******REMOVED******REMOVED*** 8. security.mdc - 安全与敏感信息
+
+**配置**：`alwaysApply: true`。
+
+**规则内容**：不提交 API Key、密码、token、生产 URL；配置用环境变量或 `.env`（`.env` 在 `.gitignore`）；示例用占位符；硬编码仅限本地/示例。
+
+---
+
+***REMOVED******REMOVED*** 改进建议与优秀实践对照（已落地摘要）
+
+- **已做**：import.mdc 改为仅 `**/*.py` 生效，减少无关上下文；新增 testing.mdc、security.mdc；code.mdc 增加禁止项（不绕过主路径、不平行入口、不提交密钥、不硬编码生产 URL/Key）；README 中写明规则优先级。
+- **可选后续**：copy.mdc 可按路径设 globs（如仅 api/novel_creation/unimem）若希望进一步缩小范围；根目录 AGENTS.md 作统一 Agent 入口；规则增多后再考虑按 style/testing/docs 分子目录。
+- **参考**：Cursor Rules 官方文档；单文件 50 行内、单一职责、globs 按需缩小范围；冲突时 Instructions/工程原则 > code > 其余。
 
 ---
 
@@ -216,4 +218,6 @@ alwaysApply: true  ***REMOVED*** 是否始终应用（可选）
 
 ---
 
-**最后更新**：2026-01-21
+**说明**：本目录仅保留本 README.md 一个 .md 文件；规则正文均为 .mdc 文件。
+
+**最后更新**：2026-02-04

@@ -1,0 +1,48 @@
+"""
+小说创作相关配置与 prompt
+
+- defaults: 默认字数、节奏系数、对话占比、token 限制等
+- prompts: 实体提取、JSON 修复等 prompt 模板
+"""
+
+from config.novel.defaults import (
+    DEFAULT_TARGET_WORDS,
+    DEFAULT_WORDS_PER_CHAPTER,
+    MIN_TOKEN_LIMIT,
+    POSITION_ADJUSTMENTS,
+    WORD_RANGE_MIN,
+    WORD_RANGE_MAX,
+    WORD_TARGET_TOLERANCE_MIN,
+    WORD_TARGET_TOLERANCE_MAX,
+    DIALOGUE_RATIO_MIN,
+    DIALOGUE_RATIO_MAX,
+    STRICT_CUTOFF_FACTOR,
+    TRUNCATE_AFTER_FACTOR,
+    MIN_ACCEPTABLE_WORDS_FACTOR,
+    TOKEN_WORDS_FACTOR,
+)
+from config.novel.prompts import (
+    get_entity_extraction_prompt,
+    JSON_REPAIR_PROMPT_TEMPLATE,
+    DIALOGUE_QUALITY_INSTRUCTION,
+)
+
+__all__ = [
+    "DEFAULT_TARGET_WORDS",
+    "DEFAULT_WORDS_PER_CHAPTER",
+    "MIN_TOKEN_LIMIT",
+    "POSITION_ADJUSTMENTS",
+    "WORD_RANGE_MIN",
+    "WORD_RANGE_MAX",
+    "WORD_TARGET_TOLERANCE_MIN",
+    "WORD_TARGET_TOLERANCE_MAX",
+    "DIALOGUE_RATIO_MIN",
+    "DIALOGUE_RATIO_MAX",
+    "STRICT_CUTOFF_FACTOR",
+    "TRUNCATE_AFTER_FACTOR",
+    "MIN_ACCEPTABLE_WORDS_FACTOR",
+    "TOKEN_WORDS_FACTOR",
+    "get_entity_extraction_prompt",
+    "JSON_REPAIR_PROMPT_TEMPLATE",
+    "DIALOGUE_QUALITY_INSTRUCTION",
+]

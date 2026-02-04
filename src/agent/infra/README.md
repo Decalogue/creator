@@ -9,7 +9,7 @@ Agent 基础设施层，提供可观测性、实验管理和缓存系统。
 自动收集 Agent 指标，无需额外代码：
 
 ```python
-from react import ReActAgent
+from orchestrator import ReActAgent
 
 ***REMOVED*** 创建 Agent（默认启用可观测性）
 agent = ReActAgent(enable_observability=True)

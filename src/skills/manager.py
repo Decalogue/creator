@@ -1,6 +1,8 @@
 """
-Skill Manager
-管理所有 Skills，实现扫描、加载和渐进式披露
+Skill Manager：扫描、加载与按需披露 Skills
+
+主要服务于 Creator 创作流程：根据查询选择相关 Skills，按层级（元数据 /
+主体 / 资源）加载上下文，供编排层或创作助手注入。与 tools 互补。
 """
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple

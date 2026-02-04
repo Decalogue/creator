@@ -1,15 +1,15 @@
+"""
+工具调用层：Function Calling 注册表与工具发现
+
+主要服务于 Creator 创作流程：编排层（如 orchestrator/react.ReActAgent）通过
+default_registry 与 get_discovery() 发现、执行工具，支撑创作助手的计算、查询、
+文档检索等能力。详见 README.md、README_DISCOVERY.md。
+"""
 from .base import Tool, ToolRegistry, default_registry
-from .calculator import CalculatorTool
-from .weather import WeatherTool
-from .time import TimeTool
 from .search_tool_docs import SearchToolDocsTool, ReadToolDocTool
 from .discovery import ToolDiscovery, get_discovery
 
-***REMOVED*** 自动注册所有内置工具
-default_registry.register(CalculatorTool())
-default_registry.register(WeatherTool())
-default_registry.register(TimeTool())
-***REMOVED*** 注册工具发现相关的工具（这些工具让 Agent 可以主动查找其他工具）
+***REMOVED*** 内置工具：仅保留创作相关能力（工具发现，供编排层按需查找文档）
 default_registry.register(SearchToolDocsTool())
 default_registry.register(ReadToolDocTool())
 
@@ -20,9 +20,6 @@ __all__ = [
     "Tool",
     "ToolRegistry",
     "default_registry",
-    "CalculatorTool",
-    "WeatherTool",
-    "TimeTool",
     "SearchToolDocsTool",
     "ReadToolDocTool",
     "ToolDiscovery",

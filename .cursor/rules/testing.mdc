@@ -1,0 +1,9 @@
+---
+description: 测试与回归规则（何时写测试、放哪、如何运行）
+globs: []
+alwaysApply: true
+---
+- 改动主路径或共享模块时，需跑或补测试；改 API/契约时更新相关集成或端到端测试。
+- 主路径集成测试：`src/api/test_creator_integration.py`；运行：`cd src && conda run -n seeme python -m pytest api/test_creator_integration.py -v`。
+- 单测位置：各模块下 `test_*.py` 或 `tests/`（如 `unimem/tests/`）；执行前激活环境：`conda activate seeme`。
+- 新增能力时，若为主路径或可复用模块，优先加 1 条集成或单测，再合入。

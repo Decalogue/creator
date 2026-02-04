@@ -240,7 +240,7 @@ docker run -d \
   --name qdrant \
   -p 6333:6333 \
   -p 6334:6334 \
-  -v $(pwd)/qdrant_storage:/qdrant/storage \
+  -v $(pwd)/local_storage/qdrant:/qdrant/storage \
   qdrant/qdrant
 
 ***REMOVED*** 检查服务状态

@@ -1,5 +1,27 @@
 ***REMOVED*** Creator 项目架构
 
+***REMOVED******REMOVED*** 主路径 vs 支线
+
+当前端到端产品走**主路径**，其余为**支线**（有代码但未深度接入主产品）。
+
+| 类型 | 说明 | 主要入口与模块 |
+|------|------|----------------|
+| **主路径** | 前端 → 创作/记忆 API → ReactNovelCreator + semantic_mesh（+ 可选 UniMem） | `api_flask.py`（/api/creator/run、/stream，/api/memory/*）→ `api/creator_handlers.py`、`api/memory_handlers.py` → `task/novel/react_novel_creator.py`、`context/` |
+| **支线** | 多智能体编排、工作流定义，未接入 /api/creator | `workflow/`（NovelWorkflow、CreativeOrchestrator）、`puppeteer/`（GraphReasoning 等） |
+
+新人改「创作流程」或「记忆/图谱」时，优先看主路径；Puppeteer/Workflow 标为实验或后续 DAG 备选，避免误以为必须维护。
+
+***REMOVED******REMOVED*** 模块依赖简图
+
+```
+api_flask.py (HTTP)
+    → api/creator_handlers, api/memory_handlers
+        → task/novel/react_novel_creator, context (semantic_mesh)
+        → unimem (可选，通过 memory_handlers 懒加载)
+task.novel 不依赖 workflow、puppeteer
+unimem 不反向依赖 api（通过配置/环境变量解耦）
+```
+
 ***REMOVED******REMOVED*** 📐 系统架构图
 
 ```mermaid
@@ -47,7 +69,6 @@ graph LR
         ToolDiscovery[工具动态发现]:::tools
         BasicTools[基础工具]:::tools
         Skills[技能系统]:::tools
-        MCP[MCP 协议]:::tools
     end
     
     %% LLM 层
@@ -99,7 +120,6 @@ graph LR
     ToolDiscovery --> BasicTools
     ActionSpace --> BasicTools
     ActionSpace --> Skills
-    ActionSpace --> MCP
     
     %% 记忆系统内部连接
     NovelCreator --> SemanticMesh
@@ -215,23 +235,23 @@ src/
 │   ├── context_manager.py      ***REMOVED*** 上下文管理
 │   ├── layered_action_space.py ***REMOVED*** 分层行动空间
 │   └── multi_agent.py          ***REMOVED*** 多 Agent 协作
-├── creative_context/    ***REMOVED*** 创作上下文系统
+├── context/             ***REMOVED*** 创作上下文系统（语义网格、动态路由、Pub/Sub）
 │   ├── semantic_mesh_memory.py ***REMOVED*** 语义网格记忆
 │   ├── context_router.py       ***REMOVED*** 动态上下文路由
 │   └── pubsub_memory_bus.py    ***REMOVED*** 订阅式记忆总线
-├── novel_creation/      ***REMOVED*** 小说创作模块
+├── task/                ***REMOVED*** 任务层（按业务类型）
+│   └── novel/           ***REMOVED*** 小说创作（原 novel_creation）
 │   ├── react_novel_creator.py  ***REMOVED*** 核心创作器
 │   ├── enhanced_entity_extractor.py ***REMOVED*** 增强实体提取
 │   ├── quality_checker.py      ***REMOVED*** 质量检查
 │   └── unified_orchestrator.py ***REMOVED*** 统一编排接口
-├── react.py            ***REMOVED*** ReAct Agent 实现
+├── orchestrator/       ***REMOVED*** 编排层（ReAct 等 Agentic 推理方式）
 ├── tools/              ***REMOVED*** 工具系统
 │   ├── discovery.py            ***REMOVED*** 工具动态发现
 │   └── search_tool_docs.py     ***REMOVED*** 工具文档搜索
 ├── llm/                ***REMOVED*** LLM 接口
 ├── unimem/             ***REMOVED*** UniMem 记忆系统
 ├── puppeteer/          ***REMOVED*** Puppeteer 编排系统
-├── mcp/                ***REMOVED*** MCP 协议
 └── workflow/           ***REMOVED*** 工作流定义
 ```
 
@@ -266,7 +286,7 @@ src/
   - **L1（原子函数）**：固定、正交的原子函数（read_file, write_file, execute_shell等），对 KV Cache 友好
   - **L2（沙盒工具）**：预装在系统中的工具（grep, sed, awk, curl等），通过 L1 的 execute_shell 使用
   - **L3（软件包与 API）**：编写 Python 脚本执行复杂任务，调用预授权的 API
-- **MCP 协议支持**：标准化工具协议
+- **工具与技能**：以 CodeAct 模式为主流方向（工具发现 + skills 封装）
 
 ***REMOVED******REMOVED******REMOVED*** 5. 多 Agent 协作
 - **Master Agent（主代理）**：创建和管理 Sub-Agent，协调多 Agent 协作
@@ -294,7 +314,7 @@ src/
 ***REMOVED******REMOVED******REMOVED*** 基础使用
 
 ```python
-from novel_creation.react_novel_creator import ReactNovelCreator
+from task.novel.react_novel_creator import ReactNovelCreator
 
 creator = ReactNovelCreator(
     novel_title="我的小说",
@@ -312,9 +332,11 @@ result = creator.create_novel(
 
 ***REMOVED******REMOVED******REMOVED*** 测试
 
+- **主路径集成测试**：`api/test_creator_integration.py` 校验 POST /api/creator/run (mode=create) → 轮询 task → outputs 下 novel_plan.json 存在（mock LLM，环境不可用时 skip）。运行：`cd src && python -m pytest api/test_creator_integration.py -v`。
+
 ```bash
-***REMOVED*** 运行端到端测试
-python novel_creation/test_full_novel_creation.py \
+***REMOVED*** 运行端到端测试（真实 LLM）
+python task/novel/test_quality_optimizations.py \
     --title "测试小说" \
     --genre "科幻" \
     --chapters 5 \
@@ -323,7 +345,7 @@ python novel_creation/test_full_novel_creation.py \
 
 ***REMOVED******REMOVED*** 📚 文档
 
-- **小说创作系统**：详细文档请参考 [`novel_creation/README.md`](./novel_creation/README.md)
+- **小说创作系统**：详细文档请参考 [`task/novel/README.md`](./task/novel/README.md)
   - 包含完整的使用指南、LLM 配置、优化功能、重写机制等
 
 ***REMOVED******REMOVED*** 🔧 技术栈
@@ -331,7 +353,7 @@ python novel_creation/test_full_novel_creation.py \
 - **Python 3.8+**
 - **ReAct Agent**：推理-行动循环
 - **UniMem**：长期记忆系统
-- **MCP**：Model Context Protocol
+- **工具与技能**：tools + skills，以 CodeAct 模式为主流
 - **多 LLM 支持**：DeepSeek、Claude、Gemini、GLM
 
 ***REMOVED******REMOVED*** 📝 开发规范

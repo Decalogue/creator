@@ -3,6 +3,9 @@
 
 基于"换壳理论"生成60集短剧剧本
 流程：创建成长线 → 换壳 → 添加调味 → 生成剧本
+
+注意：本示例依赖已删除的 src/workflow 模块（ShellSwappingOrchestrator、SeasoningManager），
+当前已禁用。若需恢复，请将换壳/调味逻辑迁至 unimem 或独立模块后再启用。
 """
 
 import json
@@ -18,8 +21,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from unimem.character import CharacterGrowthArcManager
 from unimem.storage.hierarchical.hierarchical_storage import HierarchicalStorage, ContentLevel
 from unimem.memory_types import Memory
-from workflow.shell_swapping_orchestrator import ShellSwappingOrchestrator
-from workflow.seasoning_manager import SeasoningManager, SeasoningType
 from unimem.adapters.script_adapter import ScriptAdapter
 from unimem.chat import ark_deepseek_v3_2
 
@@ -164,7 +165,7 @@ def create_source_story(growth_arcs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def swap_shell(
-    orchestrator: ShellSwappingOrchestrator,
+    orchestrator: Any,
     source_story: Dict[str, Any],
     target_shell: str,
     character_ids: List[str]
@@ -188,7 +189,7 @@ def swap_shell(
 
 
 def add_seasonings(
-    seasoning_manager: SeasoningManager,
+    seasoning_manager: Any,
     shelled_story: Any,
     shell_type: str
 ) -> Any:
@@ -196,10 +197,10 @@ def add_seasonings(
     logger.info("=" * 60)
     logger.info("步骤4: 添加调味（调味七件套）")
     logger.info("=" * 60)
-    
+    default_seasonings = getattr(seasoning_manager, "DEFAULT_SEASONINGS", [])
     seasoned_story = seasoning_manager.add_seasonings(
         story=shelled_story,
-        seasonings=SeasoningManager.DEFAULT_SEASONINGS,
+        seasonings=default_seasonings,
         shell_type=shell_type,
         intensity=1.2  ***REMOVED*** 短剧提高强度
     )
@@ -614,8 +615,13 @@ def main():
     logger.info("=" * 60)
     logger.info("开始生成60集短剧剧本（基于换壳理论）")
     logger.info("=" * 60)
-    
-    ***REMOVED*** 1. 初始化组件
+    logger.warning(
+        "本示例依赖已删除的 workflow 模块（ShellSwappingOrchestrator、SeasoningManager），"
+        "当前已禁用。若需恢复，请将换壳/调味逻辑迁至 unimem 或独立模块。"
+    )
+    sys.exit(0)
+
+    ***REMOVED*** 1. 初始化组件（以下代码在 workflow 恢复前不会执行）
     growth_arc_manager = CharacterGrowthArcManager(storage_manager=None)
     hierarchical_storage = HierarchicalStorage(storage_manager=None)
     orchestrator = ShellSwappingOrchestrator(

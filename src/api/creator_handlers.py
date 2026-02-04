@@ -16,7 +16,7 @@ import re
 logger = logging.getLogger(__name__)
 
 _BASE = Path(__file__).resolve().parent.parent
-_OUTPUTS = _BASE / "novel_creation" / "outputs"
+_OUTPUTS = _BASE / "task" / "novel" / "outputs"
 
 
 def _project_dir(project_id: str) -> Path:
@@ -249,7 +249,7 @@ def run_create(
         logger.info("run_create: theme=%r -> project_id=%r", theme[:80], project_id)
 
     try:
-        from novel_creation.react_novel_creator import ReactNovelCreator
+        from task.novel.react_novel_creator import ReactNovelCreator
 
         llm = _default_llm()
         creator = ReactNovelCreator(
@@ -349,7 +349,7 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
         prev_summary = co[outline_index - 1].get("summary") or ""
 
     try:
-        from novel_creation.react_novel_creator import ReactNovelCreator
+        from task.novel.react_novel_creator import ReactNovelCreator
 
         llm = _default_llm()
         creator = ReactNovelCreator(
@@ -367,7 +367,7 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
             creator.metadata["plan"] = plan
         if mesh_file.exists():
             try:
-                from creative_context import SemanticMeshMemory
+                from context import SemanticMeshMemory
                 with open(mesh_file, "r", encoding="utf-8") as f:
                     mesh_data = json.load(f)
                 mesh = SemanticMeshMemory()

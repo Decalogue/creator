@@ -1,31 +1,35 @@
-***REMOVED*** Function Calling 系统使用指南
+***REMOVED*** tools — 工具调用层（创作相关）
 
 ***REMOVED******REMOVED*** 简介
 
-这是一个基于 OpenAI Function Calling 格式的工具调用框架。它提供了统一的接口来定义和执行可被 LLM 调用的函数，使 AI 助手能够使用外部工具和功能。
+基于 OpenAI Function Calling 格式的工具调用框架，**主要服务于 Creator 创作流程**：编排层（如 ReAct）通过本模块发现与执行工具，支撑创作助手完成计算、查询、文档检索等能力。
 
-**注意**：这是一个标准的 Function Calling 系统，完全兼容 OpenAI 的 Function Calling API。
+- 统一接口：定义与执行可被 LLM 调用的函数，兼容 OpenAI Function Calling API。
+- 与编排层配合：`orchestrator/react.py` 的 ReActAgent 使用 `default_registry` 与 `get_discovery()`，详见 [README_DISCOVERY.md](./README_DISCOVERY.md)。
 
 ***REMOVED******REMOVED*** 目录结构
 
 ```
 tools/
 ├── __init__.py          ***REMOVED*** 模块导出和自动注册
-├── base.py              ***REMOVED*** Function 基类和注册表
-├── calculator.py        ***REMOVED*** 计算器工具示例
-├── weather.py           ***REMOVED*** 天气查询工具示例
-├── time.py              ***REMOVED*** 时间查询工具示例
-├── example.py           ***REMOVED*** 完整使用示例（包括基础使用、LLM 集成和 API 集成）
-├── test_tools.py        ***REMOVED*** 测试代码
-└── README.md            ***REMOVED*** 本文档
+├── base.py              ***REMOVED*** Tool 基类和注册表
+├── discovery.py         ***REMOVED*** 工具发现（Index + Discovery Layer）
+├── search_tool_docs.py  ***REMOVED*** 工具文档搜索/读取工具
+├── docs/                ***REMOVED*** 各工具说明（供发现层同步）
+├── example.py           ***REMOVED*** 使用示例
+├── test.py              ***REMOVED*** 测试
+├── README.md            ***REMOVED*** 本文档
+└── README_DISCOVERY.md  ***REMOVED*** 工具发现系统说明
 ```
+
+**当前内置工具**（仅创作相关）：`search_tool_docs`、`read_tool_doc`。编排层通过它们按需查找工具文档；新增创作工具时继承 `Tool` 并注册，详见「与创作流程的关系」。
 
 ***REMOVED******REMOVED*** 快速开始（5 分钟上手）
 
 ***REMOVED******REMOVED******REMOVED*** 1. 导入模块
 
 ```python
-from tools import default_registry
+from tools import default_registry, get_discovery
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 2. 查看可用工具
@@ -33,35 +37,27 @@ from tools import default_registry
 ```python
 ***REMOVED*** 列出所有工具
 print(default_registry.list_tools())
-***REMOVED*** 输出: ['calculator', 'get_weather', 'get_current_time']
+***REMOVED*** 输出: ['search_tool_docs', 'read_tool_doc']
 
 ***REMOVED*** 获取工具定义（用于传递给 LLM，OpenAI Function Calling 格式）
 functions = default_registry.get_all_functions()
+
+***REMOVED*** 获取 Index Layer 内容（供编排层注入系统提示词）
+discovery = get_discovery()
+index_content = discovery.get_index_layer()
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 3. 执行工具调用
 
 ```python
-***REMOVED*** 计算
+***REMOVED*** 搜索工具文档（编排层按需调用）
 result = default_registry.execute_tool(
-    "calculator",
-    {"expression": "10 * 5 + 20"}
+    "search_tool_docs",
+    {"query": "创作", "max_results": 5}
 )
-print(result)  ***REMOVED*** 计算结果：10 * 5 + 20 = 70
 
-***REMOVED*** 查询天气
-result = default_registry.execute_tool(
-    "get_weather",
-    {"city": "北京"}
-)
-print(result)
-
-***REMOVED*** 查询时间
-result = default_registry.execute_tool(
-    "get_current_time",
-    {"timezone": "Asia/Shanghai"}
-)
-print(result)
+***REMOVED*** 读取指定工具文档
+doc = default_registry.execute_tool("read_tool_doc", {"tool_name": "search_tool_docs"})
 ```
 
 ***REMOVED******REMOVED******REMOVED*** 4. 运行示例
@@ -76,7 +72,7 @@ python -m tools.example
 python tools/example.py
 
 ***REMOVED*** 运行测试
-python -m tools.test_tools
+python -m tools.test
 ```
 
 ***REMOVED******REMOVED*** 详细使用指南
@@ -84,173 +80,65 @@ python -m tools.test_tools
 ***REMOVED******REMOVED******REMOVED*** 1. 基本使用
 
 ```python
-from tools import default_registry
+from tools import default_registry, get_discovery
 
 ***REMOVED*** 获取所有可用的工具定义（用于传递给 LLM）
 functions = default_registry.get_all_functions()
 
-***REMOVED*** 执行工具调用
+***REMOVED*** 获取 Index Layer（供编排层注入系统提示词）
+discovery = get_discovery()
+index_content = discovery.get_index_layer()
+
+***REMOVED*** 执行工具调用（示例：搜索工具文档）
 result = default_registry.execute_tool(
-    "calculator",
-    {"expression": "2 + 3 * 4"}
+    "search_tool_docs",
+    {"query": "创作", "max_results": 5}
 )
-print(result)  ***REMOVED*** 计算结果：2 + 3 * 4 = 14
 ```
 
-***REMOVED******REMOVED******REMOVED*** 2. 与 LLM 集成
-
-```python
-import json
-from openai import OpenAI
-from tools import default_registry
-
-client = OpenAI(
-    base_url="https://ark.cn-beijing.volces.com/api/v3",
-    api_key="your-api-key"
-)
-
-***REMOVED*** 1. 获取工具定义
-functions = default_registry.get_all_functions()
-
-***REMOVED*** 2. 调用 LLM，传入工具定义
-messages = [
-    {"role": "user", "content": "帮我计算 15 * 8 + 20"}
-]
-
-response = client.chat.completions.create(
-    model="your-model",
-    messages=messages,
-    tools=functions,  ***REMOVED*** 传入工具定义
-    tool_choice="auto"
-)
-
-***REMOVED*** 3. 处理工具调用
-message = response.choices[0].message
-
-if message.tool_calls:
-    for tool_call in message.tool_calls:
-        func_name = tool_call.function.name
-        func_args = json.loads(tool_call.function.arguments)
-        
-        ***REMOVED*** 执行工具
-        result = default_registry.execute_tool(func_name, func_args)
-        
-        ***REMOVED*** 将结果添加到对话
-        messages.append({
-            "role": "tool",
-            "tool_call_id": tool_call.id,
-            "content": str(result)
-        })
-    
-    ***REMOVED*** 再次调用 LLM，生成最终回复
-    response = client.chat.completions.create(
-        model="your-model",
-        messages=messages,
-        tools=functions
-    )
-    
-    print(response.choices[0].message.content)
-```
-
-***REMOVED******REMOVED******REMOVED*** 3. 创建自定义工具
+***REMOVED******REMOVED******REMOVED*** 2. 创建自定义创作相关工具
 
 ```python
 from tools.base import Tool, default_registry
 from typing import Any, Dict
 
-class MyCustomTool(Tool):
-    """
-    自定义工具，继承 Tool 基类
-    注意：Tool 对应 Function Calling 中的 Function
-    """
+class MyCreationTool(Tool):
+    """示例：创作相关自定义工具"""
     def __init__(self):
-        super().__init__(
-            name="my_function",
-            description="我的自定义函数"
-        )
-    
+        super().__init__(name="my_creation_tool", description="创作相关能力描述")
+
     def get_function_schema(self) -> Dict[str, Any]:
-        """返回 OpenAI Function Calling 格式的函数定义"""
         return {
             "type": "function",
             "function": {
-                "name": "my_function",
-                "description": "函数描述",
+                "name": "my_creation_tool",
+                "description": "创作相关能力描述",
                 "parameters": {
                     "type": "object",
-                    "properties": {
-                        "param1": {
-                            "type": "string",
-                            "description": "参数1的描述"
-                        }
-                    },
-                    "required": ["param1"]
-                }
-            }
+                    "properties": {"param1": {"type": "string", "description": "参数描述"}},
+                    "required": ["param1"],
+                },
+            },
         }
-    
+
     def execute(self, arguments: Dict[str, Any]) -> Any:
-        """执行函数逻辑"""
-        param1 = arguments["param1"]
-        ***REMOVED*** 实现函数逻辑
-        return f"处理结果：{param1}"
+        return f"处理结果：{arguments.get('param1', '')}"
 
-***REMOVED*** 注册工具
-custom_tool = MyCustomTool()
-default_registry.register(custom_tool)
+default_registry.register(MyCreationTool())
 ```
 
-***REMOVED******REMOVED*** 内置工具
+新增工具后，在 `tools/docs/` 下提供对应 `{tool_name}.md`（或由 discovery 自动同步生成），即可被编排层通过 `search_tool_docs` / `read_tool_doc` 发现。
 
-以下是系统内置的可调用工具示例，它们遵循 OpenAI Function Calling 格式：
+***REMOVED******REMOVED*** 内置工具（创作相关）
 
-***REMOVED******REMOVED******REMOVED*** 1. CalculatorTool（计算器）
+当前仅保留与创作编排配合的工具发现能力：
 
-- **工具名**: `calculator`
-- **功能**: 执行数学计算，支持基本运算（+、-、*、/）和幂运算（**）
-- **参数**:
-  - `expression` (string, 必需): 数学表达式
+| 工具名 | 功能 |
+|--------|------|
+| **search_tool_docs** | 按关键词搜索工具文档，供编排层按需查找 |
+| **read_tool_doc** | 读取指定工具的完整文档 |
 
-**示例**:
-```python
-result = default_registry.execute_tool(
-    "calculator",
-    {"expression": "10 * 5 + 20"}
-)
-***REMOVED*** 输出: 计算结果：10 * 5 + 20 = 70
-```
-
-***REMOVED******REMOVED******REMOVED*** 2. WeatherTool（天气查询）
-
-- **工具名**: `get_weather`
-- **功能**: 查询城市天气（模拟实现）
-- **参数**:
-  - `city` (string, 必需): 城市名称
-  - `date` (string, 可选): 查询日期，格式 YYYY-MM-DD
-
-**示例**:
-```python
-result = default_registry.execute_tool(
-    "get_weather",
-    {"city": "北京"}
-)
-```
-
-***REMOVED******REMOVED******REMOVED*** 3. TimeTool（时间查询）
-
-- **工具名**: `get_current_time`
-- **功能**: 获取当前时间和日期
-- **参数**:
-  - `timezone` (string, 可选): 时区名称，默认 "Asia/Shanghai"
-  - `format` (string, 可选): 格式类型，"full"/"date"/"time"，默认 "full"
-
-**示例**:
-```python
-result = default_registry.execute_tool(
-    "get_current_time",
-    {"timezone": "Asia/Shanghai", "format": "full"}
-)
-```
+编排层（如 ReActAgent）在系统提示词中只注入工具索引（Index Layer），通过上述两个工具按需拉取 Discovery Layer，减少 token。详见 [README_DISCOVERY.md](./README_DISCOVERY.md)。
 
 ***REMOVED******REMOVED*** API 参考
 
@@ -274,23 +162,18 @@ result = default_registry.execute_tool(
 
 ***REMOVED******REMOVED*** 注意事项
 
-1. **命名说明**: 这是一个标准的 Function Calling 系统，完全兼容 OpenAI 的 Function Calling API
-2. **安全性**: 计算器工具使用了 `eval()`，已添加安全检查，但在生产环境中建议使用更安全的表达式解析库
-3. **时区支持**: 时间工具需要 `pytz` 库支持完整时区功能，如果没有安装则只支持 UTC
-4. **错误处理**: 所有工具都应该有适当的错误处理，返回友好的错误信息
-5. **路径处理**: 可以直接运行 `python tools/example.py`，脚本会自动处理导入路径
+1. **命名说明**: 完全兼容 OpenAI Function Calling API；当前内置工具仅保留创作相关（工具发现）。
+2. **错误处理**: 所有工具应有适当错误处理，返回友好错误信息。
+3. **路径处理**: 运行示例时工作目录需包含 `src` 或已配置 PYTHONPATH；可直接运行 `python tools/example.py`。
 
-***REMOVED******REMOVED*** 扩展建议
+***REMOVED******REMOVED*** 与创作流程的关系
 
-- 添加更多实用工具（如文件操作、数据库查询、API 调用等）
-- 支持工具链式调用
-- 添加工具使用统计和日志
-- 支持异步执行工具
-- 添加工具权限管理
+- **编排层**：`orchestrator/react.py` 的 ReActAgent 使用 `default_registry` 与 `get_discovery()`，系统提示词中只注入工具索引（Index Layer），Agent 通过 `search_tool_docs` / `read_tool_doc` 按需查找工具文档（Discovery Layer），减少 token 消耗。
+- **扩展**：新增创作相关工具（如大纲辅助、风格检查等）时，继承 `Tool`、注册到 `default_registry`，并在 `tools/docs/` 下提供对应 `.md`，即可被发现与调用。
 
 ***REMOVED******REMOVED*** 下一步
 
-1. 查看 `example.py` 学习更多用法和完整示例
-2. 运行 `python -m tools.example` 查看所有示例
-3. 运行 `python -m tools.test_tools` 验证功能
-4. 参考现有工具实现创建自己的工具
+1. 查看 `example.py` 学习更多用法
+2. 运行 `python -m tools.example` 查看示例
+3. 运行 `python -m tools.test` 验证功能
+4. 参考 [README_DISCOVERY.md](./README_DISCOVERY.md) 了解工具发现与创作编排的配合

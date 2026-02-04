@@ -28,6 +28,17 @@
 结合当前 Agent 与 Memory 领域发展，各阶段优先级与落地顺序见 **[docs/ROADMAP.md](docs/ROADMAP.md)**：  
 闭环打通（创作 API + 记忆/图谱 API + 前端）→ 编排可观测 & UniMem 贯通 → Agent/Memory 升级 → 稳定性与成本。
 
+***REMOVED******REMOVED******REMOVED*** 快速定位
+
+| 要改什么 | 主要看哪里 |
+|----------|------------|
+| 创作逻辑（大纲/续写/润色/对话） | `src/api/`、`src/novel_creation/`（ReactNovelCreator） |
+| 记忆与图谱 API、UniMem 对接 | `src/api/memory_handlers.py`、`src/unimem/` |
+| 编排事件与流式推送 | `src/api/orchestration_events.py`、`src/api_flask.py`（/api/creator/stream） |
+| 前端创作页与记忆面板 | `frontend/src/pages/home/creator.tsx` |
+
+更多模块说明与主路径/支线划分见 **[src/README.md](src/README.md)**；工程原则见 **[Instructions/工程原则.md](Instructions/工程原则.md)**；路线图与阶段规划见 **[docs/ROADMAP.md](docs/ROADMAP.md)**；调研论文（Memory/Agent）见 **[docs/article.md](docs/article.md)**。
+
 ***REMOVED******REMOVED******REMOVED*** 运行与故障排查
 
 - **「无法连接后端（network error）」但后端已生成 novel_plan.json**  

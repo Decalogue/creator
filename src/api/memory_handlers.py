@@ -17,7 +17,7 @@ import queue
 logger = logging.getLogger(__name__)
 
 _BASE = Path(__file__).resolve().parent.parent
-_OUTPUTS = _BASE / "novel_creation" / "outputs"
+_OUTPUTS = _BASE / "task" / "novel" / "outputs"
 
 ***REMOVED*** UniMem 可选后端：环境变量 UNIMEM_ENABLED=1 时启用
 _unimem_instance: Optional[Any] = None

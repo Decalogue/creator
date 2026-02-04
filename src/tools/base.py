@@ -1,3 +1,9 @@
+"""
+Tool 基类与 ToolRegistry：Function Calling 统一接口
+
+供 Creator 编排层（如 ReActAgent）注册与执行工具；与 discovery 配合实现
+Index + Discovery Layer，减少注入到系统提示词的 token。
+"""
 import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union

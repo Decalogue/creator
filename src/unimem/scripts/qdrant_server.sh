@@ -16,7 +16,8 @@ cd "$SRC_DIR"
 CONTAINER_NAME="qdrant_unimem"
 HOST_PORT_HTTP=6333
 HOST_PORT_GRPC=6334
-STORAGE_PATH="./unimem/qdrant_storage"  ***REMOVED*** 相对于 src 目录
+***REMOVED*** 存储路径：项目根下 local_storage/qdrant（旧路径 src/memory/unimem/qdrant_storage 或 src/unimem/qdrant_storage 需手动迁移到此目录）
+STORAGE_PATH="../local_storage/qdrant"
 IMAGE_NAME="qdrant/qdrant"
 
 ***REMOVED*** 颜色输出

@@ -104,10 +104,6 @@ ENV/
 ***REMOVED*** custom
 data/
 todo/
-src/data/
-src/docs/
-src/memory/
-src/llm/result/
-src/novel_creation/outputs/
+local_storage/
 frontend/node_modules/
 frontend/dist/
