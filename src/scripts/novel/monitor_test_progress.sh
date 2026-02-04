@@ -1,8 +1,10 @@
 ***REMOVED***!/bin/bash
-***REMOVED*** 监控测试进度脚本
+***REMOVED*** 监控测试进度（需在 src 目录下执行，或从项目根执行时路径已自动切到 src）
 
 LOG_FILE="/tmp/test_50chapters_word_control_optimization.log"
 OUTPUT_DIR="task/novel/outputs/50章字数控制优化测试"
+SRCDIR="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$SRCDIR" || exit 1
 
 echo "📊 测试进度监控"
 echo "=================="
@@ -24,15 +26,12 @@ fi
 if [ -d "$OUTPUT_DIR" ]; then
     CHAPTERS_DIR="$OUTPUT_DIR/chapters"
     if [ -d "$CHAPTERS_DIR" ]; then
-        ***REMOVED*** 统计已生成的章节
         CHAPTER_COUNT=$(ls -1 "$CHAPTERS_DIR"/chapter_*_meta.json 2>/dev/null | wc -l)
         echo "✅ 已生成章节数: $CHAPTER_COUNT / 50"
         echo ""
-        
-        ***REMOVED*** 统计字数（使用Python脚本）
-        if [ $CHAPTER_COUNT -gt 0 ]; then
+
+        if [ "$CHAPTER_COUNT" -gt 0 ]; then
             echo "📊 字数统计:"
-            cd "$(dirname "$0")/.." || exit
             python3 -c "
 import json
 from pathlib import Path
@@ -56,19 +55,18 @@ if chapter_files:
                 })
         except:
             pass
-    
+
     if word_stats:
         avg_words = sum(s['actual'] for s in word_stats) / len(word_stats)
         avg_diff = sum(abs(s['diff_percent']) for s in word_stats) / len(word_stats)
         within_target = sum(1 for s in word_stats if abs(s['diff_percent']) <= 10)
         within_limit = sum(1 for s in word_stats if s['actual'] <= 3000)
-        
+
         print(f'  平均字数: {avg_words:.0f} 字 (目标: 2048字)')
         print(f'  平均偏差: {avg_diff:.1f}%')
         print(f'  目标±10%内: {within_target}/{len(word_stats)} ({within_target/len(word_stats)*100:.1f}%)')
         print(f'  3000字上限内: {within_limit}/{len(word_stats)} ({within_limit/len(word_stats)*100:.1f}%)')
-        
-        ***REMOVED*** 显示最近5章的字数
+
         if len(word_stats) >= 5:
             print(f'')
             print(f'  最近5章字数:')
@@ -87,10 +85,9 @@ else
     echo ""
 fi
 
-***REMOVED*** 检查是否有错误
 if [ -f "$LOG_FILE" ]; then
     ERROR_COUNT=$(grep -i "error\|exception\|failed" "$LOG_FILE" | wc -l)
-    if [ $ERROR_COUNT -gt 0 ]; then
+    if [ "$ERROR_COUNT" -gt 0 ]; then
         echo "⚠️  检测到 $ERROR_COUNT 个错误/异常"
         echo "   最近错误:"
         grep -i "error\|exception\|failed" "$LOG_FILE" | tail -n 3

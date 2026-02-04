@@ -28,15 +28,17 @@
 skills/
 ├── __init__.py          ***REMOVED*** 模块导出
 ├── skill.py             ***REMOVED*** Skill 类定义
-├── manager.py          ***REMOVED*** Skill Manager
+├── manager.py           ***REMOVED*** Skill Manager
 ├── example.py           ***REMOVED*** 使用示例
 ├── test.py              ***REMOVED*** 测试代码
+├── chapter_creation_sop/ ***REMOVED*** 内置：章节创作规范
+│   └── SKILL.md         ***REMOVED*** 必需：元数据 + 主体
 └── <your_skill>/        ***REMOVED*** 创作相关 Skill（自行添加）
     ├── SKILL.md         ***REMOVED*** 必需：元数据 + 主体
     └── ...              ***REMOVED*** 可选：资源文件
 ```
 
-**当前无内置 Skill 示例**；请按「创建新 Skill」添加创作相关 Skill（如短剧节奏规范、对话质量 SOP 等）。
+**内置 Skill**：`chapter_creation_sop`（章节创作规范），见下方「内置 Skills」；可按需添加更多创作相关 Skill（如短剧节奏、对话 SOP 等）。
 
 ***REMOVED******REMOVED*** 快速开始（5 分钟上手）
 
@@ -189,7 +191,41 @@ context = get_creation_context("本章对话占比与节奏要求")
 
 ***REMOVED******REMOVED*** 内置 Skills
 
-**当前无内置 Skill**。请按「创建新 Skill」在 `skills/` 下添加创作相关 Skill，例如：
+***REMOVED******REMOVED******REMOVED*** 内置 Skill：章节创作规范
+
+| Skill 名称 | 说明 | 触发词示例 |
+|------------|------|------------|
+| **章节创作规范** | 单章创作的 SOP：字数（2048/1500～3000）、节奏（25%/40%/25%/10%）、对话占比（20%～40%）与一致性要点，与 `task/novel` 配置对齐 | 写本章、续写、字数、节奏、对话占比、章节创作 |
+
+**使用方法**（在 `src` 目录下执行）：
+
+```python
+from skills import default_manager
+
+***REMOVED*** 按创作任务选择并获取上下文（推荐）
+query = "写本章，注意字数与节奏"
+selected = default_manager.select_skills(query, max_skills=3)
+context = default_manager.get_context_for_query(query, level=2)
+***REMOVED*** 将 context 注入 system 或 user 后调用 LLM
+
+***REMOVED*** 或直接按名称获取
+skill = default_manager.get_skill("章节创作规范")
+if skill:
+    level1 = skill.get_context(level=1)   ***REMOVED*** 仅元数据
+    level2 = skill.get_context(level=2)   ***REMOVED*** 元数据 + 主体（SOP 全文）
+```
+
+**运行示例与测试**：
+
+```bash
+cd src
+python -m skills.example    ***REMOVED*** 列出 Skills、渐进式披露、按查询选择
+python -m skills.test       ***REMOVED*** 单元测试（含本章创作规范相关断言）
+```
+
+***REMOVED******REMOVED******REMOVED*** 添加更多 Skill
+
+在 `skills/` 下新建子目录并放入 `SKILL.md`，例如：
 
 - 短剧节奏规范、每集时长与悬念节奏
 - 对话质量 SOP（占比、心理活动上限等）

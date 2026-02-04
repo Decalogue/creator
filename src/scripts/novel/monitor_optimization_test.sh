@@ -1,15 +1,16 @@
 ***REMOVED***!/bin/bash
-***REMOVED*** 监控优化测试进度
+***REMOVED*** 监控优化测试进度（需在 src 下执行，或从项目根执行时路径已自动切到 src）
 
 TEST_LOG="/tmp/test_optimization_verification.log"
 OUTPUT_DIR="task/novel/outputs/优化效果验证测试"
+SRCDIR="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$SRCDIR" || exit 1
 
 echo "=========================================="
 echo "优化效果验证测试监控"
 echo "=========================================="
 echo ""
 
-***REMOVED*** 检查测试是否在运行
 if pgrep -f "test_quality_optimizations.py.*优化效果验证测试" > /dev/null; then
     echo "✅ 测试正在运行中..."
 else
@@ -22,23 +23,18 @@ echo "----------------------------------------"
 tail -20 "$TEST_LOG" 2>/dev/null || echo "日志文件不存在"
 echo ""
 
-***REMOVED*** 检查输出目录
 if [ -d "$OUTPUT_DIR" ]; then
     echo "📁 输出目录: $OUTPUT_DIR"
-    
-    ***REMOVED*** 统计生成的章节数
     chapter_count=$(find "$OUTPUT_DIR/chapters" -name "chapter_*.txt" 2>/dev/null | wc -l)
     echo "   已生成章节: $chapter_count 章"
-    
-    ***REMOVED*** 检查重写情况
+
     if [ -d "$OUTPUT_DIR/chapters" ]; then
         rewritten_count=$(find "$OUTPUT_DIR/chapters" -name "*_meta.json" -exec grep -l '"rewritten":\s*true' {} \; 2>/dev/null | wc -l)
         if [ "$rewritten_count" -gt 0 ]; then
             echo "   重写章节: $rewritten_count 章"
         fi
     fi
-    
-    ***REMOVED*** 检查质量检查结果
+
     if [ -f "$OUTPUT_DIR/metadata.json" ]; then
         echo ""
         echo "📈 质量统计（从metadata.json）："
@@ -48,15 +44,11 @@ import sys
 try:
     with open('$OUTPUT_DIR/metadata.json', 'r', encoding='utf-8') as f:
         metadata = json.load(f)
-    
     quality_tracker = metadata.get('quality_tracker', {})
     chapter_history = quality_tracker.get('chapter_quality_history', [])
-    
     if chapter_history:
         total_issues = sum(c.get('quality_issues', 0) for c in chapter_history)
         avg_issues = total_issues / len(chapter_history)
-        
-        ***REMOVED*** 字数统计
         word_deviations = []
         for c in chapter_history:
             target = c.get('target_words', 2048)
@@ -64,18 +56,14 @@ try:
             if target > 0:
                 deviation = (actual - target) / target * 100
                 word_deviations.append(deviation)
-        
         if word_deviations:
             avg_deviation = sum(word_deviations) / len(word_deviations)
             max_deviation = max(abs(d) for d in word_deviations)
-            
             print(f'   平均质量问题数: {avg_issues:.2f}个/章')
             print(f'   平均字数偏差: {avg_deviation:+.1f}%')
             print(f'   最大字数偏差: {max_deviation:.1f}%')
-        
-        ***REMOVED*** 重写统计
-        rewritten_chapters = []
         import os
+        rewritten_chapters = []
         for i in range(1, len(chapter_history) + 1):
             meta_file = f'$OUTPUT_DIR/chapters/chapter_{i:03d}_meta.json'
             if os.path.exists(meta_file):
@@ -93,12 +81,10 @@ try:
                                 rewritten_chapters.append({'improved': False, 'worsened': True})
                 except:
                     pass
-        
         if rewritten_chapters:
             improved = sum(1 for c in rewritten_chapters if c.get('improved'))
             unchanged = sum(1 for c in rewritten_chapters if c.get('unchanged'))
             worsened = sum(1 for c in rewritten_chapters if c.get('worsened'))
-            
             total_rewritten = len(rewritten_chapters)
             print(f'')
             print(f'   🔄 重写机制效果:')

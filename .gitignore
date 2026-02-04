@@ -107,3 +107,4 @@ todo/
 local_storage/
 frontend/node_modules/
 frontend/dist/
+src/task/novel/outputs/

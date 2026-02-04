@@ -485,10 +485,7 @@ task/novel/outputs/{novel_title}/
 6. **质量优化**：系统会自动根据质量反馈调整后续章节，无需手动干预
 7. **质量优先策略**：`max_new_tokens` 始终不低于 2048，字数控制通过 prompt 实现，如果内容优质，字数可以适当浮动（±20%以内都可以接受）
 
-***REMOVED******REMOVED*** 示例
+***REMOVED******REMOVED*** 示例与脚本
 
-运行示例脚本：
-
-```bash
-python task/novel/test_quality_optimizations.py
-```
+- **质量优化测试**（本目录）：`python -m task.novel.test_quality_optimizations`（需在 `src` 下执行）
+- **100 章创作、后台运行、测试监控脚本**：见 **`scripts/novel/README.md`**（非主路径，主路径为前端 + `/api/creator/stream`）

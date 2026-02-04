@@ -335,13 +335,11 @@ result = creator.create_novel(
 - **主路径集成测试**：`api/test_creator_integration.py` 校验 POST /api/creator/run (mode=create) → 轮询 task → outputs 下 novel_plan.json 存在（mock LLM，环境不可用时 skip）。运行：`cd src && python -m pytest api/test_creator_integration.py -v`。
 
 ```bash
-***REMOVED*** 运行端到端测试（真实 LLM）
-python task/novel/test_quality_optimizations.py \
-    --title "测试小说" \
-    --genre "科幻" \
-    --chapters 5 \
-    --words 2000
+***REMOVED*** 运行端到端测试（真实 LLM，需在 src 下执行）
+python -m task.novel.test_quality_optimizations --title "测试小说" --genre "科幻" --chapters 5 --words 2000
 ```
+
+- **100 章创作、测试监控脚本**：见 [`scripts/novel/README.md`](./scripts/novel/README.md)。
 
 ***REMOVED******REMOVED*** 📚 文档
 
