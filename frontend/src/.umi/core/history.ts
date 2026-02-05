@@ -47,8 +47,8 @@ export function setHistory(h: UmiHistory) {
 
 // Patch `to` to support basename
 // Refs:
-// https://github.com/remix-run/history/blob/3e9dab4/packages/history/index.ts***REMOVED***L484
-// https://github.com/remix-run/history/blob/dev/docs/api-reference.md***REMOVED***to
+// https://github.com/remix-run/history/blob/3e9dab4/packages/history/index.ts#L484
+// https://github.com/remix-run/history/blob/dev/docs/api-reference.md#to
 function patchTo(to: any, h: History) {
   if (typeof to === 'string') {
     return `${stripLastSlash(basename)}${to}`;
