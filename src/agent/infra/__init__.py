@@ -11,9 +11,9 @@ from .observability import AgentObservability, get_agent_observability
 from .experiment import ExperimentManager, ExperimentResult
 from .cache import AgentCache, get_agent_cache
 
-***REMOVED*** Resilience 模块未使用，已移除
-***REMOVED*** 如需使用，请取消注释：
-***REMOVED*** from .resilience import ResilienceManager, CircuitBreaker, RetryStrategy
+# Resilience 模块未使用，已移除
+# 如需使用，请取消注释：
+# from .resilience import ResilienceManager, CircuitBreaker, RetryStrategy
 
 __all__ = [
     "AgentObservability",

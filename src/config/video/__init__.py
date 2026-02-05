@@ -4,5 +4,5 @@
 预留：defaults、prompts 等可按需添加。
 """
 
-***REMOVED*** 暂无导出，后续可 from config.video.defaults import ...
+# 暂无导出，后续可 from config.video.defaults import ...
 __all__: list[str] = []

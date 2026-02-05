@@ -45,22 +45,22 @@ class LRUCache:
             
             entry = self._cache[key]
             
-            ***REMOVED*** 检查是否过期
+            # 检查是否过期
             if self.ttl and (time.time() - entry['timestamp']) > self.ttl:
                 del self._cache[key]
                 return None
             
-            ***REMOVED*** 移动到末尾（LRU）
+            # 移动到末尾（LRU）
             self._cache.move_to_end(key)
             return entry['value']
     
     def set(self, key: str, value: Any):
         """设置缓存值"""
         with self._lock:
-            ***REMOVED*** 如果已存在，先删除
+            # 如果已存在，先删除
             if key in self._cache:
                 del self._cache[key]
-            ***REMOVED*** 如果超过最大大小，删除最旧的
+            # 如果超过最大大小，删除最旧的
             elif len(self._cache) >= self.max_size:
                 self._cache.popitem(last=False)
             
@@ -102,13 +102,13 @@ class AgentCache:
     
     def __init__(self):
         """初始化缓存系统"""
-        ***REMOVED*** 不同用途的缓存
-        self.entity_context_cache = LRUCache(max_size=500, ttl=3600)  ***REMOVED*** 1小时
-        self.quality_check_cache = LRUCache(max_size=1000, ttl=1800)  ***REMOVED*** 30分钟
-        self.prompt_cache = LRUCache(max_size=100, ttl=86400)  ***REMOVED*** 24小时
-        self.tool_result_cache = LRUCache(max_size=200, ttl=600)  ***REMOVED*** 10分钟
+        # 不同用途的缓存
+        self.entity_context_cache = LRUCache(max_size=500, ttl=3600)  # 1小时
+        self.quality_check_cache = LRUCache(max_size=1000, ttl=1800)  # 30分钟
+        self.prompt_cache = LRUCache(max_size=100, ttl=86400)  # 24小时
+        self.tool_result_cache = LRUCache(max_size=200, ttl=600)  # 10分钟
         
-        ***REMOVED*** 缓存统计
+        # 缓存统计
         self._stats = {
             "entity_context": {"hits": 0, "misses": 0},
             "quality_check": {"hits": 0, "misses": 0},
@@ -153,7 +153,7 @@ class AgentCache:
         Returns:
             缓存的检查结果，如果不存在则返回 None
         """
-        ***REMOVED*** 使用内容哈希作为 key（避免内容过长）
+        # 使用内容哈希作为 key（避免内容过长）
         content_hash = hashlib.md5(chapter_content.encode()).hexdigest()
         key = f"quality_check_{content_hash}"
         result = self.quality_check_cache.get(key)
@@ -209,7 +209,7 @@ class AgentCache:
                     "hit_rate": hit_rate,
                 }
             
-            ***REMOVED*** 添加各缓存的容量信息
+            # 添加各缓存的容量信息
             stats["entity_context"]["size"] = self.entity_context_cache.size()
             stats["quality_check"]["size"] = self.quality_check_cache.size()
             stats["prompt"]["size"] = self.prompt_cache.size()
@@ -226,7 +226,7 @@ class AgentCache:
         logger.info("所有缓存已清空")
 
 
-***REMOVED*** 全局缓存实例
+# 全局缓存实例
 _cache_instance: Optional[AgentCache] = None
 _cache_lock = threading.Lock()
 
@@ -259,11 +259,11 @@ def cached(cache_type: str = "default", ttl: Optional[float] = None):
         
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            ***REMOVED*** 生成缓存 key
+            # 生成缓存 key
             key_parts = [func.__name__] + list(args) + [json.dumps(kwargs, sort_keys=True)]
             key = cache._make_key(cache_type, *key_parts)
             
-            ***REMOVED*** 尝试从缓存获取
+            # 尝试从缓存获取
             if cache_type == "entity_context":
                 cached_value = cache.entity_context_cache.get(key)
             elif cache_type == "quality_check":
@@ -277,10 +277,10 @@ def cached(cache_type: str = "default", ttl: Optional[float] = None):
                 logger.debug(f"缓存命中: {func.__name__}")
                 return cached_value
             
-            ***REMOVED*** 缓存未命中，执行函数
+            # 缓存未命中，执行函数
             result = func(*args, **kwargs)
             
-            ***REMOVED*** 存入缓存
+            # 存入缓存
             if cache_type == "entity_context":
                 cache.entity_context_cache.set(key, result)
             elif cache_type == "quality_check":

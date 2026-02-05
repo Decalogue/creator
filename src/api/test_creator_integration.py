@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-***REMOVED*** 确保从 src 根可导入
+# 确保从 src 根可导入
 _BASE = Path(__file__).resolve().parent.parent
 _OUTPUTS = _BASE / "task" / "novel" / "outputs"
 _TEST_PROJECT_ID = "test_e2e_integration"
@@ -71,7 +71,7 @@ def test_creator_run_create_contract_and_outputs():
         pytest.skip(f"Flask test_client 不可用（如 werkzeug 版本）: {e}")
 
     with patch("api_flask.creator_run", side_effect=_mock_run_create):
-        ***REMOVED*** 1) POST /api/creator/run
+        # 1) POST /api/creator/run
         rv = client.post(
             "/api/creator/run",
             json={"mode": "create", "input": "测试主题"},
@@ -83,7 +83,7 @@ def test_creator_run_create_contract_and_outputs():
         task_id = data.get("task_id")
         assert task_id
 
-        ***REMOVED*** 2) 轮询 GET /api/creator/task/<task_id>
+        # 2) 轮询 GET /api/creator/task/<task_id>
         for _ in range(30):
             tr = client.get(f"/api/creator/task/{task_id}")
             assert tr.status_code == 200
@@ -99,7 +99,7 @@ def test_creator_run_create_contract_and_outputs():
         else:
             pytest.fail("Task did not complete within timeout")
 
-        ***REMOVED*** 3) 校验 outputs/<project_id>/novel_plan.json 存在
+        # 3) 校验 outputs/<project_id>/novel_plan.json 存在
         plan_path = _OUTPUTS / _TEST_PROJECT_ID / "novel_plan.json"
         assert plan_path.exists()
         with open(plan_path, "r", encoding="utf-8") as f:

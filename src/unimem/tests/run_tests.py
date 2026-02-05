@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python
+#!/usr/bin/env python
 """
 UniMem 测试运行脚本（Python 版本）
 
@@ -51,10 +51,10 @@ def run_tests() -> int:
     Returns:
         int: 退出代码，0 表示成功，非 0 表示失败
     """
-    ***REMOVED*** 获取测试目录
+    # 获取测试目录
     test_dir = Path(__file__).parent
     
-    ***REMOVED*** 检查环境
+    # 检查环境
     if not check_seeme_environment():
         response = input("\n是否继续运行测试？(y/n): ")
         if response.lower() != 'y':
@@ -69,7 +69,7 @@ def run_tests() -> int:
     print(f"测试目录: {test_dir}")
     print("=" * 60 + "\n")
     
-    ***REMOVED*** 尝试使用 pytest
+    # 尝试使用 pytest
     try:
         import pytest
         print("使用 pytest 运行测试...\n")

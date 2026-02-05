@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 对指定项目续写 N 章（用于测试或批量续写）。
 需在 src 目录下执行：python scripts/novel/continue_n_chapters.py [project_id] [n]

@@ -268,7 +268,7 @@ interface IConfigTypes {
     checkOutput?: (boolean | undefined);
 };
     /** 设置 babel class-properties 启用 loose 
- @doc https://umijs.org/docs/api/config***REMOVED***classpropertiesloose */
+ @doc https://umijs.org/docs/api/config#classpropertiesloose */
     classPropertiesLoose: boolean | {
 
 };

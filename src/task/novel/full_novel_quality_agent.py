@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 全本小说质量检查与优化 Agent
 
@@ -22,7 +22,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from collections import defaultdict
 from datetime import datetime
 
-***REMOVED*** 添加项目路径
+# 添加项目路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -56,33 +56,33 @@ class FullNovelQualityAgent:
         self.novel_plan_file = self.novel_output_dir / "novel_plan.json"
         self.semantic_mesh_file = self.novel_output_dir / "semantic_mesh" / "mesh.json"
         
-        ***REMOVED*** 默认使用 gemini_3_flash（更宽松），如果用户指定则使用指定客户端
+        # 默认使用 gemini_3_flash（更宽松），如果用户指定则使用指定客户端
         from llm.chat import gemini_3_flash
         self.llm_client = llm_client or gemini_3_flash
         self.strict_mode = strict_mode
         
-        ***REMOVED*** 为优化功能单独设置LLM客户端（使用更经济的模型）
+        # 为优化功能单独设置LLM客户端（使用更经济的模型）
         self.optimization_llms = [kimi_k2, deepseek_v3_2]
         self.current_optimization_llm_index = 0
         
-        ***REMOVED*** 初始化实体提取器（使用和react_novel_creator.py相同的方法）
+        # 初始化实体提取器（使用和react_novel_creator.py相同的方法）
         self.entity_extractor = self._init_entity_extractor()
         
         self.quality_checker = QualityChecker(llm_client=self.llm_client, strict_mode=strict_mode)
         
-        ***REMOVED*** 加载所有可用信息
+        # 加载所有可用信息
         self.metadata = self._load_metadata()
         self.novel_plan = self._load_novel_plan()
         self.semantic_mesh_data = self._load_semantic_mesh()
         
-        ***REMOVED*** 加载所有章节
+        # 加载所有章节
         self.chapters = self._load_all_chapters()
         
-        ***REMOVED*** 统计信息
-        self.all_entities = {}  ***REMOVED*** 全本实体库
-        self.character_profiles = {}  ***REMOVED*** 角色档案
+        # 统计信息
+        self.all_entities = {}  # 全本实体库
+        self.character_profiles = {}  # 角色档案
         
-        ***REMOVED*** 转换语义网格数据为quality_checker期望的格式
+        # 转换语义网格数据为quality_checker期望的格式
         self.semantic_mesh_entities_dict = self._convert_semantic_mesh_to_dict()
         
         logger.info(f"加载完成：{len(self.chapters)} 章")
@@ -117,7 +117,7 @@ class FullNovelQualityAgent:
                     return json.load(f)
             except Exception as e:
                 logger.warning(f"加载小说大纲失败: {e}")
-        ***REMOVED*** 如果不存在，尝试从metadata中获取
+        # 如果不存在，尝试从metadata中获取
         return self.metadata.get('plan', {})
     
     def _load_all_chapters(self) -> List[NovelChapter]:
@@ -132,11 +132,11 @@ class FullNovelQualityAgent:
                 logger.warning(f"第{i}章文件不存在: {chapter_file}")
                 continue
             
-            ***REMOVED*** 读取章节内容
+            # 读取章节内容
             with open(chapter_file, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            ***REMOVED*** 读取元数据（如果有）
+            # 读取元数据（如果有）
             metadata = {}
             if meta_file.exists():
                 with open(meta_file, 'r', encoding='utf-8') as f:
@@ -155,7 +155,7 @@ class FullNovelQualityAgent:
     
     def _load_semantic_mesh(self) -> Optional[Dict[str, Any]]:
         """加载语义网格（如果存在）"""
-        ***REMOVED*** 尝试加载 semantic_mesh/mesh.json
+        # 尝试加载 semantic_mesh/mesh.json
         if self.semantic_mesh_file.exists():
             try:
                 with open(self.semantic_mesh_file, 'r', encoding='utf-8') as f:
@@ -163,7 +163,7 @@ class FullNovelQualityAgent:
             except Exception as e:
                 logger.warning(f"加载语义网格失败: {e}")
         
-        ***REMOVED*** 尝试加载 semantic_mesh/semantic_mesh.json（旧格式）
+        # 尝试加载 semantic_mesh/semantic_mesh.json（旧格式）
         mesh_file = self.novel_output_dir / "semantic_mesh" / "semantic_mesh.json"
         if mesh_file.exists():
             try:
@@ -184,20 +184,20 @@ class FullNovelQualityAgent:
         
         entities_dict = {}
         
-        ***REMOVED*** 如果semantic_mesh_data包含entities字段
+        # 如果semantic_mesh_data包含entities字段
         if isinstance(self.semantic_mesh_data, dict):
             entities = self.semantic_mesh_data.get('entities', {})
             
-            ***REMOVED*** 如果entities已经是字典格式（entity_id -> entity_data）
+            # 如果entities已经是字典格式（entity_id -> entity_data）
             if isinstance(entities, dict):
                 for entity_id, entity_data in entities.items():
-                    ***REMOVED*** 确保格式正确
+                    # 确保格式正确
                     if isinstance(entity_data, dict):
                         entities_dict[entity_id] = entity_data
                     else:
-                        ***REMOVED*** 如果是其他格式，尝试转换
+                        # 如果是其他格式，尝试转换
                         logger.warning(f"实体 {entity_id} 格式异常: {type(entity_data)}")
-            ***REMOVED*** 如果entities是列表格式
+            # 如果entities是列表格式
             elif isinstance(entities, list):
                 for entity in entities:
                     if isinstance(entity, dict):
@@ -242,7 +242,7 @@ class FullNovelQualityAgent:
         """
         logger.info("提取全本实体...")
         
-        ***REMOVED*** 1. 优先从语义网格加载实体（如果存在）
+        # 1. 优先从语义网格加载实体（如果存在）
         if self.semantic_mesh_data:
             try:
                 entities = self.semantic_mesh_data.get('entities', {})
@@ -255,7 +255,7 @@ class FullNovelQualityAgent:
                     metadata = entity_data.get('metadata', {})
                     
                     if name:
-                        ***REMOVED*** 转换实体类型
+                        # 转换实体类型
                         type_map = {
                             'character': 'character',
                             'location': 'location',
@@ -269,12 +269,12 @@ class FullNovelQualityAgent:
                         }
                         etype = type_map.get(entity_type.lower(), 'unknown')
                         
-                        ***REMOVED*** 获取首次出现章节
+                        # 获取首次出现章节
                         chapter_num = metadata.get('chapter', metadata.get('first_appearance', 1))
                         appearances = metadata.get('appearances', metadata.get('appearance_chapters', [chapter_num]))
                         
                         self._add_entity(name, etype, content or '', chapter_num)
-                        ***REMOVED*** 更新出现章节列表
+                        # 更新出现章节列表
                         if name in self.all_entities:
                             self.all_entities[name]['appearances'] = appearances if isinstance(appearances, list) else [appearances]
                 
@@ -282,14 +282,14 @@ class FullNovelQualityAgent:
             except Exception as e:
                 logger.warning(f"从语义网格加载实体失败: {e}")
         
-        ***REMOVED*** 2. 从章节实体文件加载（如果存在）
+        # 2. 从章节实体文件加载（如果存在）
         for chapter in self.chapters:
             entities_file = self.chapters_dir / f"chapter_{chapter.chapter_number:03d}_entities.txt"
             if entities_file.exists():
                 try:
                     with open(entities_file, 'r', encoding='utf-8') as f:
                         raw = f.read()
-                    ***REMOVED*** 尝试 JSON
+                    # 尝试 JSON
                     try:
                         data = json.loads(raw)
                         items = data.get('entities', [])
@@ -305,24 +305,24 @@ class FullNovelQualityAgent:
                 except Exception as e:
                     logger.debug(f"读取第{chapter.chapter_number}章实体失败: {e}")
         
-        ***REMOVED*** 3. 使用kimi_k2进行实体提取（对于没有实体文件的章节）
+        # 3. 使用kimi_k2进行实体提取（对于没有实体文件的章节）
         if self.entity_extractor:
             logger.info("使用kimi_k2进行实体提取...")
             for chapter in self.chapters:
-                ***REMOVED*** 如果该章节已经有实体信息，跳过
+                # 如果该章节已经有实体信息，跳过
                 entities_file = self.chapters_dir / f"chapter_{chapter.chapter_number:03d}_entities.txt"
                 if entities_file.exists():
                     continue
                 
                 try:
-                    ***REMOVED*** 使用实体提取器提取实体
+                    # 使用实体提取器提取实体
                     if hasattr(self.entity_extractor, 'extract_entities'):
                         result = self.entity_extractor.extract_entities(
                             chapter.content,
                             chapter.chapter_number
                         )
                         
-                        ***REMOVED*** 处理提取结果
+                        # 处理提取结果
                         if hasattr(result, 'entities'):
                             entities = result.entities
                         elif isinstance(result, list):
@@ -352,7 +352,7 @@ class FullNovelQualityAgent:
                 except Exception as e:
                     logger.warning(f"第{chapter.chapter_number}章实体提取失败: {e}")
         
-        ***REMOVED*** 4. 从 novel_plan.json 补充角色信息
+        # 4. 从 novel_plan.json 补充角色信息
         if self.novel_plan:
             overall = self.novel_plan.get("overall", {})
             characters = overall.get("characters", [])
@@ -368,11 +368,11 @@ class FullNovelQualityAgent:
                             "appearances": [],
                             "characteristics": {},
                         }
-                    ***REMOVED*** 更新描述（如果更详细）
+                    # 更新描述（如果更详细）
                     if c.get("description") and len(c.get("description", "")) > len(self.character_profiles[name].get("description", "")):
                         self.character_profiles[name]["description"] = c.get("description", "")
         
-        ***REMOVED*** 5. 从 metadata.json 补充角色信息
+        # 5. 从 metadata.json 补充角色信息
         if self.metadata:
             plan = self.metadata.get('plan', {})
             if plan:
@@ -433,7 +433,7 @@ class FullNovelQualityAgent:
             logger.info("模式：检查 + 自动优化")
         logger.info("=" * 60)
         
-        ***REMOVED*** 提取全本实体
+        # 提取全本实体
         self._extract_all_entities()
         
         report = {
@@ -445,7 +445,7 @@ class FullNovelQualityAgent:
             "chapter_quality": {}
         }
         
-        ***REMOVED*** 对每章进行详细检查
+        # 对每章进行详细检查
         logger.info("\n[1/7] 逐章质量检查...")
         chapter_issues = {}
         for chapter in self.chapters:
@@ -454,7 +454,7 @@ class FullNovelQualityAgent:
                 for c in self.chapters[:chapter.chapter_number - 1]
             ]
             
-            ***REMOVED*** 构建完整的上下文信息（充分利用所有可用信息）
+            # 构建完整的上下文信息（充分利用所有可用信息）
             context_info = {
                 "novel_plan": self.novel_plan,
                 "metadata": self.metadata,
@@ -486,40 +486,40 @@ class FullNovelQualityAgent:
         
         report["chapter_quality"] = chapter_issues
         
-        ***REMOVED*** 2. 全本连贯性检查
+        # 2. 全本连贯性检查
         logger.info("\n[2/7] 全本连贯性检查...")
         coherence_report = self._check_full_novel_coherence()
         report["checks"]["coherence"] = coherence_report
         
-        ***REMOVED*** 3. 角色一致性深度检查
+        # 3. 角色一致性深度检查
         logger.info("\n[3/7] 角色一致性深度检查...")
         character_report = self._check_character_consistency_full()
         report["checks"]["character_consistency"] = character_report
         
-        ***REMOVED*** 4. 世界观一致性检查
+        # 4. 世界观一致性检查
         logger.info("\n[4/7] 世界观一致性检查...")
         worldview_report = self._check_worldview_consistency_full()
         report["checks"]["worldview_consistency"] = worldview_report
         
-        ***REMOVED*** 5. 情节逻辑完整性检查
+        # 5. 情节逻辑完整性检查
         logger.info("\n[5/7] 情节逻辑完整性检查...")
         plot_report = self._check_plot_integrity()
         report["checks"]["plot_integrity"] = plot_report
         
-        ***REMOVED*** 6. 风格统一性检查
+        # 6. 风格统一性检查
         logger.info("\n[6/7] 风格统一性检查...")
         style_report = self._check_style_consistency()
         report["checks"]["style_consistency"] = style_report
         
-        ***REMOVED*** 7. 生成优化建议
+        # 7. 生成优化建议
         logger.info("\n[7/7] 生成优化建议...")
         recommendations = self._generate_recommendations(report)
         report["recommendations"] = recommendations
         
-        ***REMOVED*** 计算总体评分
+        # 计算总体评分
         report["overall_score"] = self._calculate_overall_score(report)
         
-        ***REMOVED*** 如果需要自动优化
+        # 如果需要自动优化
         if auto_optimize:
             logger.info("\n" + "=" * 60)
             logger.info("开始自动优化问题章节...")
@@ -540,22 +540,22 @@ class FullNovelQualityAgent:
         issues = []
         coherence_scores = []
         
-        ***REMOVED*** 检查章节间的连贯性
+        # 检查章节间的连贯性
         for i in range(len(self.chapters) - 1):
             current = self.chapters[i]
             next_chapter = self.chapters[i + 1]
             
-            ***REMOVED*** 检查主要角色是否连续出现
+            # 检查主要角色是否连续出现
             current_chars = set(self._extract_characters_from_text(current.content))
             next_chars = set(self._extract_characters_from_text(next_chapter.content))
             
-            ***REMOVED*** 主要角色（出现频率高的）
+            # 主要角色（出现频率高的）
             main_chars = {name for name, info in self.character_profiles.items() 
                          if len(info['appearances']) >= 10}
             
-            ***REMOVED*** 如果主要角色在前一章出现，但下一章没有，可能是连贯性问题
+            # 如果主要角色在前一章出现，但下一章没有，可能是连贯性问题
             missing_main_chars = (current_chars & main_chars) - next_chars
-            if missing_main_chars and i > 0:  ***REMOVED*** 排除第一章
+            if missing_main_chars and i > 0:  # 排除第一章
                 issues.append({
                     "type": "character_discontinuity",
                     "severity": "medium",
@@ -563,7 +563,7 @@ class FullNovelQualityAgent:
                     "chapters": [current.chapter_number, next_chapter.chapter_number]
                 })
             
-            ***REMOVED*** 计算连贯性得分（基于角色连续性）
+            # 计算连贯性得分（基于角色连续性）
             if main_chars:
                 continuity_ratio = len((current_chars & main_chars) & (next_chars & main_chars)) / len(main_chars)
                 coherence_scores.append(continuity_ratio)
@@ -580,17 +580,17 @@ class FullNovelQualityAgent:
         """从文本中提取角色名（使用kimi_k2实体提取和实体库匹配）"""
         characters = []
         
-        ***REMOVED*** 1. 优先从实体库中匹配（使用已知角色列表）
+        # 1. 优先从实体库中匹配（使用已知角色列表）
         for char_name in self.character_profiles.keys():
             if char_name in text:
                 characters.append(char_name)
         
-        ***REMOVED*** 2. 如果实体提取器可用，使用它提取新角色
+        # 2. 如果实体提取器可用，使用它提取新角色
         if self.entity_extractor and len(characters) < 3:
             try:
                 result = self.entity_extractor.extract_entities(text, 0)
                 
-                ***REMOVED*** 处理提取结果
+                # 处理提取结果
                 if hasattr(result, 'entities'):
                     entities = result.entities
                 elif isinstance(result, list):
@@ -610,7 +610,7 @@ class FullNovelQualityAgent:
                     else:
                         continue
                     
-                    ***REMOVED*** 只保留角色类型的实体
+                    # 只保留角色类型的实体
                     if etype.lower() in ['character', '角色'] and name and len(name) > 1:
                         if name not in characters:
                             characters.append(name)
@@ -626,7 +626,7 @@ class FullNovelQualityAgent:
         """
         character_issues = []
         
-        ***REMOVED*** 从novel_plan.json和metadata.json获取标准角色列表
+        # 从novel_plan.json和metadata.json获取标准角色列表
         standard_characters = set()
         if self.novel_plan:
             overall = self.novel_plan.get("overall", {})
@@ -642,16 +642,16 @@ class FullNovelQualityAgent:
                 if name:
                     standard_characters.add(name)
         
-        ***REMOVED*** 检查每个角色的出现情况
+        # 检查每个角色的出现情况
         for char_name, profile in self.character_profiles.items():
             appearances = profile.get("appearances", [])
             if len(appearances) < 2:
                 continue
             
-            ***REMOVED*** 检查角色名称是否在标准列表中（避免误判）
+            # 检查角色名称是否在标准列表中（避免误判）
             if char_name in standard_characters:
-                ***REMOVED*** 这是标准角色，进行一致性检查
-                ***REMOVED*** 可扩展：检查名称变体、性格一致性等
+                # 这是标准角色，进行一致性检查
+                # 可扩展：检查名称变体、性格一致性等
                 pass
         
         return {
@@ -668,11 +668,11 @@ class FullNovelQualityAgent:
         """
         worldview_issues = []
         
-        ***REMOVED*** 从novel_plan.json获取世界观设定
+        # 从novel_plan.json获取世界观设定
         overall_plan = self.novel_plan.get('overall', {}) if self.novel_plan else {}
         background = overall_plan.get('background', '')
         
-        ***REMOVED*** 从metadata.json获取世界观设定
+        # 从metadata.json获取世界观设定
         if self.metadata:
             plan = self.metadata.get('plan', {})
             if plan:
@@ -680,7 +680,7 @@ class FullNovelQualityAgent:
                 if overall.get('background'):
                     background = overall.get('background', background)
         
-        ***REMOVED*** 从semantic_mesh获取世界观实体
+        # 从semantic_mesh获取世界观实体
         worldview_entities = {}
         if self.semantic_mesh_data:
             entities = self.semantic_mesh_data.get('entities', {})
@@ -691,8 +691,8 @@ class FullNovelQualityAgent:
                     if name:
                         worldview_entities[name] = entity_data
         
-        ***REMOVED*** 检查关键世界观元素是否在全本中保持一致
-        ***REMOVED*** 这里可以扩展为更复杂的检查
+        # 检查关键世界观元素是否在全本中保持一致
+        # 这里可以扩展为更复杂的检查
         
         return {
             "background": background[:200] if background else "",
@@ -708,7 +708,7 @@ class FullNovelQualityAgent:
         """
         plot_issues = []
         
-        ***REMOVED*** 从novel_plan.json获取关键情节节点
+        # 从novel_plan.json获取关键情节节点
         key_plot_points = []
         if self.novel_plan:
             overall = self.novel_plan.get('overall', {})
@@ -721,7 +721,7 @@ class FullNovelQualityAgent:
                 if overall.get('key_plot_points'):
                     key_plot_points = overall.get('key_plot_points', key_plot_points)
         
-        ***REMOVED*** 检查章节大纲是否与整体大纲一致
+        # 检查章节大纲是否与整体大纲一致
         chapter_outlines = []
         if self.novel_plan:
             overall = self.novel_plan.get('overall', {})
@@ -734,9 +734,9 @@ class FullNovelQualityAgent:
                 if overall.get('chapter_outline'):
                     chapter_outlines = overall.get('chapter_outline', chapter_outlines)
         
-        ***REMOVED*** 检查伏笔是否回收
-        ***REMOVED*** 检查情节逻辑是否完整
-        ***REMOVED*** 检查是否有矛盾
+        # 检查伏笔是否回收
+        # 检查情节逻辑是否完整
+        # 检查是否有矛盾
         
         return {
             "key_plot_points_count": len(key_plot_points),
@@ -749,24 +749,24 @@ class FullNovelQualityAgent:
         """风格统一性检查"""
         style_issues = []
         
-        ***REMOVED*** 统计每章的对话占比（使用与 quality_checker 相同的检测逻辑）
+        # 统计每章的对话占比（使用与 quality_checker 相同的检测逻辑）
         dialogue_ratios = []
         for chapter in self.chapters:
-            ***REMOVED*** 使用多种引号格式检测（与 quality_checker 保持一致）
+            # 使用多种引号格式检测（与 quality_checker 保持一致）
             dialogues = []
-            ***REMOVED*** 中文双引号："和"（U+201C和U+201D）
+            # 中文双引号："和"（U+201C和U+201D）
             pattern1 = r'[\u201C]([^\u201D]+?)[\u201D]'
             dialogues.extend(re.findall(pattern1, chapter.content))
-            ***REMOVED*** 中文单引号：'和'（U+2018和U+2019）
+            # 中文单引号：'和'（U+2018和U+2019）
             pattern2 = r'[\u2018]([^\u2019]+?)[\u2019]'
             dialogues.extend(re.findall(pattern2, chapter.content))
-            ***REMOVED*** 日式引号：「和」（U+300C和U+300D）
+            # 日式引号：「和」（U+300C和U+300D）
             pattern3 = r'[\u300C]([^\u300D]+?)[\u300D]'
             dialogues.extend(re.findall(pattern3, chapter.content))
-            ***REMOVED*** 日式双引号：『和』（U+300E和U+300F）
+            # 日式双引号：『和』（U+300E和U+300F）
             pattern4 = r'[\u300E]([^\u300F]+?)[\u300F]'
             dialogues.extend(re.findall(pattern4, chapter.content))
-            ***REMOVED*** 英文引号："和"、'和'
+            # 英文引号："和"、'和'
             pattern5 = r'["\']([^"\']+?)["\']'
             dialogues.extend(re.findall(pattern5, chapter.content))
             
@@ -775,7 +775,7 @@ class FullNovelQualityAgent:
             ratio = dialogue_chars / total_chars if total_chars > 0 else 0
             dialogue_ratios.append(ratio)
             
-            ***REMOVED*** 检查对话占比是否在合理范围（根据模式调整）
+            # 检查对话占比是否在合理范围（根据模式调整）
             checker = self.quality_checker
             if ratio < checker.dialogue_ratio_ideal_min:
                 style_issues.append({
@@ -804,7 +804,7 @@ class FullNovelQualityAgent:
         """生成优化建议"""
         recommendations = []
         
-        ***REMOVED*** 统计问题章节
+        # 统计问题章节
         chapter_quality = report.get("chapter_quality", {})
         problematic_chapters = [
             ch_num for ch_num, quality in chapter_quality.items()
@@ -820,7 +820,7 @@ class FullNovelQualityAgent:
                 "action": "运行自动优化或手动修复"
             })
         
-        ***REMOVED*** 风格问题建议
+        # 风格问题建议
         style_issues = report.get("checks", {}).get("style_consistency", {}).get("issues", [])
         if style_issues:
             low_dialogue = [i for i in style_issues if i.get("type") == "low_dialogue_ratio"]
@@ -833,7 +833,7 @@ class FullNovelQualityAgent:
                     "action": "在对话中增加动作描写和情绪表达"
                 })
         
-        ***REMOVED*** 连贯性问题建议
+        # 连贯性问题建议
         coherence_issues = report.get("checks", {}).get("coherence", {}).get("issues", [])
         if coherence_issues:
             recommendations.append({
@@ -849,30 +849,30 @@ class FullNovelQualityAgent:
         """计算总体评分"""
         scores = []
         
-        ***REMOVED*** 连贯性得分
+        # 连贯性得分
         coherence_score = report.get("checks", {}).get("coherence", {}).get("score", 1.0)
         scores.append(coherence_score * 0.3)
         
-        ***REMOVED*** 章节质量得分（基于问题数量）
+        # 章节质量得分（基于问题数量）
         chapter_quality = report.get("chapter_quality", {})
         if chapter_quality:
             total_issues = sum(q.get("total_issues", 0) for q in chapter_quality.values())
             total_chapters = len(chapter_quality)
             avg_issues = total_issues / total_chapters if total_chapters > 0 else 0
-            ***REMOVED*** 问题越少，得分越高（每章平均问题数 <= 2 为满分）
+            # 问题越少，得分越高（每章平均问题数 <= 2 为满分）
             chapter_score = max(0, 1.0 - avg_issues / 4.0)
             scores.append(chapter_score * 0.4)
         else:
             scores.append(0.4)
         
-        ***REMOVED*** 风格得分
+        # 风格得分
         style_issues = report.get("checks", {}).get("style_consistency", {}).get("issues", [])
-        style_score = max(0, 1.0 - len(style_issues) / 50.0)  ***REMOVED*** 50个问题为0分
+        style_score = max(0, 1.0 - len(style_issues) / 50.0)  # 50个问题为0分
         scores.append(style_score * 0.2)
         
-        ***REMOVED*** 角色一致性得分
+        # 角色一致性得分
         char_issues = report.get("checks", {}).get("character_consistency", {}).get("issues", [])
-        char_score = max(0, 1.0 - len(char_issues) / 10.0)  ***REMOVED*** 10个问题为0分
+        char_score = max(0, 1.0 - len(char_issues) / 10.0)  # 10个问题为0分
         scores.append(char_score * 0.1)
         
         overall = sum(scores)
@@ -895,7 +895,7 @@ class FullNovelQualityAgent:
             "optimization_details": {}
         }
         
-        ***REMOVED*** 识别需要优化的章节（问题数 >= 3 或高严重度）
+        # 识别需要优化的章节（问题数 >= 3 或高严重度）
         chapter_quality = report.get("chapter_quality", {})
         chapters_to_optimize = [
             ch_num for ch_num, quality in chapter_quality.items()
@@ -904,23 +904,23 @@ class FullNovelQualityAgent:
         
         logger.info(f"需要优化的章节: {chapters_to_optimize}")
         
-        ***REMOVED*** 创建优化输出目录
+        # 创建优化输出目录
         optimized_dir = self.novel_output_dir / "optimized"
         optimized_dir.mkdir(exist_ok=True)
         optimized_chapters_dir = optimized_dir / "chapters"
         optimized_chapters_dir.mkdir(exist_ok=True)
         
-        for ch_num in chapters_to_optimize[:10]:  ***REMOVED*** 限制一次最多优化10章
+        for ch_num in chapters_to_optimize[:10]:  # 限制一次最多优化10章
             try:
                 logger.info(f"优化第{ch_num}章...")
                 chapter = self.chapters[ch_num - 1]
                 quality_info = chapter_quality[ch_num]
                 
-                ***REMOVED*** 生成优化后的章节
+                # 生成优化后的章节
                 optimized_content = self._optimize_single_chapter(chapter, quality_info)
                 
                 if optimized_content:
-                    ***REMOVED*** 保存优化后的章节
+                    # 保存优化后的章节
                     optimized_file = optimized_chapters_dir / f"chapter_{ch_num:03d}.txt"
                     with open(optimized_file, 'w', encoding='utf-8') as f:
                         f.write(optimized_content)
@@ -941,7 +941,7 @@ class FullNovelQualityAgent:
         
         optimization_result["optimized_count"] = len(optimization_result["optimized_chapters"])
         
-        ***REMOVED*** 生成优化后的完整小说
+        # 生成优化后的完整小说
         if optimization_result["optimized_count"] > 0:
             self._generate_optimized_full_novel(optimized_chapters_dir)
         
@@ -964,28 +964,28 @@ class FullNovelQualityAgent:
         if not issues:
             return None
         
-        ***REMOVED*** 构建优化提示词
+        # 构建优化提示词
         issues_summary = []
-        for issue in issues[:3]:  ***REMOVED*** 最多处理3个问题
+        for issue in issues[:3]:  # 最多处理3个问题
             issue_type = issue.get("type", "")
             description = issue.get("description", "")
             suggestion = issue.get("suggestion", "")
             issues_summary.append(f"- {issue_type}: {description}\n  建议: {suggestion}")
         
-        ***REMOVED*** 构建上下文信息（充分利用所有可用信息）
+        # 构建上下文信息（充分利用所有可用信息）
         context_parts = []
         
-        ***REMOVED*** 1. 角色信息
+        # 1. 角色信息
         if self.character_profiles:
             key_characters = []
-            for char_name, profile in list(self.character_profiles.items())[:10]:  ***REMOVED*** 最多10个关键角色
+            for char_name, profile in list(self.character_profiles.items())[:10]:  # 最多10个关键角色
                 desc = profile.get("description", "")
                 if desc:
                     key_characters.append(f"- {char_name}: {desc[:100]}")
             if key_characters:
                 context_parts.append("关键角色信息：\n" + "\n".join(key_characters))
         
-        ***REMOVED*** 2. 章节大纲信息
+        # 2. 章节大纲信息
         chapter_outline = None
         if self.novel_plan:
             overall = self.novel_plan.get('overall', {})
@@ -1008,7 +1008,7 @@ class FullNovelQualityAgent:
         if chapter_outline:
             context_parts.append(f"章节大纲：{chapter_outline}")
         
-        ***REMOVED*** 3. 世界观设定
+        # 3. 世界观设定
         if self.novel_plan:
             overall = self.novel_plan.get('overall', {})
             background = overall.get('background', '')
@@ -1040,7 +1040,7 @@ class FullNovelQualityAgent:
 
 请直接返回优化后的**完整**章节内容，不要包含标题或其他格式。不要原样照抄原文。"""
 
-        ***REMOVED*** 尝试使用不同的LLM进行优化
+        # 尝试使用不同的LLM进行优化
         for i, llm_func in enumerate(self.optimization_llms):
             try:
                 logger.info(f"使用 {llm_func.__name__} 优化第{chapter.chapter_number}章...")
@@ -1055,7 +1055,7 @@ class FullNovelQualityAgent:
                 optimized_content = optimized_content.strip()
                 orig = chapter.content.strip()
                 
-                ***REMOVED*** 相似度检查：若与原文几乎相同，视为未优化，不采纳
+                # 相似度检查：若与原文几乎相同，视为未优化，不采纳
                 try:
                     import difflib
                     ratio = difflib.SequenceMatcher(None, orig, optimized_content).ratio()
@@ -1090,7 +1090,7 @@ class FullNovelQualityAgent:
         full_content.append("=" * 60 + "\n\n")
         
         for i in range(1, 101):
-            ***REMOVED*** 优先使用优化后的章节
+            # 优先使用优化后的章节
             optimized_file = optimized_chapters_dir / f"chapter_{i:03d}.txt"
             original_file = self.chapters_dir / f"chapter_{i:03d}.txt"
             
@@ -1109,7 +1109,7 @@ class FullNovelQualityAgent:
                 full_content.append(content)
                 full_content.append("\n\n")
         
-        ***REMOVED*** 保存完整版
+        # 保存完整版
         full_novel_file = self.novel_output_dir / "optimized" / f"{self.metadata.get('title', '小说')}_优化版.txt"
         with open(full_novel_file, 'w', encoding='utf-8') as f:
             f.write(''.join(full_content))
@@ -1157,24 +1157,24 @@ def main():
     
     args = parser.parse_args()
     
-    ***REMOVED*** 创建 Agent（默认使用宽松模式，除非用户指定 --strict）
+    # 创建 Agent（默认使用宽松模式，除非用户指定 --strict）
     agent = FullNovelQualityAgent(Path(args.novel_dir), strict_mode=args.strict)
     
-    ***REMOVED*** 运行检查（可选：自动优化）
+    # 运行检查（可选：自动优化）
     report = agent.run_full_check(auto_optimize=args.optimize)
     
-    ***REMOVED*** 保存报告
+    # 保存报告
     output_file = Path(args.output) if args.output else None
     agent.save_report(report, output_file)
     
-    ***REMOVED*** 打印摘要
+    # 打印摘要
     print("\n" + "=" * 60)
     print("检查报告摘要")
     print("=" * 60)
     print(f"总体评分: {report['overall_score']:.2f}/1.00")
     print(f"检查章节数: {report['total_chapters']}")
     
-    ***REMOVED*** 统计问题
+    # 统计问题
     chapter_quality = report.get("chapter_quality", {})
     total_issues = sum(q.get("total_issues", 0) for q in chapter_quality.values())
     problematic_chapters = [ch for ch, q in chapter_quality.items() if q.get("total_issues", 0) >= 3]

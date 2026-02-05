@@ -8,7 +8,7 @@ client = OpenAI(
 
 def deepseek_v3_2(messages, max_new_tokens=8192):
     response = client.chat.completions.create(
-        model="ep-20251209150604-gxb42", ***REMOVED*** deepseek-v3-2-251201
+        model="ep-20251209150604-gxb42", # deepseek-v3-2-251201
         messages=messages,
         stream=False,
         max_tokens=max_new_tokens,
@@ -29,13 +29,13 @@ def deepseek_v3_2_stream(messages, max_new_tokens=8192, buffer_size=10):
         buffer_size: 缓冲大小（字符数），累积到该大小或遇到换行符时发送
     """
     response = client.chat.completions.create(
-        model="ep-20251209150604-gxb42", ***REMOVED*** deepseek-v3-2-251201
+        model="ep-20251209150604-gxb42", # deepseek-v3-2-251201
         messages=messages,
         stream=True,
         max_tokens=max_new_tokens,
     )
 
-    buffer = ''  ***REMOVED*** 缓冲累积的文本
+    buffer = ''  # 缓冲累积的文本
     for chunk in response:
         if not chunk.choices:
             continue
@@ -48,12 +48,12 @@ def deepseek_v3_2_stream(messages, max_new_tokens=8192, buffer_size=10):
         
         if text:
             buffer += text
-            ***REMOVED*** 当缓冲达到指定大小或遇到换行符时，发送缓冲内容
+            # 当缓冲达到指定大小或遇到换行符时，发送缓冲内容
             if len(buffer) >= buffer_size or '\n' in text:
                 yield buffer
                 buffer = ''
     
-    ***REMOVED*** 发送剩余的缓冲内容
+    # 发送剩余的缓冲内容
     if buffer:
         yield buffer
 

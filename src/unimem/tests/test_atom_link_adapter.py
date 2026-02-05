@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 from typing import List
 
-***REMOVED*** 检查环境
+# 检查环境
 if os.environ.get("CONDA_DEFAULT_ENV") != "myswift":
     print("\n" + "="*60)
     print("警告：当前未激活 myswift 环境，某些测试可能会失败")
@@ -33,7 +33,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** 使用真实配置，本地模型已下载
+        # 使用真实配置，本地模型已下载
         self.config = {
             "local_model_path": "/root/data/AI/pretrain/all-MiniLM-L6-v2",
             "qdrant_host": "localhost",
@@ -41,12 +41,12 @@ class TestAtomLinkAdapter(unittest.TestCase):
             "collection_name": "test_unimem_memories",
         }
         
-        ***REMOVED*** 创建适配器实例（使用真实模型，Qdrant 连接失败时使用 Mock）
+        # 创建适配器实例（使用真实模型，Qdrant 连接失败时使用 Mock）
         self.adapter = AtomLinkAdapter(config=self.config)
-        self.adapter.initialize()  ***REMOVED*** 确保初始化完成
+        self.adapter.initialize()  # 确保初始化完成
         
-        ***REMOVED*** 确保属性存在（即使初始化失败）
-        ***REMOVED*** 如果 Qdrant 连接失败，立即设置 Mock
+        # 确保属性存在（即使初始化失败）
+        # 如果 Qdrant 连接失败，立即设置 Mock
         self.use_mock_qdrant = False
         if not hasattr(self.adapter, 'qdrant_client') or self.adapter.qdrant_client is None:
             self.mock_qdrant_client = MagicMock()
@@ -55,27 +55,27 @@ class TestAtomLinkAdapter(unittest.TestCase):
             if not hasattr(self.adapter, 'collection_name'):
                 self.adapter.collection_name = "test_unimem_memories"
         else:
-            self.mock_qdrant_client = None  ***REMOVED*** 真实连接，不需要 Mock
+            self.mock_qdrant_client = None  # 真实连接，不需要 Mock
             self.use_mock_qdrant = False
         
-        ***REMOVED*** 确保 id_mapping 存在
+        # 确保 id_mapping 存在
         if not hasattr(self.adapter, 'id_mapping'):
             self.adapter.id_mapping = {}
         
-        ***REMOVED*** 模型应该已经真实加载（使用本地模型）
-        ***REMOVED*** 如果没有加载成功，使用 Mock（向后兼容，但正常情况下应该加载成功）
+        # 模型应该已经真实加载（使用本地模型）
+        # 如果没有加载成功，使用 Mock（向后兼容，但正常情况下应该加载成功）
         if not hasattr(self.adapter, 'embedding_model') or self.adapter.embedding_model is None:
-            ***REMOVED*** 如果模型未加载，使用 Mock（向后兼容）
+            # 如果模型未加载，使用 Mock（向后兼容）
             self.mock_embedding_model = MagicMock()
             mock_array = np.array([0.1] * 384)
             self.mock_embedding_model.encode.return_value = mock_array
             self.adapter.embedding_model = self.mock_embedding_model
             self.use_real_model = False
         else:
-            self.mock_embedding_model = None  ***REMOVED*** 真实模型，不需要 Mock
-            self.use_real_model = True  ***REMOVED*** 标记使用真实模型
+            self.mock_embedding_model = None  # 真实模型，不需要 Mock
+            self.use_real_model = True  # 标记使用真实模型
         
-        ***REMOVED*** 初始化内存存储
+        # 初始化内存存储
         if not hasattr(self.adapter, 'memory_store') or self.adapter.memory_store is None:
             self.adapter.memory_store = {}
         self.adapter._available = True
@@ -90,7 +90,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
         timestamp = datetime.now()
         entities = []
         
-        ***REMOVED*** Mock LLM 分析结果
+        # Mock LLM 分析结果
         with patch.object(self.adapter, '_analyze_content', return_value={
             "keywords": ["Python", "programming", "language"],
             "context": "Discussion about Python programming language",
@@ -98,7 +98,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
         }):
             memory = self.adapter.construct_atomic_note(content, timestamp, entities)
         
-        ***REMOVED*** 验证结果
+        # 验证结果
         self.assertIsNotNone(memory)
         self.assertEqual(memory.content, content)
         self.assertEqual(memory.timestamp, timestamp)
@@ -133,7 +133,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
         
         self.assertIsNotNone(embedding)
         self.assertEqual(len(embedding), 384)
-        ***REMOVED*** 使用真实模型，不需要检查 Mock 调用
+        # 使用真实模型，不需要检查 Mock 调用
     
     def test_get_embedding_no_model(self):
         """测试没有嵌入模型时返回 None"""
@@ -153,11 +153,11 @@ class TestAtomLinkAdapter(unittest.TestCase):
             tags=["test"],
         )
         
-        ***REMOVED*** 使用真实模型生成嵌入，不需要 Mock
+        # 使用真实模型生成嵌入，不需要 Mock
         result = self.adapter.add_memory_to_vector_store(memory)
         
         self.assertTrue(result)
-        ***REMOVED*** 如果使用 Mock Qdrant，检查调用；如果使用真实 Qdrant，只检查结果
+        # 如果使用 Mock Qdrant，检查调用；如果使用真实 Qdrant，只检查结果
         if hasattr(self, 'use_mock_qdrant') and self.use_mock_qdrant:
             self.mock_qdrant_client.upsert.assert_called_once()
         self.assertIn(memory.id, self.adapter.memory_store)
@@ -170,7 +170,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
             timestamp=datetime.now(),
         )
         
-        ***REMOVED*** Mock 嵌入生成失败
+        # Mock 嵌入生成失败
         self.adapter._get_embedding = Mock(return_value=None)
         
         result = self.adapter.add_memory_to_vector_store(memory)
@@ -179,7 +179,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
     
     def test_search_similar_memories(self):
         """测试搜索相似记忆"""
-        ***REMOVED*** 创建测试记忆
+        # 创建测试记忆
         memory1 = Memory(
             id="mem1",
             content="Python programming",
@@ -196,16 +196,16 @@ class TestAtomLinkAdapter(unittest.TestCase):
             "mem2": memory2,
         }
         
-        ***REMOVED*** 如果使用真实 Qdrant，需要先添加记忆
+        # 如果使用真实 Qdrant，需要先添加记忆
         if hasattr(self, 'use_mock_qdrant') and not self.use_mock_qdrant:
-            ***REMOVED*** 使用真实 Qdrant，先添加记忆
+            # 使用真实 Qdrant，先添加记忆
             self.adapter.add_memory_to_vector_store(memory1)
             self.adapter.add_memory_to_vector_store(memory2)
         else:
-            ***REMOVED*** Mock Qdrant 搜索结果
+            # Mock Qdrant 搜索结果
             import uuid
             from qdrant_client.http.models.models import QueryResponse, ScoredPoint
-            ***REMOVED*** 确保 ID 映射存在
+            # 确保 ID 映射存在
             if "mem1" not in self.adapter.id_mapping:
                 self.adapter.id_mapping["mem1"] = uuid.uuid4()
             if "mem2" not in self.adapter.id_mapping:
@@ -228,16 +228,16 @@ class TestAtomLinkAdapter(unittest.TestCase):
             )
             self.mock_qdrant_client.query_points.return_value = mock_response
         
-        ***REMOVED*** 确保适配器可用且嵌入模型已设置
+        # 确保适配器可用且嵌入模型已设置
         self.adapter._available = True
         if not hasattr(self.adapter, 'embedding_model') or self.adapter.embedding_model is None:
             self.adapter.embedding_model = self.mock_embedding_model if hasattr(self, 'mock_embedding_model') else None
         
         results = self.adapter._search_similar_memories("programming", top_k=5)
         
-        ***REMOVED*** 如果使用真实 Qdrant，结果可能为空（因为向量相似度可能不够），这是正常的
+        # 如果使用真实 Qdrant，结果可能为空（因为向量相似度可能不够），这是正常的
         if hasattr(self, 'use_mock_qdrant') and not self.use_mock_qdrant:
-            ***REMOVED*** 真实 Qdrant 测试：至少应该能搜索
+            # 真实 Qdrant 测试：至少应该能搜索
             self.assertIsInstance(results, list)
         else:
             self.assertEqual(len(results), 2)
@@ -257,7 +257,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
     
     def test_find_related_memories(self):
         """测试查找相关记忆"""
-        ***REMOVED*** 创建测试记忆
+        # 创建测试记忆
         memory1 = Memory(
             id="mem1",
             content="Python",
@@ -275,12 +275,12 @@ class TestAtomLinkAdapter(unittest.TestCase):
             "mem2": memory2,
         }
         
-        ***REMOVED*** Mock 向量检索
+        # Mock 向量检索
         self.adapter._search_similar_memories = Mock(return_value=[memory2])
         
         related = self.adapter.find_related_memories(memory1, top_k=5)
         
-        ***REMOVED*** 应该包含通过链接找到的 mem2
+        # 应该包含通过链接找到的 mem2
         self.assertGreater(len(related), 0)
         self.assertIn(memory2, related)
     
@@ -302,7 +302,7 @@ class TestAtomLinkAdapter(unittest.TestCase):
     
     def test_subgraph_link_retrieval(self):
         """测试子图链接检索"""
-        ***REMOVED*** 创建测试记忆网络
+        # 创建测试记忆网络
         memory1 = Memory(
             id="mem1",
             content="Python",
@@ -327,29 +327,29 @@ class TestAtomLinkAdapter(unittest.TestCase):
             "mem3": memory3,
         }
         
-        ***REMOVED*** Mock 初始检索结果
+        # Mock 初始检索结果
         self.adapter._search_similar_memories = Mock(return_value=[memory1])
         
         results = self.adapter.subgraph_link_retrieval("programming", top_k=5)
         
-        ***REMOVED*** 应该包含初始记忆和通过链接找到的记忆
+        # 应该包含初始记忆和通过链接找到的记忆
         self.assertGreater(len(results), 0)
         self.assertIn(memory1, results)
-        ***REMOVED*** 可能包含 mem2（通过链接）
+        # 可能包含 mem2（通过链接）
     
     def test_parse_json_response(self):
         """测试解析 JSON 响应"""
-        ***REMOVED*** 测试普通 JSON
+        # 测试普通 JSON
         json_text = '{"key": "value"}'
         result = self.adapter._parse_json_response(json_text)
         self.assertEqual(result, {"key": "value"})
         
-        ***REMOVED*** 测试包含 markdown 代码块的 JSON
+        # 测试包含 markdown 代码块的 JSON
         json_text = '```json\n{"key": "value"}\n```'
         result = self.adapter._parse_json_response(json_text)
         self.assertEqual(result, {"key": "value"})
         
-        ***REMOVED*** 测试无效 JSON
+        # 测试无效 JSON
         json_text = "invalid json"
         result = self.adapter._parse_json_response(json_text)
         self.assertIsNone(result)
@@ -364,12 +364,12 @@ class TestAtomLinkAdapter(unittest.TestCase):
         
         self.adapter.memory_store["test_id"] = memory
         
-        ***REMOVED*** 如果使用真实 Qdrant，需要先添加记忆以创建 ID 映射
+        # 如果使用真实 Qdrant，需要先添加记忆以创建 ID 映射
         if hasattr(self, 'use_mock_qdrant') and not self.use_mock_qdrant:
-            ***REMOVED*** 先添加记忆，这样会创建 ID 映射
+            # 先添加记忆，这样会创建 ID 映射
             self.adapter.add_memory_to_vector_store(memory)
         
-        ***REMOVED*** 如果 Qdrant 连接失败，使用 Mock
+        # 如果 Qdrant 连接失败，使用 Mock
         if self.adapter.qdrant_client is None:
             self.adapter.qdrant_client = self.mock_qdrant_client
         
@@ -388,11 +388,11 @@ class TestAtomLinkAdapter(unittest.TestCase):
             timestamp=datetime.now(),
         )
         
-        ***REMOVED*** 使用真实模型生成嵌入，不需要 Mock
+        # 使用真实模型生成嵌入，不需要 Mock
         result = self.adapter.update_memory_in_vector_store(memory)
         
         self.assertTrue(result)
-        ***REMOVED*** 如果使用 Mock Qdrant，检查调用；如果使用真实 Qdrant，只检查结果
+        # 如果使用 Mock Qdrant，检查调用；如果使用真实 Qdrant，只检查结果
         if hasattr(self, 'use_mock_qdrant') and self.use_mock_qdrant:
             self.mock_qdrant_client.upsert.assert_called_once()
 
@@ -405,7 +405,7 @@ class TestAtomLinkAdapterIntegration(unittest.TestCase):
         try:
             from qdrant_client import QdrantClient
             client = QdrantClient(host="localhost", port=6333, timeout=2)
-            client.get_collections()  ***REMOVED*** 尝试连接
+            client.get_collections()  # 尝试连接
             return True
         except Exception:
             return False
@@ -416,7 +416,7 @@ class TestAtomLinkAdapterIntegration(unittest.TestCase):
     )
     def test_full_workflow(self):
         """测试完整工作流（需要 Qdrant 和 LLM 服务）"""
-        ***REMOVED*** 检查 Qdrant 是否可用
+        # 检查 Qdrant 是否可用
         if not self._check_qdrant_available():
             self.skipTest("Qdrant 服务不可用，请确保 Qdrant 在 localhost:6333 运行")
         
@@ -432,7 +432,7 @@ class TestAtomLinkAdapterIntegration(unittest.TestCase):
         if not adapter.is_available():
             self.skipTest("适配器初始化失败")
         
-        ***REMOVED*** 1. 构建原子笔记
+        # 1. 构建原子笔记
         content = "Machine learning is a subset of artificial intelligence."
         timestamp = datetime.now()
         memory = adapter.construct_atomic_note(content, timestamp, [])
@@ -440,19 +440,19 @@ class TestAtomLinkAdapterIntegration(unittest.TestCase):
         self.assertIsNotNone(memory)
         self.assertGreater(len(memory.keywords), 0)
         
-        ***REMOVED*** 2. 添加到向量存储
+        # 2. 添加到向量存储
         result = adapter.add_memory_to_vector_store(memory)
         self.assertTrue(result)
         
-        ***REMOVED*** 3. 语义检索
+        # 3. 语义检索
         results = adapter.semantic_retrieval("artificial intelligence", top_k=5)
         self.assertGreater(len(results), 0)
         
-        ***REMOVED*** 4. 生成链接
+        # 4. 生成链接
         links = adapter.generate_links(memory, top_k=5)
         self.assertIsInstance(links, set)
         
-        ***REMOVED*** 清理：删除测试数据
+        # 清理：删除测试数据
         adapter.delete_memory_from_vector_store(memory.id)
 
 

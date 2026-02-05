@@ -96,7 +96,7 @@ class HistogramMetric:
     def observe(self, value: float):
         """记录观察值"""
         self.values.append(value)
-        ***REMOVED*** 限制历史记录数量（避免内存溢出）
+        # 限制历史记录数量（避免内存溢出）
         if len(self.values) > 10000:
             self.values = self.values[-5000:]
     
@@ -238,21 +238,21 @@ class MetricsCollector:
         lines = []
         
         with self._lock:
-            ***REMOVED*** 计数器
+            # 计数器
             for metric in self._counters.values():
                 labels_str = ""
                 if metric.labels:
                     labels_str = "{" + ",".join(f'{k}="{v}"' for k, v in metric.labels.items()) + "}"
                 lines.append(f"unimem_{metric.name}{labels_str} {metric.value}")
             
-            ***REMOVED*** 仪表盘
+            # 仪表盘
             for metric in self._gauges.values():
                 labels_str = ""
                 if metric.labels:
                     labels_str = "{" + ",".join(f'{k}="{v}"' for k, v in metric.labels.items()) + "}"
                 lines.append(f"unimem_{metric.name}{labels_str} {metric.value}")
             
-            ***REMOVED*** 直方图
+            # 直方图
             for metric in self._histograms.values():
                 bucket_counts = metric.get_bucket_counts()
                 for bucket, count in bucket_counts.items():
@@ -277,7 +277,7 @@ class MetricsCollector:
             self._histograms.clear()
 
 
-***REMOVED*** 全局指标收集器实例
+# 全局指标收集器实例
 _metrics_collector: Optional[MetricsCollector] = None
 _collector_lock = threading.Lock()
 

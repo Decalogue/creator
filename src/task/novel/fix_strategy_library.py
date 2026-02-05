@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 class FixStrategy(Enum):
     """修复策略类型"""
-    CONSERVATIVE = "conservative"  ***REMOVED*** 保守修复：最小改动
-    AGGRESSIVE = "aggressive"      ***REMOVED*** 激进修复：彻底重构
-    SURGICAL = "surgical"          ***REMOVED*** 精准修复：针对特定问题
-    ITERATIVE = "iterative"        ***REMOVED*** 迭代修复：逐步改进
+    CONSERVATIVE = "conservative"  # 保守修复：最小改动
+    AGGRESSIVE = "aggressive"      # 激进修复：彻底重构
+    SURGICAL = "surgical"          # 精准修复：针对特定问题
+    ITERATIVE = "iterative"        # 迭代修复：逐步改进
 
 
 @dataclass
@@ -27,8 +27,8 @@ class IssueFixStrategy:
     few_shot_examples: List[str]
     verification_rule: str
     strategy_type: FixStrategy
-    success_rate: float = 0.0  ***REMOVED*** 历史成功率
-    min_success_rate: float = 0.5  ***REMOVED*** 最低可接受成功率
+    success_rate: float = 0.0  # 历史成功率
+    min_success_rate: float = 0.5  # 最低可接受成功率
 
 
 class FixStrategyLibrary:
@@ -36,13 +36,13 @@ class FixStrategyLibrary:
     
     def __init__(self):
         self.strategies = self._initialize_strategies()
-        self.fix_history = []  ***REMOVED*** 修复历史记录
+        self.fix_history = []  # 修复历史记录
     
     def _initialize_strategies(self) -> Dict[str, IssueFixStrategy]:
         """初始化修复策略"""
         strategies = {}
         
-        ***REMOVED*** 1. 心理活动描写过多
+        # 1. 心理活动描写过多
         strategies["style_issue.心理活动过多"] = IssueFixStrategy(
             issue_type="style_issue.心理活动过多",
             detection_rule="thought_sentence_count > 10",
@@ -76,7 +76,7 @@ class FixStrategyLibrary:
             success_rate=0.0
         )
         
-        ***REMOVED*** 2. 对话缺乏动作或情绪
+        # 2. 对话缺乏动作或情绪
         strategies["style_issue.对话缺乏动作"] = IssueFixStrategy(
             issue_type="style_issue.对话缺乏动作",
             detection_rule="dialogue_with_action_ratio < 0.3",
@@ -111,7 +111,7 @@ class FixStrategyLibrary:
             success_rate=0.0
         )
         
-        ***REMOVED*** 3. 对话占比过低
+        # 3. 对话占比过低
         strategies["style_issue.对话占比过低"] = IssueFixStrategy(
             issue_type="style_issue.对话占比过低",
             detection_rule="dialogue_ratio < 0.2",
@@ -145,7 +145,7 @@ class FixStrategyLibrary:
             success_rate=0.0
         )
         
-        ***REMOVED*** 4. 情节不一致
+        # 4. 情节不一致
         strategies["plot_inconsistency"] = IssueFixStrategy(
             issue_type="plot_inconsistency",
             detection_rule="expected_keywords_found_ratio < 0.5",
@@ -175,7 +175,7 @@ class FixStrategyLibrary:
             success_rate=0.0
         )
         
-        ***REMOVED*** 5. 连贯性问题
+        # 5. 连贯性问题
         strategies["coherence_issue"] = IssueFixStrategy(
             issue_type="coherence_issue",
             detection_rule="coherence_score < 0.7",
@@ -207,13 +207,13 @@ class FixStrategyLibrary:
     
     def get_strategy(self, issue_type: str, issue_metadata: Dict[str, Any]) -> Optional[IssueFixStrategy]:
         """获取修复策略"""
-        ***REMOVED*** 精确匹配
+        # 精确匹配
         if issue_type in self.strategies:
             strategy = self.strategies[issue_type]
-            ***REMOVED*** 根据元数据填充模板
+            # 根据元数据填充模板
             return self._fill_strategy_template(strategy, issue_metadata)
         
-        ***REMOVED*** 模糊匹配
+        # 模糊匹配
         for key, strategy in self.strategies.items():
             if key.split('.')[-1] in issue_type or issue_type in key:
                 return self._fill_strategy_template(strategy, issue_metadata)
@@ -223,7 +223,7 @@ class FixStrategyLibrary:
     
     def _fill_strategy_template(self, strategy: IssueFixStrategy, metadata: Dict[str, Any]) -> IssueFixStrategy:
         """填充策略模板"""
-        ***REMOVED*** 创建副本
+        # 创建副本
         filled_strategy = IssueFixStrategy(
             issue_type=strategy.issue_type,
             detection_rule=strategy.detection_rule,
@@ -235,11 +235,11 @@ class FixStrategyLibrary:
             min_success_rate=strategy.min_success_rate
         )
         
-        ***REMOVED*** 填充模板变量，添加默认值以避免KeyError
+        # 填充模板变量，添加默认值以避免KeyError
         template_vars = {
-            **metadata,  ***REMOVED*** 先添加元数据
+            **metadata,  # 先添加元数据
             'few_shot_examples': "\n".join(f"- {ex}" for ex in filled_strategy.few_shot_examples) if filled_strategy.few_shot_examples else "",
-            ***REMOVED*** 添加常见缺失变量的默认值
+            # 添加常见缺失变量的默认值
             'thought_count': metadata.get('thought_sentence_count', metadata.get('thought_count', 0)),
             'chapter_summary': metadata.get('chapter_summary', ''),
             'dialogue_count': metadata.get('dialogue_count', 0),
@@ -247,11 +247,11 @@ class FixStrategyLibrary:
             'dialogue_ratio_percent': metadata.get('dialogue_ratio', 0) * 100 if 'dialogue_ratio' in metadata else 0,
         }
         
-        ***REMOVED*** 安全填充模板
+        # 安全填充模板
         try:
             filled_strategy.fix_prompt_template = filled_strategy.fix_prompt_template.format(**template_vars)
         except KeyError as e:
-            ***REMOVED*** 如果还有缺失的变量，使用空字符串作为默认值
+            # 如果还有缺失的变量，使用空字符串作为默认值
             logger.warning(f"策略模板填充失败，缺少变量: {e}，使用空字符串作为默认值")
             missing_var = str(e).strip("'\"")
             template_vars[missing_var] = ""
@@ -289,10 +289,10 @@ class FixStrategyLibrary:
             'timestamp': __import__('time').time()
         })
         
-        ***REMOVED*** 更新策略成功率
+        # 更新策略成功率
         self._update_strategy_success_rate(issue_type)
         
-        ***REMOVED*** 限制历史记录数量（保留最近1000条）
+        # 限制历史记录数量（保留最近1000条）
         if len(self.fix_history) > 1000:
             self.fix_history = self.fix_history[-1000:]
     
@@ -301,7 +301,7 @@ class FixStrategyLibrary:
         if issue_type not in self.strategies:
             return
         
-        ***REMOVED*** 统计该问题类型的历史成功率
+        # 统计该问题类型的历史成功率
         relevant_history = [
             h for h in self.fix_history
             if h['issue_type'] == issue_type
@@ -317,14 +317,14 @@ class FixStrategyLibrary:
         if issue_type in self.strategies:
             return self.strategies[issue_type].strategy_type
         
-        ***REMOVED*** 根据历史数据选择最佳策略
+        # 根据历史数据选择最佳策略
         relevant_history = [
             h for h in self.fix_history
             if h['issue_type'] == issue_type
         ]
         
         if relevant_history:
-            ***REMOVED*** 按策略类型统计成功率
+            # 按策略类型统计成功率
             strategy_success_rates = {}
             for h in relevant_history:
                 strategy = h['strategy_type']
@@ -336,13 +336,13 @@ class FixStrategyLibrary:
                     strategy_success_rates[strategy]['success'] += 1
                 strategy_success_rates[strategy]['avg_score'].append(h.get('validation_score', 0))
             
-            ***REMOVED*** 选择成功率最高的策略
+            # 选择成功率最高的策略
             best_strategy = None
             best_rate = 0
             for strategy, stats in strategy_success_rates.items():
                 rate = stats['success'] / stats['total']
                 avg_score = sum(stats['avg_score']) / len(stats['avg_score']) if stats['avg_score'] else 0
-                ***REMOVED*** 综合考虑成功率和平均评分
+                # 综合考虑成功率和平均评分
                 combined_score = rate * 0.7 + avg_score * 0.3
                 
                 if combined_score > best_rate:
@@ -353,7 +353,7 @@ class FixStrategyLibrary:
                 logger.info(f"基于历史数据，问题类型 {issue_type} 的最佳策略: {best_strategy.value} (成功率: {best_rate:.2%})")
                 return best_strategy
         
-        ***REMOVED*** 根据问题类型推断策略
+        # 根据问题类型推断策略
         if '心理活动' in issue_type or '对话' in issue_type:
             return FixStrategy.SURGICAL
         elif '一致性' in issue_type or '连贯' in issue_type:
@@ -386,32 +386,32 @@ class FixStrategyLibrary:
             if h['issue_type'] != issue_type:
                 continue
             
-            ***REMOVED*** 计算相似度
+            # 计算相似度
             similarity = 0.0
             
-            ***REMOVED*** 问题类型匹配
+            # 问题类型匹配
             if h['issue_type'] == issue_type:
                 similarity += 0.4
             
-            ***REMOVED*** 内容长度相似度（±20%范围内）
+            # 内容长度相似度（±20%范围内）
             hist_length = h.get('metadata', {}).get('content_length', 0)
             if hist_length > 0:
                 length_diff = abs(content_length - hist_length) / hist_length
                 if length_diff <= 0.2:
                     similarity += 0.3 * (1 - length_diff / 0.2)
             
-            ***REMOVED*** 严重度匹配
+            # 严重度匹配
             hist_severity = h.get('metadata', {}).get('severity', '')
             if hist_severity == severity:
                 similarity += 0.3
             
-            if similarity > 0.3:  ***REMOVED*** 相似度阈值
+            if similarity > 0.3:  # 相似度阈值
                 similar_cases.append({
                     **h,
                     'similarity': similarity
                 })
         
-        ***REMOVED*** 按相似度排序，返回最相似的案例
+        # 按相似度排序，返回最相似的案例
         similar_cases.sort(key=lambda x: x['similarity'], reverse=True)
         return similar_cases[:limit]
     
@@ -420,7 +420,7 @@ class FixStrategyLibrary:
         if issue_type in self.strategies:
             return self.strategies[issue_type].strategy_type
         
-        ***REMOVED*** 根据问题类型推断策略
+        # 根据问题类型推断策略
         if '心理活动' in issue_type or '对话' in issue_type:
             return FixStrategy.SURGICAL
         elif '一致性' in issue_type or '连贯' in issue_type:

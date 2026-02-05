@@ -45,7 +45,7 @@ class LevelIndex:
     parent_level: Optional[ContentLevel] = None
     child_levels: List[ContentLevel] = field(default_factory=list)
     
-    ***REMOVED*** 层级元数据
+    # 层级元数据
     metadata: Dict[str, Any] = field(default_factory=dict)
     last_updated: Optional[datetime] = None
     
@@ -109,7 +109,7 @@ class LevelIndexManager:
         """初始化索引管理器"""
         self._indices: Dict[ContentLevel, LevelIndex] = {}
         
-        ***REMOVED*** 初始化所有层级索引
+        # 初始化所有层级索引
         for level in ContentLevel:
             self._indices[level] = LevelIndex(level=level)
         

@@ -12,7 +12,7 @@ app.debug = True
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['SECRET_KEY'] = 'you-will-never-guess'
 
-***REMOVED*** Flask 配置 CORS（跨源资源共享）
+# Flask 配置 CORS（跨源资源共享）
 from flask_cors import CORS
 CORS(app)
 
@@ -45,7 +45,7 @@ def chat():
     
     try:
         if request.method == 'POST':
-            ***REMOVED*** 检查请求数据
+            # 检查请求数据
             if not request.json:
                 state['message'] = '请求数据格式错误：缺少 JSON 数据'
                 return jsonify(state)
@@ -54,13 +54,13 @@ def chat():
                 state['message'] = '请求数据格式错误：缺少 messages 字段'
                 return jsonify(state)
             
-            messages = request.json['messages'][-10:] ***REMOVED*** 选最近的10轮对话
+            messages = request.json['messages'][-10:] # 选最近的10轮对话
             stream = request.json['stream']
-            model = request.json.get('model', 'DeepSeek-v3-2') ***REMOVED*** 默认使用 DeepSeek-v3-2
+            model = request.json.get('model', 'DeepSeek-v3-2') # 默认使用 DeepSeek-v3-2
 
-            ***REMOVED*** 根据模型类型选择对应的函数
+            # 根据模型类型选择对应的函数
             if model == 'DeepSeek-v3-2' or model == 'deepseek-v3-2':
-                if stream:  ***REMOVED*** 流式数据请求
+                if stream:  # 流式数据请求
                     @stream_with_context
                     def stream_data():
                         for t in deepseek_v3_2_stream(messages):
@@ -69,7 +69,7 @@ def chat():
                 else:
                     reasoning_content, content = deepseek_v3_2(messages)
             elif model == 'Kimi-k2' or model == 'kimi-k2':
-                if stream:  ***REMOVED*** 流式数据请求
+                if stream:  # 流式数据请求
                     @stream_with_context
                     def stream_data():
                         for t in kimi_k2_stream(messages):
@@ -78,7 +78,7 @@ def chat():
                 else:
                     reasoning_content, content = kimi_k2(messages)
             elif model == 'GLM-4-7' or model == 'glm-4-7':
-                if stream:  ***REMOVED*** 流式数据请求
+                if stream:  # 流式数据请求
                     @stream_with_context
                     def stream_data():
                         for t in glm_stream(messages):
@@ -87,7 +87,7 @@ def chat():
                 else:
                     reasoning_content, content = glm(messages)
             elif model == 'Gemini-3-flash' or model == 'gemini-3-flash':
-                if stream:  ***REMOVED*** 流式数据请求
+                if stream:  # 流式数据请求
                     @stream_with_context
                     def stream_data():
                         for t in gemini_3_flash_stream(messages):
@@ -96,7 +96,7 @@ def chat():
                 else:
                     reasoning_content, content = gemini_3_flash(messages)
             elif model == 'Claude-Opus-4-5' or model == 'claude-opus-4-5':
-                if stream:  ***REMOVED*** 流式数据请求
+                if stream:  # 流式数据请求
                     @stream_with_context
                     def stream_data():
                         for t in claude_opus_4_5_stream(messages):
@@ -108,12 +108,12 @@ def chat():
                 state['message'] = '请求异常：模型不存在'
                 return jsonify(state)
 
-            ***REMOVED*** 非流式响应才需要返回 JSON
+            # 非流式响应才需要返回 JSON
             if content != '':
                 state['code'] = 0
                 state['message'] = '回复成功'
                 state['content'] = content
-                ***REMOVED*** 如果有 reasoning_content，也一并返回（推理模型的思考过程）
+                # 如果有 reasoning_content，也一并返回（推理模型的思考过程）
                 if reasoning_content:
                     state['reasoning_content'] = reasoning_content
             else:
@@ -126,7 +126,7 @@ def chat():
         return jsonify(state)
 
 
-***REMOVED*** ---------- P0 创作与记忆 API ----------
+# ---------- P0 创作与记忆 API ----------
 
 try:
     from api.creator_handlers import run as creator_run, list_projects as creator_list_projects, get_project_chapters as creator_get_chapters
@@ -141,11 +141,11 @@ except Exception as e:
     app.logger.warning('Creator/Memory API handlers not available: %s', e)
     _CREATOR_MEMORY_AVAILABLE = False
 
-***REMOVED*** 异步任务存储：task_id -> { status: pending|running|done|failed, ... }
+# 异步任务存储：task_id -> { status: pending|running|done|failed, ... }
 _creator_tasks = {}
 _creator_tasks_lock = threading.Lock()
 _CREATOR_TASKS_MAX = 200
-***REMOVED*** 续写（写章节）串行锁：同一时刻只允许一个续写任务执行，避免「写3章」时多任务同时看到 0 个文件都写第 1 章
+# 续写（写章节）串行锁：同一时刻只允许一个续写任务执行，避免「写3章」时多任务同时看到 0 个文件都写第 1 章
 _continue_lock = threading.Lock()
 
 
@@ -263,7 +263,7 @@ def creator_stream_endpoint():
 
         @stream_with_context
         def sse_gen():
-            _SSE_KEEPALIVE_SEC = 30  ***REMOVED*** 每 30s 无事件时发心跳，避免代理因“空闲”断开；代理读超时建议 >= 300s
+            _SSE_KEEPALIVE_SEC = 30  # 每 30s 无事件时发心跳，避免代理因“空闲”断开；代理读超时建议 >= 300s
             while True:
                 try:
                     ev = ev_queue.get(timeout=_SSE_KEEPALIVE_SEC)
@@ -406,7 +406,7 @@ def memory_note(node_id):
 
 
 def start(host='0.0.0.0', port=5200, ssl_contex=None):
-    if ssl_contex != None: ***REMOVED*** https
+    if ssl_contex != None: # https
         app.run(host=host, port=port, processes=True, debug=False, ssl_context=ssl_contex)
     else:
         app.run(host=host, port=port, processes=True, debug=False)

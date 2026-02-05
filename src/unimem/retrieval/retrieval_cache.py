@@ -61,17 +61,17 @@ class RetrievalCache:
             ttl_seconds: TTL（秒），如果为 None 则不过期（默认 3600）
             enable_lru: 是否启用 LRU 淘汰（默认 True）
         """
-        self.max_size = max(max_size, 1)  ***REMOVED*** 确保至少为 1
+        self.max_size = max(max_size, 1)  # 确保至少为 1
         self.ttl_seconds = ttl_seconds
         self.enable_lru = enable_lru
         
-        ***REMOVED*** 线程安全锁
+        # 线程安全锁
         self._lock = threading.RLock()
         
-        ***REMOVED*** 缓存存储（线程安全）
+        # 缓存存储（线程安全）
         self._cache: Dict[str, CacheEntry] = {}
         
-        ***REMOVED*** 统计信息（线程安全）
+        # 统计信息（线程安全）
         self._hits = 0
         self._misses = 0
         
@@ -116,7 +116,7 @@ class RetrievalCache:
                 self._misses += 1
                 return None
             
-            ***REMOVED*** 检查是否过期
+            # 检查是否过期
             if self.ttl_seconds:
                 age = (datetime.now() - entry.created_at).total_seconds()
                 if age > self.ttl_seconds:
@@ -125,11 +125,11 @@ class RetrievalCache:
                     logger.debug(f"Cache entry expired: {key}")
                     return None
             
-            ***REMOVED*** 记录访问
+            # 记录访问
             entry.access()
             self._hits += 1
             
-            ***REMOVED*** 如果 top_k 不同，需要截取
+            # 如果 top_k 不同，需要截取
             if top_k and len(entry.results) > top_k:
                 return entry.results[:top_k]
             
@@ -159,11 +159,11 @@ class RetrievalCache:
         key = self._generate_key(query, top_k=top_k, **kwargs)
         
         with self._lock:
-            ***REMOVED*** 检查是否需要淘汰
+            # 检查是否需要淘汰
             if len(self._cache) >= self.max_size and key not in self._cache:
                 self._evict()
             
-            ***REMOVED*** 创建缓存条目
+            # 创建缓存条目
             entry = CacheEntry(
                 query_hash=key,
                 results=results,
@@ -179,7 +179,7 @@ class RetrievalCache:
             return
         
         if self.enable_lru:
-            ***REMOVED*** LRU 策略：淘汰最久未访问的
+            # LRU 策略：淘汰最久未访问的
             lru_key = min(
                 self._cache.keys(),
                 key=lambda k: self._cache[k].last_accessed or self._cache[k].created_at
@@ -187,7 +187,7 @@ class RetrievalCache:
             del self._cache[lru_key]
             logger.debug(f"Evicted LRU entry: {lru_key}")
         else:
-            ***REMOVED*** FIFO 策略：淘汰最早创建的
+            # FIFO 策略：淘汰最早创建的
             fifo_key = min(
                 self._cache.keys(),
                 key=lambda k: self._cache[k].created_at
@@ -210,12 +210,12 @@ class RetrievalCache:
             **kwargs: 检索参数
         """
         for query in queries:
-            ***REMOVED*** 检查是否已缓存
+            # 检查是否已缓存
             if self.get(query, **kwargs) is None:
                 try:
-                    ***REMOVED*** 执行检索
+                    # 执行检索
                     results = retrieval_func(query, **kwargs)
-                    ***REMOVED*** 缓存结果
+                    # 缓存结果
                     self.put(query, results, **kwargs)
                     logger.debug(f"Prefetched query: {query}")
                 except Exception as e:
@@ -266,15 +266,15 @@ class RetrievalPrefetcher:
         self.cache = cache
         self.retrieval_func = retrieval_func
         
-        ***REMOVED*** 查询模式统计
+        # 查询模式统计
         self._query_patterns: Dict[str, int] = {}
         
         logger.info("RetrievalPrefetcher initialized")
     
     def record_query(self, query: str) -> None:
         """记录查询模式"""
-        ***REMOVED*** 提取查询关键词（简化实现）
-        keywords = query.split()[:3]  ***REMOVED*** 取前3个词
+        # 提取查询关键词（简化实现）
+        keywords = query.split()[:3]  # 取前3个词
         for keyword in keywords:
             self._query_patterns[keyword] = self._query_patterns.get(keyword, 0) + 1
     
@@ -289,12 +289,12 @@ class RetrievalPrefetcher:
         Returns:
             预测的查询列表
         """
-        ***REMOVED*** 简化实现：基于当前查询的关键词预测
+        # 简化实现：基于当前查询的关键词预测
         keywords = current_query.split()[:3]
         predicted = []
         
         for keyword in keywords:
-            ***REMOVED*** 查找包含此关键词的常见查询模式
+            # 查找包含此关键词的常见查询模式
             similar_queries = [
                 f"{keyword} {k}" for k in self._query_patterns.keys()
                 if k != keyword
@@ -310,13 +310,13 @@ class RetrievalPrefetcher:
         Args:
             query: 当前查询
         """
-        ***REMOVED*** 记录查询
+        # 记录查询
         self.record_query(query)
         
-        ***REMOVED*** 预测相关查询
+        # 预测相关查询
         predicted_queries = self.predict_queries(query)
         
-        ***REMOVED*** 预取
+        # 预取
         if predicted_queries:
             self.cache.prefetch(predicted_queries, self.retrieval_func)
             logger.debug(f"Prefetched {len(predicted_queries)} related queries")

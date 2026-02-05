@@ -19,7 +19,7 @@ class TestHierarchicalStorage(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** Mock 存储管理器
+        # Mock 存储管理器
         self.storage_manager = Mock()
         self.storage_manager.add_memory = Mock(return_value=True)
         
@@ -57,10 +57,10 @@ class TestHierarchicalStorage(unittest.TestCase):
             memory_type=MemoryType.EXPERIENCE
         )
         
-        ***REMOVED*** 先存储
+        # 先存储
         self.hierarchical.store(memory, ContentLevel.WORK)
         
-        ***REMOVED*** 再检索
+        # 再检索
         results = self.hierarchical.retrieve(ContentLevel.WORK, top_k=10)
         self.assertIsNotNone(results)
     
@@ -73,10 +73,10 @@ class TestHierarchicalStorage(unittest.TestCase):
             memory_type=MemoryType.EXPERIENCE
         )
         
-        ***REMOVED*** 存储到不同层级
+        # 存储到不同层级
         self.hierarchical.store(memory, ContentLevel.WORK)
         
-        ***REMOVED*** 跨层级检索
+        # 跨层级检索
         results = self.hierarchical.cross_level_retrieve(
             query="test",
             levels=[ContentLevel.WORK, ContentLevel.CHAPTER],
@@ -108,17 +108,17 @@ class TestHierarchicalStorage(unittest.TestCase):
             memory_type=MemoryType.EXPERIENCE
         )
         
-        ***REMOVED*** 先存储
+        # 先存储
         self.hierarchical.store(memory, ContentLevel.WORK)
         
-        ***REMOVED*** 再删除
+        # 再删除
         result = self.hierarchical.remove_memory("test_1")
         self.assertTrue(result)
     
     def test_remove_memory_not_exists(self):
         """测试删除不存在的记忆"""
         result = self.hierarchical.remove_memory("non_existent")
-        ***REMOVED*** 应该返回 False 或 True（取决于实现）
+        # 应该返回 False 或 True（取决于实现）
         self.assertIsNotNone(result)
 
 
@@ -138,7 +138,7 @@ class TestConsistencyReport(unittest.TestCase):
     
     def test_report_validation(self):
         """测试报告验证"""
-        ***REMOVED*** 空 level 应该抛出异常
+        # 空 level 应该抛出异常
         with self.assertRaises(ValueError):
             ConsistencyReport(
                 level="",

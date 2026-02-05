@@ -45,12 +45,12 @@ def example_2_execute_discovery_tools():
     """示例 2：执行工具发现相关工具"""
     print_section("示例 2：执行工具发现相关工具")
 
-    ***REMOVED*** search_tool_docs
+    # search_tool_docs
     result = default_registry.execute_tool("search_tool_docs", {"query": "工具", "max_results": 3})
     print("\nsearch_tool_docs('工具', max_results=3):")
     print(result)
 
-    ***REMOVED*** read_tool_doc
+    # read_tool_doc
     doc = default_registry.execute_tool("read_tool_doc", {"tool_name": "search_tool_docs"})
     print("\nread_tool_doc('search_tool_docs') 片段:")
     print(doc[:400] + "..." if len(doc) > 400 else doc)

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-***REMOVED*** 全局实例（延迟初始化）
+# 全局实例（延迟初始化）
 _observability = None
 _cache = None
 _experiment_manager = None
@@ -182,11 +182,11 @@ async def get_memory_metrics() -> Dict[str, Any]:
         Memory 指标数据
     """
     try:
-        ***REMOVED*** 尝试获取 UniMem 实例（如果可用）
+        # 尝试获取 UniMem 实例（如果可用）
         global _unimem
         if _unimem is None:
-            ***REMOVED*** 这里需要根据实际情况获取 UniMem 实例
-            ***REMOVED*** 暂时返回占位数据
+            # 这里需要根据实际情况获取 UniMem 实例
+            # 暂时返回占位数据
             return {
                 "success": True,
                 "data": {
@@ -196,7 +196,7 @@ async def get_memory_metrics() -> Dict[str, Any]:
                 "timestamp": datetime.now().isoformat()
             }
         
-        ***REMOVED*** 获取 UniMem 指标
+        # 获取 UniMem 指标
         metrics = _unimem.get_metrics()
         health = _unimem.health_check()
         
@@ -253,14 +253,14 @@ async def health_check() -> Dict[str, Any]:
         observability = get_observability()
         cache = get_cache()
         
-        ***REMOVED*** 获取基本指标
+        # 获取基本指标
         metrics = observability.get_dashboard_metrics()
         
-        ***REMOVED*** 判断健康状态
+        # 判断健康状态
         health_status = "healthy"
-        if metrics["success_rate"] < 0.9:  ***REMOVED*** 成功率低于90%
+        if metrics["success_rate"] < 0.9:  # 成功率低于90%
             health_status = "degraded"
-        if metrics["success_rate"] < 0.5:  ***REMOVED*** 成功率低于50%
+        if metrics["success_rate"] < 0.5:  # 成功率低于50%
             health_status = "unhealthy"
         
         return {

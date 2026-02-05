@@ -19,7 +19,7 @@ class TestUniMemConfig(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** 保存原始环境变量
+        # 保存原始环境变量
         self.original_env = {}
         for key in os.environ:
             if key.startswith("UNIMEM_") or key.startswith("NEO4J_") or key.startswith("REDIS_"):
@@ -27,7 +27,7 @@ class TestUniMemConfig(unittest.TestCase):
     
     def tearDown(self):
         """清理测试环境"""
-        ***REMOVED*** 恢复原始环境变量
+        # 恢复原始环境变量
         for key in list(os.environ.keys()):
             if key.startswith("UNIMEM_") or key.startswith("NEO4J_") or key.startswith("REDIS_"):
                 if key not in self.original_env:
@@ -95,7 +95,7 @@ class TestUniMemConfig(unittest.TestCase):
     def test_config_validation_valid(self):
         """测试有效配置验证"""
         config = UniMemConfig()
-        ***REMOVED*** 应该不抛出异常
+        # 应该不抛出异常
         config.validate()
     
     def test_config_get_nested(self):
@@ -134,7 +134,7 @@ class TestUniMemConfig(unittest.TestCase):
     def test_config_validation_timeout_range(self):
         """测试超时范围验证"""
         config = UniMemConfig()
-        config.set("operation_timeout", -1)  ***REMOVED*** 负数
+        config.set("operation_timeout", -1)  # 负数
         
         with self.assertRaises(AdapterConfigurationError):
             config.validate()
@@ -152,7 +152,7 @@ class TestUniMemConfig(unittest.TestCase):
         """测试 Neo4j URI 格式验证"""
         config = UniMemConfig()
         config.set("graph.backend", "neo4j")
-        config.set("graph.neo4j_uri", "invalid_uri")  ***REMOVED*** 无效格式
+        config.set("graph.neo4j_uri", "invalid_uri")  # 无效格式
         
         with self.assertRaises(AdapterConfigurationError):
             config.validate()

@@ -1,12 +1,12 @@
-***REMOVED*** Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-***REMOVED*** C extensions
+# C extensions
 *.so
 
-***REMOVED*** Distribution / packaging
+# Distribution / packaging
 .Python
 env/
 build/
@@ -25,17 +25,17 @@ wheels/
 .installed.cfg
 *.egg
 
-***REMOVED*** PyInstaller
-***REMOVED***  Usually these files are written by a python script from a template
-***REMOVED***  before PyInstaller builds the exe, so as to inject date/other infos into it.
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
-***REMOVED*** Installer logs
+# Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
 
-***REMOVED*** Unit test / coverage reports
+# Unit test / coverage reports
 .pytest_cache/
 htmlcov/
 .tox/
@@ -47,61 +47,61 @@ coverage.xml
 *.cover
 .hypothesis/
 
-***REMOVED*** Translations
+# Translations
 *.mo
 *.pot
 
-***REMOVED*** Django stuff:
+# Django stuff:
 *.log
 local_settings.py
 
-***REMOVED*** Flask stuff:
+# Flask stuff:
 instance/
 .webassets-cache
 
-***REMOVED*** Scrapy stuff:
+# Scrapy stuff:
 .scrapy
 
-***REMOVED*** Sphinx documentation
+# Sphinx documentation
 docs/_build/
 
-***REMOVED*** PyBuilder
+# PyBuilder
 target/
 
-***REMOVED*** Jupyter Notebook
+# Jupyter Notebook
 .ipynb_checkpoints
 
-***REMOVED*** pyenv
+# pyenv
 .python-version
 
-***REMOVED*** celery beat schedule file
+# celery beat schedule file
 celerybeat-schedule
 
-***REMOVED*** SageMath parsed files
+# SageMath parsed files
 *.sage.py
 
-***REMOVED*** dotenv
+# dotenv
 .env
 
-***REMOVED*** virtualenv
+# virtualenv
 .venv
 venv/
 ENV/
 
-***REMOVED*** Spyder project settings
+# Spyder project settings
 .spyderproject
 .spyproject
 
-***REMOVED*** Rope project settings
+# Rope project settings
 .ropeproject
 
-***REMOVED*** mkdocs documentation
+# mkdocs documentation
 /site
 
-***REMOVED*** mypy
+# mypy
 .mypy_cache/
 
-***REMOVED*** custom
+# custom
 data/
 todo/
 local_storage/

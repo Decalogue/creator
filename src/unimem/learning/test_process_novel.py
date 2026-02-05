@@ -64,7 +64,7 @@ def test_process_huaqian():
         print(f"  章节数: {rhythm.get('chapter_count')}")
         print(f"  总长度: {rhythm.get('total_length', 0):,} 字")
         
-        ***REMOVED*** 保存结果
+        # 保存结果
         output_file = "/tmp/test_huaqian_result.json"
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=2)

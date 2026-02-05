@@ -18,33 +18,33 @@ logger = logging.getLogger(__name__)
 
 class EntityType(Enum):
     """实体类型"""
-    CHAPTER = "chapter"  ***REMOVED*** 章节
-    CHARACTER = "character"  ***REMOVED*** 角色
-    ORGANIZATION = "organization"  ***REMOVED*** 组织/机构
-    LOCATION = "location"  ***REMOVED*** 地点（与 SETTING 同义，但更明确）
-    SETTING = "setting"  ***REMOVED*** 设定（保留兼容性）
-    ITEM = "item"  ***REMOVED*** 物品/装备
-    CREATURE = "creature"  ***REMOVED*** 生物/妖怪
-    CONCEPT = "concept"  ***REMOVED*** 概念/规则
-    TIME = "time"  ***REMOVED*** 时间/期限
-    PLOT_POINT = "plot_point"  ***REMOVED*** 情节节点
-    FORESHADOWING = "foreshadowing"  ***REMOVED*** 伏笔
-    DIALOGUE = "dialogue"  ***REMOVED*** 对话
-    DESCRIPTION = "description"  ***REMOVED*** 描写
-    THEME = "theme"  ***REMOVED*** 主题
-    SYMBOL = "symbol"  ***REMOVED*** 符号（如"神秘吊坠"）
+    CHAPTER = "chapter"  # 章节
+    CHARACTER = "character"  # 角色
+    ORGANIZATION = "organization"  # 组织/机构
+    LOCATION = "location"  # 地点（与 SETTING 同义，但更明确）
+    SETTING = "setting"  # 设定（保留兼容性）
+    ITEM = "item"  # 物品/装备
+    CREATURE = "creature"  # 生物/妖怪
+    CONCEPT = "concept"  # 概念/规则
+    TIME = "time"  # 时间/期限
+    PLOT_POINT = "plot_point"  # 情节节点
+    FORESHADOWING = "foreshadowing"  # 伏笔
+    DIALOGUE = "dialogue"  # 对话
+    DESCRIPTION = "description"  # 描写
+    THEME = "theme"  # 主题
+    SYMBOL = "symbol"  # 符号（如"神秘吊坠"）
 
 
 class RelationType(Enum):
     """关系类型"""
-    MENTIONS = "mentions"  ***REMOVED*** 提及
-    REFERENCES = "references"  ***REMOVED*** 引用
-    CONTRADICTS = "contradicts"  ***REMOVED*** 矛盾
-    DEVELOPS = "develops"  ***REMOVED*** 发展
-    FORESHADOWS = "foreshadows"  ***REMOVED*** 伏笔
-    BELONGS_TO = "belongs_to"  ***REMOVED*** 属于
-    APPEARS_IN = "appears_in"  ***REMOVED*** 出现在
-    CONFLICTS_WITH = "conflicts_with"  ***REMOVED*** 冲突
+    MENTIONS = "mentions"  # 提及
+    REFERENCES = "references"  # 引用
+    CONTRADICTS = "contradicts"  # 矛盾
+    DEVELOPS = "develops"  # 发展
+    FORESHADOWS = "foreshadows"  # 伏笔
+    BELONGS_TO = "belongs_to"  # 属于
+    APPEARS_IN = "appears_in"  # 出现在
+    CONFLICTS_WITH = "conflicts_with"  # 冲突
 
 
 @dataclass
@@ -76,7 +76,7 @@ class Relation:
     source_id: str
     target_id: str
     relation_type: RelationType
-    strength: float = 1.0  ***REMOVED*** 关系强度（0-1）
+    strength: float = 1.0  # 关系强度（0-1）
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     
@@ -214,7 +214,7 @@ class SemanticMeshMemory:
             if target_id and target_id in self.entities:
                 related.append((self.entities[target_id], relation))
         
-        ***REMOVED*** 按关系强度排序
+        # 按关系强度排序
         related.sort(key=lambda x: x[1].strength, reverse=True)
         
         return related
@@ -280,10 +280,10 @@ class SemanticMeshMemory:
                 "timestamp": datetime.now().isoformat()
             }
         
-        ***REMOVED*** 获取相关实体
+        # 获取相关实体
         related_entities = self.trigger_related_memories(focus_entity_id)
         
-        ***REMOVED*** 根据 Agent 类型过滤和格式化
+        # 根据 Agent 类型过滤和格式化
         context = {
             "focus_entity": self.entities.get(focus_entity_id),
             "related_entities": related_entities,
@@ -313,7 +313,7 @@ class SemanticMeshMemory:
         if not isinstance(data, dict):
             raise ValueError("Data must be a dictionary")
         
-        ***REMOVED*** 加载实体
+        # 加载实体
         entities_data = data.get("entities", {})
         if not isinstance(entities_data, dict):
             raise ValueError("'entities' must be a dictionary")
@@ -334,7 +334,7 @@ class SemanticMeshMemory:
                 logger.error(f"Failed to load entity {eid}: {e}")
                 raise
         
-        ***REMOVED*** 加载关系
+        # 加载关系
         relations_data = data.get("relations", [])
         if not isinstance(relations_data, list):
             raise ValueError("'relations' must be a list")

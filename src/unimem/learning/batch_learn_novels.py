@@ -11,7 +11,7 @@ import argparse
 import logging
 from pathlib import Path
 
-***REMOVED*** 添加项目路径
+# 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from unimem.core import UniMem
@@ -40,7 +40,7 @@ def main():
     
     args = parser.parse_args()
     
-    ***REMOVED*** 初始化 UniMem
+    # 初始化 UniMem
     logger.info("初始化 UniMem...")
     unimem = UniMem(
         storage_backend="redis",
@@ -49,10 +49,10 @@ def main():
         config_file=args.config
     )
     
-    ***REMOVED*** 创建处理器
+    # 创建处理器
     processor = NovelProcessor(unimem_instance=unimem)
     
-    ***REMOVED*** 批量处理
+    # 批量处理
     logger.info(f"开始批量处理小说目录: {args.novel_dir}")
     results = processor.batch_process(
         novel_dir=args.novel_dir,
@@ -60,13 +60,13 @@ def main():
         store_to_memory=args.store
     )
     
-    ***REMOVED*** 保存结果
+    # 保存结果
     if args.output:
         logger.info(f"保存处理结果到: {args.output}")
         with open(args.output, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
         
-        ***REMOVED*** 保存统计信息
+        # 保存统计信息
         stats = {
             "total_processed": len(results),
             "total_chapters": sum(r["structure"].get("chapter_count", 0) for r in results),

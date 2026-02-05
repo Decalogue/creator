@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 检查 UniMem 服务连接状态
 检查 Redis、Neo4j、Qdrant 的连接状态
@@ -14,7 +14,7 @@ import sys
 import os
 from pathlib import Path
 
-***REMOVED*** 添加 src 目录到路径
+# 添加 src 目录到路径
 src_dir = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(src_dir))
 
@@ -36,7 +36,7 @@ def check_redis() -> Dict[str, Any]:
         
         client = get_redis_client()
         if client:
-            ***REMOVED*** 测试连接
+            # 测试连接
             client.ping()
             info = client.info()
             return {
@@ -66,7 +66,7 @@ def check_redis() -> Dict[str, Any]:
 def check_neo4j() -> Dict[str, Any]:
     """检查 Neo4j 连接"""
     try:
-        ***REMOVED*** 尝试使用 py2neo（UniMem 实际使用的库）
+        # 尝试使用 py2neo（UniMem 实际使用的库）
         try:
             from py2neo import Graph
             import os
@@ -78,7 +78,7 @@ def check_neo4j() -> Dict[str, Any]:
             
             graph = Graph(uri, auth=(user, password), name=database)
             
-            ***REMOVED*** 测试连接
+            # 测试连接
             result = graph.run("RETURN 1 as test").data()
             
             return {
@@ -89,7 +89,7 @@ def check_neo4j() -> Dict[str, Any]:
                 "library": "py2neo",
             }
         except ImportError:
-            ***REMOVED*** 回退到标准 neo4j 库
+            # 回退到标准 neo4j 库
             from neo4j import GraphDatabase
             import os
             
@@ -102,7 +102,7 @@ def check_neo4j() -> Dict[str, Any]:
                 result = session.run("RETURN 1 as test")
                 record = result.single()
                 
-                ***REMOVED*** 获取数据库信息
+                # 获取数据库信息
                 server_info = driver.get_server_info()
                 
                 driver.close()
@@ -140,7 +140,7 @@ def check_qdrant() -> Dict[str, Any]:
         
         client = QdrantClient(host=host, port=port)
         
-        ***REMOVED*** 测试连接
+        # 测试连接
         collections = client.get_collections().collections
         
         return {
@@ -148,7 +148,7 @@ def check_qdrant() -> Dict[str, Any]:
             "host": host,
             "port": port,
             "collections_count": len(collections),
-            "collections": [c.name for c in collections[:5]],  ***REMOVED*** 显示前5个
+            "collections": [c.name for c in collections[:5]],  # 显示前5个
         }
     except ImportError:
         return {
@@ -210,7 +210,7 @@ def main():
     print("=" * 70)
     print()
     
-    ***REMOVED*** 检查 Redis
+    # 检查 Redis
     print("【1. Redis 连接状态】")
     redis_status = check_redis()
     print(f"   状态: {redis_status['status']}")
@@ -219,7 +219,7 @@ def main():
             print(f"   {key}: {value}")
     print()
     
-    ***REMOVED*** 检查 Neo4j
+    # 检查 Neo4j
     print("【2. Neo4j 连接状态】")
     neo4j_status = check_neo4j()
     print(f"   状态: {neo4j_status['status']}")
@@ -228,7 +228,7 @@ def main():
             print(f"   {key}: {value}")
     print()
     
-    ***REMOVED*** 检查 Qdrant
+    # 检查 Qdrant
     print("【3. Qdrant 连接状态】")
     qdrant_status = check_qdrant()
     print(f"   状态: {qdrant_status['status']}")
@@ -237,7 +237,7 @@ def main():
             print(f"   {key}: {value}")
     print()
     
-    ***REMOVED*** 检查 UniMem 服务
+    # 检查 UniMem 服务
     print("【4. UniMem 服务状态】")
     unimem_status = check_unimem_status()
     print(f"   状态: {unimem_status['status']}")
@@ -246,7 +246,7 @@ def main():
             print(f"   {key}: {value}")
     print()
     
-    ***REMOVED*** 总结
+    # 总结
     print("=" * 70)
     print("连接状态总结")
     print("=" * 70)

@@ -1,5 +1,5 @@
-***REMOVED***!/usr/bin/env python3
-***REMOVED*** -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 记忆存储分析脚本
 分析Neo4j和Qdrant中的记忆存储情况，检查decision_trace、reasoning、DecisionEvent的覆盖率
@@ -11,7 +11,7 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 
-***REMOVED*** 添加项目路径
+# 添加项目路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -37,13 +37,13 @@ def analyze_memory_storage():
         
         matcher = NodeMatcher(graph)
         
-        ***REMOVED*** 1. 统计Memory节点
+        # 1. 统计Memory节点
         print("【1. Memory节点统计】")
         memory_query = "MATCH (m:Memory) RETURN count(m) as count"
         memory_count = graph.run(memory_query).data()[0]['count']
         print(f"  总Memory数: {memory_count}")
         
-        ***REMOVED*** 按类型统计
+        # 按类型统计
         type_query = """
         MATCH (m:Memory)
         RETURN m.memory_type as type, count(m) as count
@@ -54,13 +54,13 @@ def analyze_memory_storage():
         for stat in type_stats:
             print(f"    - {stat['type'] or '未知'}: {stat['count']}个")
         
-        ***REMOVED*** 2. DecisionEvent节点统计
+        # 2. DecisionEvent节点统计
         print("\n【2. DecisionEvent节点统计】")
         event_query = "MATCH (e:DecisionEvent) RETURN count(e) as count"
         event_count = graph.run(event_query).data()[0]['count']
         print(f"  总DecisionEvent数: {event_count}")
         
-        ***REMOVED*** 检查DecisionEvent与Memory的关联
+        # 检查DecisionEvent与Memory的关联
         relation_query = """
         MATCH (e:DecisionEvent)-[:TRACES]->(m:Memory)
         RETURN count(e) as count
@@ -69,7 +69,7 @@ def analyze_memory_storage():
         print(f"  已关联到Memory的DecisionEvent: {related_count}个")
         
         if event_count > 0:
-            ***REMOVED*** 获取最近的DecisionEvent
+            # 获取最近的DecisionEvent
             recent_query = """
             MATCH (e:DecisionEvent)
             RETURN e.id as id, e.memory_id as memory_id, e.reasoning as reasoning, e.timestamp as timestamp
@@ -84,7 +84,7 @@ def analyze_memory_storage():
                 print(f"       Memory ID: {event['memory_id']}")
                 print(f"       Reasoning: {reasoning[:60] if reasoning else '无'}...")
         
-        ***REMOVED*** 3. decision_trace覆盖率分析
+        # 3. decision_trace覆盖率分析
         print("\n【3. decision_trace覆盖率分析】")
         trace_query = """
         MATCH (m:Memory)
@@ -100,7 +100,7 @@ def analyze_memory_storage():
         print(f"  有decision_trace的Memory: {with_trace}")
         print(f"  覆盖率: {coverage:.1f}%")
         
-        ***REMOVED*** 按类型分析decision_trace覆盖率
+        # 按类型分析decision_trace覆盖率
         type_trace_query = """
         MATCH (m:Memory)
         WITH m.memory_type as type, m,
@@ -121,7 +121,7 @@ def analyze_memory_storage():
                 coverage_type = (with_trace_type / total_type * 100) if total_type > 0 else 0
                 print(f"    - {type_name}: {with_trace_type}/{total_type} ({coverage_type:.1f}%)")
         
-        ***REMOVED*** 4. reasoning覆盖率分析
+        # 4. reasoning覆盖率分析
         print("\n【4. reasoning覆盖率分析】")
         reasoning_query = """
         MATCH (m:Memory)
@@ -137,7 +137,7 @@ def analyze_memory_storage():
         print(f"  有reasoning的Memory: {with_reasoning}")
         print(f"  覆盖率: {coverage:.1f}%")
         
-        ***REMOVED*** 5. Memory关系分析
+        # 5. Memory关系分析
         print("\n【5. Memory关系分析】")
         relation_query = """
         MATCH (m1:Memory)-[r:RELATED_TO]->(m2:Memory)
@@ -146,7 +146,7 @@ def analyze_memory_storage():
         relation_count = graph.run(relation_query).data()[0]['count']
         print(f"  RELATED_TO关系数: {relation_count}")
         
-        ***REMOVED*** 检查反馈记忆与脚本记忆的关联
+        # 检查反馈记忆与脚本记忆的关联
         feedback_script_query = """
         MATCH (f:Memory)-[:RELATED_TO]->(s:Memory)
         WHERE f.memory_type = 'feedback' AND s.memory_type = 'script'
@@ -155,7 +155,7 @@ def analyze_memory_storage():
         feedback_script_count = graph.run(feedback_script_query).data()[0]['count']
         print(f"  反馈记忆->脚本记忆关系: {feedback_script_count}")
         
-        ***REMOVED*** 6. 最近创建的Memory分析
+        # 6. 最近创建的Memory分析
         print("\n【6. 最近创建的Memory分析（前10个）】")
         recent_memory_query = """
         MATCH (m:Memory)
@@ -180,7 +180,7 @@ def analyze_memory_storage():
             if reasoning:
                 print(f"     Reasoning: {reasoning[:60]}...")
         
-        ***REMOVED*** 7. 问题诊断
+        # 7. 问题诊断
         print("\n【7. 问题诊断】")
         issues = []
         
@@ -220,7 +220,7 @@ def analyze_memory_storage():
         else:
             print("  ✓ 未发现明显问题")
         
-        ***REMOVED*** 8. 改进建议
+        # 8. 改进建议
         print("\n【8. 改进建议】")
         suggestions = []
         
@@ -247,7 +247,7 @@ def analyze_memory_storage():
         else:
             print("  ✓ 当前状态良好，无需改进")
         
-        ***REMOVED*** 生成分析报告
+        # 生成分析报告
         report = {
             "timestamp": datetime.now().isoformat(),
             "statistics": {

@@ -26,8 +26,8 @@ import { md } from '@/utils/markdown';
 const T = CREATOR_THEME;
 
 /** AI 对话页专用头像背景：白色 */
-const AI_AVATAR_USER = '***REMOVED***ffffff';
-const AI_AVATAR_BOT = '***REMOVED***ffffff';
+const AI_AVATAR_USER = '#ffffff';
+const AI_AVATAR_BOT = '#ffffff';
 
 declare const API_URL: string;
 
@@ -863,7 +863,7 @@ const AIAssistant: React.FC = () => {
         .ai-page .ai-model-select.ant-select .ant-select-selector {
           background: rgba(255,255,255,0.06) !important;
           border-color: rgba(255,255,255,0.12) !important;
-          color: ***REMOVED***e4e4e7 !important;
+          color: #e4e4e7 !important;
         }
         .ai-page .ai-model-select.ant-select:hover .ant-select-selector {
           border-color: rgba(255,75,47,0.4) !important;
@@ -880,7 +880,7 @@ const AIAssistant: React.FC = () => {
           margin-top: 20px;
           margin-bottom: 12px;
           font-weight: 600;
-          color: ***REMOVED***fafafa;
+          color: #fafafa;
         }
         .ai-page .markdown-content h1 { font-size: 1.5em; }
         .ai-page .markdown-content h2 { font-size: 1.3em; }
@@ -895,7 +895,7 @@ const AIAssistant: React.FC = () => {
           border-radius: 4px;
           font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
           font-size: 0.9em;
-          color: ***REMOVED***e4e4e7;
+          color: #e4e4e7;
         }
         .ai-page .markdown-content pre {
           background: rgba(0,0,0,0.25);
@@ -916,7 +916,7 @@ const AIAssistant: React.FC = () => {
         }
         .ai-page .markdown-content li { margin: 6px 0; line-height: 1.8; }
         .ai-page .markdown-content a {
-          color: ***REMOVED***ffa7a7;
+          color: #ffa7a7;
           text-decoration: none;
         }
         .ai-page .markdown-content a:hover { text-decoration: underline; }

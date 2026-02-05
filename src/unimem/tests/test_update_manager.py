@@ -18,7 +18,7 @@ class TestUpdateManager(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** Mock 适配器
+        # Mock 适配器
         self.graph_adapter = Mock()
         self.graph_adapter.is_available.return_value = True
         
@@ -59,7 +59,7 @@ class TestUpdateManager(unittest.TestCase):
         ]
         links = {"link_1"}
         
-        ***REMOVED*** Mock ripple_updater
+        # Mock ripple_updater
         self.manager.ripple_updater.trigger_ripple = Mock(return_value=True)
         
         result = self.manager.trigger_ripple(memory, entities, relations, links)
@@ -82,7 +82,7 @@ class TestUpdateManager(unittest.TestCase):
         self.manager.ripple_updater.trigger_ripple = Mock(return_value=True)
         
         result = self.manager.trigger_ripple(memory, None, None, None)
-        ***REMOVED*** 应该不抛出异常
+        # 应该不抛出异常
         self.assertIsNotNone(result)
     
     def test_queue_sleep_update(self):
@@ -94,7 +94,7 @@ class TestUpdateManager(unittest.TestCase):
             memory_type=MemoryType.EXPERIENCE
         )
         
-        ***REMOVED*** Mock update_adapter
+        # Mock update_adapter
         self.update_adapter.queue_update = Mock(return_value=True)
         
         result = self.manager.queue_sleep_update(memory)
@@ -107,11 +107,11 @@ class TestUpdateManager(unittest.TestCase):
     
     def test_run_sleep_update(self):
         """测试运行睡眠更新"""
-        ***REMOVED*** Mock update_adapter
+        # Mock update_adapter
         self.update_adapter.run_sleep_update = Mock(return_value=True)
         
         result = self.manager.run_sleep_update()
-        ***REMOVED*** 应该不抛出异常
+        # 应该不抛出异常
         self.assertIsNotNone(result)
 
 

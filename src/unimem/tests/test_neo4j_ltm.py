@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Neo4j LTM 功能测试脚本
 
@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-***REMOVED*** 添加项目根目录到路径
+# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -58,7 +58,7 @@ def test_create_memory():
     success = create_memory(memory)
     print(f"创建记忆: {'✓ 成功' if success else '✗ 失败'}")
     
-    ***REMOVED*** 验证
+    # 验证
     retrieved = get_memory("test_memory_001")
     if retrieved and retrieved.content == memory.content:
         print("✓ 验证成功：记忆已正确存储")
@@ -72,7 +72,7 @@ def test_create_memory_with_entity():
     """测试创建带实体关联的记忆"""
     print("\n=== 测试 2: 创建带实体关联的记忆 ===")
     
-    ***REMOVED*** 先创建实体
+    # 先创建实体
     entity = Entity(
         id="user_001",
         name="测试用户",
@@ -84,7 +84,7 @@ def test_create_memory_with_entity():
     create_entity(entity)
     print("✓ 创建实体: user_001")
     
-    ***REMOVED*** 创建关联实体的记忆
+    # 创建关联实体的记忆
     memory = Memory(
         id="test_memory_002",
         content="用户张三喜欢在早上喝咖啡",
@@ -101,7 +101,7 @@ def test_create_memory_with_entity():
     success = create_memory(memory)
     print(f"创建记忆（关联实体）: {'✓ 成功' if success else '✗ 失败'}")
     
-    ***REMOVED*** 查询与实体相关的记忆
+    # 查询与实体相关的记忆
     memories = search_memories_by_entity("user_001")
     print(f"✓ 找到 {len(memories)} 条与实体相关的记忆")
     for m in memories:
@@ -114,17 +114,17 @@ def test_search_memories():
     """测试记忆查询"""
     print("\n=== 测试 3: 记忆查询 ===")
     
-    ***REMOVED*** 按类型查询
+    # 按类型查询
     episodic_memories = search_memories_by_type(MemoryType.EPISODIC, limit=10)
     print(f"✓ 按类型查询（EPISODIC）: 找到 {len(episodic_memories)} 条记忆")
     
-    ***REMOVED*** 文本搜索
+    # 文本搜索
     text_memories = search_memories_by_text("咖啡", limit=10)
     print(f"✓ 文本搜索（'咖啡'）: 找到 {len(text_memories)} 条记忆")
     for m in text_memories:
         print(f"  - {m.id}: {m.content[:50]}...")
     
-    ***REMOVED*** 时间范围查询
+    # 时间范围查询
     from datetime import timedelta
     end_time = datetime.now().isoformat()
     start_time = (datetime.now() - timedelta(days=1)).isoformat()
@@ -138,13 +138,13 @@ def test_update_memory():
     """测试更新记忆"""
     print("\n=== 测试 4: 更新记忆 ===")
     
-    ***REMOVED*** 获取现有记忆
+    # 获取现有记忆
     memory = get_memory("test_memory_001")
     if not memory:
         print("✗ 找不到测试记忆，跳过更新测试")
         return False
     
-    ***REMOVED*** 更新内容
+    # 更新内容
     original_content = memory.content
     memory.content = "这是一个更新的测试记忆：用户喜欢喝咖啡和茶"
     memory.retrieval_count += 1
@@ -153,7 +153,7 @@ def test_update_memory():
     success = update_memory(memory)
     print(f"更新记忆: {'✓ 成功' if success else '✗ 失败'}")
     
-    ***REMOVED*** 验证
+    # 验证
     updated = get_memory("test_memory_001")
     if updated and updated.content == memory.content and updated.retrieval_count > 0:
         print("✓ 验证成功：记忆已正确更新")
@@ -169,7 +169,7 @@ def test_memory_relationships():
     """测试记忆关系"""
     print("\n=== 测试 5: 记忆关系 ===")
     
-    ***REMOVED*** 创建两个关联的记忆
+    # 创建两个关联的记忆
     memory1 = Memory(
         id="test_memory_003",
         content="第一个关联记忆",
@@ -194,7 +194,7 @@ def test_memory_relationships():
     create_memory(memory2)
     print("✓ 创建两个关联的记忆")
     
-    ***REMOVED*** 查询关系
+    # 查询关系
     relationships = get_memory_relationships("test_memory_003", depth=1)
     print(f"✓ 查询记忆关系: 找到 {len(relationships)} 个关系")
     
@@ -205,11 +205,11 @@ def test_delete_memory():
     """测试删除记忆"""
     print("\n=== 测试 6: 删除记忆 ===")
     
-    ***REMOVED*** 删除测试记忆
+    # 删除测试记忆
     success = delete_memory("test_memory_001")
     print(f"删除记忆 test_memory_001: {'✓ 成功' if success else '✗ 失败'}")
     
-    ***REMOVED*** 验证
+    # 验证
     deleted = get_memory("test_memory_001")
     if deleted is None:
         print("✓ 验证成功：记忆已删除")
@@ -243,7 +243,7 @@ def cleanup():
     for memory_id in test_memories:
         delete_memory(memory_id)
     
-    ***REMOVED*** 删除测试实体
+    # 删除测试实体
     from unimem.neo4j import delete_entity
     delete_entity("user_001")
     
@@ -256,11 +256,11 @@ def main():
     print("Neo4j LTM 功能测试")
     print("=" * 60)
     
-    ***REMOVED*** 测试结果
+    # 测试结果
     results = []
     
     try:
-        ***REMOVED*** 运行测试
+        # 运行测试
         results.append(("创建索引", test_indexes()))
         results.append(("创建记忆", test_create_memory()))
         results.append(("创建带实体关联的记忆", test_create_memory_with_entity()))
@@ -276,10 +276,10 @@ def main():
         return False
     
     finally:
-        ***REMOVED*** 清理测试数据
+        # 清理测试数据
         cleanup()
     
-    ***REMOVED*** 输出测试结果
+    # 输出测试结果
     print("\n" + "=" * 60)
     print("测试结果汇总")
     print("=" * 60)

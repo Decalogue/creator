@@ -40,19 +40,19 @@ class ContextManager:
             pre_rot_threshold: 腐烂前阈值（tokens），默认128K
         """
         if output_dir is None:
-            ***REMOVED*** 默认使用 agent/context_outputs/ 目录
+            # 默认使用 agent/context_outputs/ 目录
             current_dir = Path(__file__).parent
             output_dir = current_dir / "context_outputs"
         
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        ***REMOVED*** 创建子目录
+        # 创建子目录
         (self.output_dir / "tool_results").mkdir(exist_ok=True)
         (self.output_dir / "chat_history").mkdir(exist_ok=True)
         (self.output_dir / "terminal_sessions").mkdir(exist_ok=True)
         
-        ***REMOVED*** LLM 函数（用于生成摘要）
+        # LLM 函数（用于生成摘要）
         self.llm_func = llm_func
         self.pre_rot_threshold = pre_rot_threshold
     
@@ -77,20 +77,20 @@ class ContextManager:
         Returns:
             (结果文本或文件引用, 文件路径)
         """
-        ***REMOVED*** 如果结果不长，直接返回
+        # 如果结果不长，直接返回
         if len(tool_output) <= max_length:
             return tool_output, None
         
-        ***REMOVED*** 生成文件名
+        # 生成文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        ***REMOVED*** 使用工具名称和输入参数的哈希值确保唯一性
+        # 使用工具名称和输入参数的哈希值确保唯一性
         input_hash = hashlib.md5(
             json.dumps(tool_input, sort_keys=True).encode()
         ).hexdigest()[:8]
         filename = f"{tool_name}_{input_hash}_{timestamp}.txt"
         file_path = self.output_dir / "tool_results" / filename
         
-        ***REMOVED*** 写入文件
+        # 写入文件
         file_content = f"""工具: {tool_name}
 输入参数: {json.dumps(tool_input, ensure_ascii=False, indent=2)}
 执行时间: {datetime.now().isoformat()}
@@ -100,7 +100,7 @@ class ContextManager:
 """
         file_path.write_text(file_content, encoding="utf-8")
         
-        ***REMOVED*** 返回文件引用
+        # 返回文件引用
         file_ref = f"工具执行结果已保存到文件: {file_path}\n结果长度: {len(tool_output)} 字符\n\n提示：可以使用 `read_file` 工具读取完整结果，或使用 `tail` 命令查看末尾内容。"
         
         return file_ref, file_path
@@ -122,12 +122,12 @@ class ContextManager:
         Returns:
             (摘要+文件引用, 文件路径)
         """
-        ***REMOVED*** 生成文件名
+        # 生成文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"chat_history_{timestamp}.json"
         file_path = self.output_dir / "chat_history" / filename
         
-        ***REMOVED*** 保存完整历史
+        # 保存完整历史
         history_data = {
             "timestamp": datetime.now().isoformat(),
             "message_count": len(conversation_history),
@@ -139,11 +139,11 @@ class ContextManager:
             encoding="utf-8"
         )
         
-        ***REMOVED*** 生成摘要（如果没有提供）
+        # 生成摘要（如果没有提供）
         if not summary:
             summary = self._generate_summary(conversation_history)
         
-        ***REMOVED*** 返回摘要+文件引用
+        # 返回摘要+文件引用
         file_ref = f"""聊天历史摘要:
 {summary}
 
@@ -174,19 +174,19 @@ class ContextManager:
         if not conversation_history:
             return "无对话历史"
         
-        ***REMOVED*** 如果 LLM 可用，使用 LLM 生成摘要
+        # 如果 LLM 可用，使用 LLM 生成摘要
         if use_llm and self.llm_func:
             try:
                 return self._generate_llm_summary(conversation_history)
             except Exception as e:
                 logger.warning(f"LLM 摘要生成失败，使用简单摘要: {e}")
         
-        ***REMOVED*** 简单摘要：统计消息类型和数量
+        # 简单摘要：统计消息类型和数量
         user_count = sum(1 for msg in conversation_history if msg.get("role") == "user")
         assistant_count = sum(1 for msg in conversation_history if msg.get("role") == "assistant")
         tool_count = sum(1 for msg in conversation_history if msg.get("role") == "tool")
         
-        ***REMOVED*** 提取关键信息
+        # 提取关键信息
         first_user_msg = next(
             (msg.get("content", "")[:100] for msg in conversation_history if msg.get("role") == "user"),
             ""
@@ -214,16 +214,16 @@ class ContextManager:
         Returns:
             LLM 生成的摘要
         """
-        ***REMOVED*** 构建对话历史文本（限制长度）
+        # 构建对话历史文本（限制长度）
         history_text_parts = []
         total_chars = 0
-        max_chars = 8000  ***REMOVED*** 限制输入长度
+        max_chars = 8000  # 限制输入长度
         
         for msg in conversation_history:
             role = msg.get("role", "")
             content = str(msg.get("content", ""))
             
-            ***REMOVED*** 如果是工具调用，简化显示
+            # 如果是工具调用，简化显示
             if role == "tool":
                 content = content[:200] + "..." if len(content) > 200 else content
             
@@ -237,7 +237,7 @@ class ContextManager:
         if total_chars >= max_chars:
             history_text += "\n... (更多内容已省略)"
         
-        ***REMOVED*** 构建提示词
+        # 构建提示词
         prompt = f"""请对以下对话历史进行摘要，提取关键信息。
 
 要求：
@@ -253,15 +253,15 @@ class ContextManager:
 
 请直接返回摘要内容，不要包含其他格式："""
         
-        ***REMOVED*** 调用 LLM
+        # 调用 LLM
         try:
             messages = [
                 {"role": "user", "content": prompt}
             ]
             result = self.llm_func(messages)
-            ***REMOVED*** 处理不同的返回格式
+            # 处理不同的返回格式
             if isinstance(result, tuple):
-                ***REMOVED*** 如果返回 (reasoning, content) 元组
+                # 如果返回 (reasoning, content) 元组
                 summary = result[1] if len(result) > 1 else result[0]
             elif isinstance(result, str):
                 summary = result
@@ -315,14 +315,14 @@ class ContextManager:
         Returns:
             (文件引用, 文件路径)
         """
-        ***REMOVED*** 生成文件名
+        # 生成文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        ***REMOVED*** 使用命令的哈希值
+        # 使用命令的哈希值
         command_hash = hashlib.md5(command.encode()).hexdigest()[:8]
         filename = f"terminal_{command_hash}_{timestamp}.log"
         file_path = self.output_dir / "terminal_sessions" / filename
         
-        ***REMOVED*** 写入文件
+        # 写入文件
         file_content = f"""命令: {command}
 执行时间: {datetime.now().isoformat()}
 退出码: {exit_code}
@@ -332,7 +332,7 @@ class ContextManager:
 """
         file_path.write_text(file_content, encoding="utf-8")
         
-        ***REMOVED*** 返回文件引用
+        # 返回文件引用
         file_ref = f"终端输出已保存到文件: {file_path}\n输出长度: {len(output)} 字符\n\n提示：可以使用 `read_file` 工具读取完整输出，或使用 `grep` 命令搜索特定内容。"
         
         return file_ref, file_path
@@ -340,7 +340,7 @@ class ContextManager:
     def estimate_context_length(
         self,
         conversation_history: List[Dict[str, Any]],
-        threshold: int = 128000  ***REMOVED*** Pre-rot threshold (tokens)
+        threshold: int = 128000  # Pre-rot threshold (tokens)
     ) -> Tuple[int, bool]:
         """
         估算上下文长度并检查是否需要缩减
@@ -352,7 +352,7 @@ class ContextManager:
         Returns:
             (估算的token数量, 是否需要缩减)
         """
-        ***REMOVED*** 粗略估算：1 token ≈ 4 字符
+        # 粗略估算：1 token ≈ 4 字符
         total_chars = sum(
             len(str(msg.get("content", ""))) for msg in conversation_history
         )
@@ -391,14 +391,14 @@ class ContextManager:
         }
         
         if file_path:
-            ***REMOVED*** 如果已写入文件，只保留路径（Compaction 核心：可逆的外部化）
+            # 如果已写入文件，只保留路径（Compaction 核心：可逆的外部化）
             compact_record["output_file"] = str(file_path)
             compact_record["output_length"] = len(tool_output)
             compact_record["output_preview"] = tool_output[:100] + "..." if len(tool_output) > 100 else tool_output
-            ***REMOVED*** 标记为已紧凑化，信息可通过文件路径重建
+            # 标记为已紧凑化，信息可通过文件路径重建
             compact_record["compacted"] = True
         else:
-            ***REMOVED*** 如果结果不长，保留完整输出
+            # 如果结果不长，保留完整输出
             compact_record["output"] = tool_output
             compact_record["compacted"] = False
         
@@ -424,11 +424,11 @@ class ContextManager:
         if len(conversation_history) <= keep_recent:
             return conversation_history, []
         
-        ***REMOVED*** 分离早期和最近的历史
+        # 分离早期和最近的历史
         early_history = conversation_history[:-keep_recent]
         recent_history = conversation_history[-keep_recent:]
         
-        ***REMOVED*** 对早期历史进行紧凑化
+        # 对早期历史进行紧凑化
         compacted_history = []
         removed_records = []
         
@@ -436,11 +436,11 @@ class ContextManager:
             role = msg.get("role", "")
             content = str(msg.get("content", ""))
             
-            ***REMOVED*** 如果是工具调用结果且内容过长，进行紧凑化
+            # 如果是工具调用结果且内容过长，进行紧凑化
             if role == "tool" and len(content) > 500:
-                ***REMOVED*** 检查是否已经有文件路径
+                # 检查是否已经有文件路径
                 if "file_path" in msg or "output_file" in msg:
-                    ***REMOVED*** 已经紧凑化，只保留路径引用
+                    # 已经紧凑化，只保留路径引用
                     compacted_msg = {
                         "role": role,
                         "content": f"[工具结果已保存到文件，长度: {len(content)} 字符]",
@@ -448,7 +448,7 @@ class ContextManager:
                         "compacted": True
                     }
                 else:
-                    ***REMOVED*** 需要紧凑化：写入文件
+                    # 需要紧凑化：写入文件
                     tool_name = msg.get("name", "unknown_tool")
                     file_path = self.output_dir / "tool_results" / f"{tool_name}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.txt"
                     file_path.write_text(content, encoding="utf-8")
@@ -462,10 +462,10 @@ class ContextManager:
                     removed_records.append(msg)
                 compacted_history.append(compacted_msg)
             else:
-                ***REMOVED*** 保留原样（短消息不需要紧凑化）
+                # 保留原样（短消息不需要紧凑化）
                 compacted_history.append(msg)
         
-        ***REMOVED*** 合并紧凑化的早期历史和完整的最近历史
+        # 合并紧凑化的早期历史和完整的最近历史
         return compacted_history + recent_history, removed_records
     
     def summarize_with_dump(
@@ -486,7 +486,7 @@ class ContextManager:
         Returns:
             (摘要+文件引用, 转储文件路径, 保留的最近记录)
         """
-        ***REMOVED*** 第一步：转储完整上下文到文件（保险）
+        # 第一步：转储完整上下文到文件（保险）
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         dump_file = self.output_dir / "chat_history" / f"full_context_dump_{timestamp}.json"
         
@@ -500,13 +500,13 @@ class ContextManager:
             encoding="utf-8"
         )
         
-        ***REMOVED*** 第二步：生成摘要（使用完整版本的数据，不是紧凑版本）
+        # 第二步：生成摘要（使用完整版本的数据，不是紧凑版本）
         summary = self._generate_summary(conversation_history, use_llm=True)
         
-        ***REMOVED*** 第三步：保留最近几条完整记录
+        # 第三步：保留最近几条完整记录
         recent_history = conversation_history[-keep_recent:] if len(conversation_history) > keep_recent else conversation_history
         
-        ***REMOVED*** 返回摘要+文件引用
+        # 返回摘要+文件引用
         file_ref = f"""对话历史摘要:
 {summary}
 
@@ -519,7 +519,7 @@ class ContextManager:
         return file_ref, dump_file, recent_history
 
 
-***REMOVED*** 全局上下文管理器实例（延迟初始化）
+# 全局上下文管理器实例（延迟初始化）
 _context_manager_instance: Optional[ContextManager] = None
 
 

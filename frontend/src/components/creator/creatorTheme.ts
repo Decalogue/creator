@@ -1,6 +1,6 @@
 /**
  * 创作助手主题 — 参考 Kimi 2.5 Agent 并行蜂群模式
- * 深色指挥中心、品牌红橙 ***REMOVED***ff4b2f、玻璃质感、游戏化状态与记忆网络
+ * 深色指挥中心、品牌红橙 #ff4b2f、玻璃质感、游戏化状态与记忆网络
  */
 export const CREATOR_THEME = {
   /** 字体 */
@@ -11,13 +11,13 @@ export const CREATOR_THEME = {
   fontWeightBold: 700,
 
   /** 品牌色（Kimi 蜂群） */
-  brand: '***REMOVED***ff4b2f',
-  brandLight: '***REMOVED***ffa7a7',
-  brandLighter: '***REMOVED***ffb29e',
+  brand: '#ff4b2f',
+  brandLight: '#ffa7a7',
+  brandLighter: '#ffb29e',
 
   /** 页面背景：深色渐变 */
   bgPage:
-    'linear-gradient(180deg, ***REMOVED***0a0a0a 0%, ***REMOVED***0f0f1a 35%, ***REMOVED***1a1a2e 70%, ***REMOVED***0a0a0a 100%)',
+    'linear-gradient(180deg, #0a0a0a 0%, #0f0f1a 35%, #1a1a2e 70%, #0a0a0a 100%)',
   /** 画布 */
   bgCanvas: 'rgba(15, 15, 26, 0.5)',
   /** 侧栏：深色玻璃 */
@@ -33,31 +33,31 @@ export const CREATOR_THEME = {
   borderHeader: 'rgba(255, 255, 255, 0.06)',
 
   /** 文字 */
-  text: '***REMOVED***e4e4e7',
-  textBright: '***REMOVED***fafafa',
+  text: '#e4e4e7',
+  textBright: '#fafafa',
   textMuted: 'rgba(255, 255, 255, 0.5)',
   textDim: 'rgba(255, 255, 255, 0.35)',
 
   /** 分段器 */
   segBg: 'rgba(255, 255, 255, 0.06)',
   segSelectedBg: 'rgba(255, 75, 47, 0.2)',
-  segSelectedText: '***REMOVED***ff4b2f',
+  segSelectedText: '#ff4b2f',
   segUnselectedText: 'rgba(255, 255, 255, 0.5)',
 
   /** 主色 / 强调（与 brand 统一） */
-  accent: '***REMOVED***ff4b2f',
+  accent: '#ff4b2f',
   accentDim: 'rgba(255, 75, 47, 0.15)',
   accentBorder: 'rgba(255, 75, 47, 0.35)',
 
   /** Ghost 按钮 */
   ghostBorder: 'rgba(255, 255, 255, 0.12)',
-  ghostText: '***REMOVED***e4e4e7',
+  ghostText: '#e4e4e7',
   ghostHoverBorder: 'rgba(255, 75, 47, 0.4)',
   ghostHoverBg: 'rgba(255, 75, 47, 0.08)',
 
   /** 主按钮 */
-  primaryBg: '***REMOVED***ff4b2f',
-  primaryHover: '***REMOVED***e5432a',
+  primaryBg: '#ff4b2f',
+  primaryHover: '#e5432a',
 
   /** 输入区 */
   bgInput: 'rgba(15, 15, 26, 0.9)',
@@ -65,30 +65,30 @@ export const CREATOR_THEME = {
   /** 用户消息 */
   bgMsgUser: 'rgba(255, 75, 47, 0.1)',
   borderMsgUser: 'rgba(255, 75, 47, 0.25)',
-  textMsgUser: '***REMOVED***fef2f2',
+  textMsgUser: '#fef2f2',
 
   /** 助手消息 */
   bgMsgBot: 'rgba(26, 26, 46, 0.88)',
   borderMsgBot: 'rgba(255, 255, 255, 0.06)',
 
   /** 头像 */
-  avatarUser: 'linear-gradient(135deg, ***REMOVED***ff4b2f, ***REMOVED***ffa7a7)',
-  avatarBot: 'linear-gradient(135deg, ***REMOVED***ff4b2f, ***REMOVED***ffb29e)',
+  avatarUser: 'linear-gradient(135deg, #ff4b2f, #ffa7a7)',
+  avatarBot: 'linear-gradient(135deg, #ff4b2f, #ffb29e)',
 
   /** 空状态 */
-  emptyIconBg: 'linear-gradient(135deg, ***REMOVED***ff4b2f 0%, ***REMOVED***ffa7a7 100%)',
+  emptyIconBg: 'linear-gradient(135deg, #ff4b2f 0%, #ffa7a7 100%)',
   emptyIconGlow: 'rgba(255, 75, 47, 0.3)',
 
   /** 图谱 / 抽屉 */
   bgGraph: 'rgba(10, 10, 16, 0.6)',
-  bgGraphSolid: '***REMOVED***0f0f1a',
+  bgGraphSolid: '#0f0f1a',
   bgDrawer: 'rgba(26, 26, 46, 0.98)',
   bgDrawerHeader: 'rgba(15, 15, 26, 0.95)',
 
   /** 工作流（Agent 状态） */
   flowDoneBg: 'rgba(34, 197, 94, 0.12)',
   flowDoneBorder: 'rgba(34, 197, 94, 0.35)',
-  flowDoneIcon: '***REMOVED***22c55e',
+  flowDoneIcon: '#22c55e',
   flowPendingIcon: 'rgba(255, 255, 255, 0.4)',
   flowPendingBg: 'rgba(255, 255, 255, 0.04)',
   flowRunningBg: 'rgba(255, 75, 47, 0.1)',
@@ -120,27 +120,27 @@ export const INTRO_THEME = {
   fontWeightSemibold: 600,
   fontWeightBold: 700,
 
-  bgPage: '***REMOVED***ffffff',
+  bgPage: '#ffffff',
   bgCard: 'rgba(255,255,255,0.9)',
   bgCardHover: 'rgba(243,243,243,0.95)',
   bgBadge: 'rgba(255,255,255,0.9)',
   bgCta: 'rgba(255,255,255,0.95)',
 
-  text: '***REMOVED***0f0f0f',
-  textBright: '***REMOVED***0f0f0f',
-  textMuted: '***REMOVED***4a4a49',
-  textDim: '***REMOVED***6b7280',
+  text: '#0f0f0f',
+  textBright: '#0f0f0f',
+  textMuted: '#4a4a49',
+  textDim: '#6b7280',
 
   border: 'rgba(0,0,0,0.08)',
-  borderStrong: '***REMOVED***e5e5e5',
-  stroke: '***REMOVED***e5e5e5',
+  borderStrong: '#e5e5e5',
+  stroke: '#e5e5e5',
 
-  accent: '***REMOVED***ff4b2f',
+  accent: '#ff4b2f',
   accentDim: 'rgba(255, 75, 47, 0.1)',
   accentBorder: 'rgba(255, 75, 47, 0.3)',
 
-  primaryBg: '***REMOVED***ff4b2f',
-  primaryHover: '***REMOVED***e5432a',
+  primaryBg: '#ff4b2f',
+  primaryHover: '#e5432a',
 
   radiusSm: 8,
   radiusMd: 12,

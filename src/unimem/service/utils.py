@@ -68,7 +68,7 @@ def dict_to_experience(data: Dict[str, Any]) -> Experience:
     if not data or not isinstance(data, dict):
         raise ValueError("data must be a non-empty dict")
     
-    ***REMOVED*** 处理 timestamp
+    # 处理 timestamp
     if "timestamp" in data and isinstance(data["timestamp"], str):
         try:
             data["timestamp"] = datetime.fromisoformat(data["timestamp"])
@@ -101,7 +101,7 @@ def dict_to_memory(data: Dict[str, Any]) -> Memory:
     if not data or not isinstance(data, dict):
         raise ValueError("data must be a non-empty dict")
     
-    ***REMOVED*** 处理 timestamp
+    # 处理 timestamp
     if "timestamp" in data and isinstance(data["timestamp"], str):
         try:
             data["timestamp"] = datetime.fromisoformat(data["timestamp"])
@@ -109,7 +109,7 @@ def dict_to_memory(data: Dict[str, Any]) -> Memory:
             logger.warning(f"Invalid timestamp format: {data.get('timestamp')}, using current time")
             data["timestamp"] = datetime.now()
     
-    ***REMOVED*** 处理 last_accessed
+    # 处理 last_accessed
     if "last_accessed" in data and isinstance(data["last_accessed"], str):
         try:
             data["last_accessed"] = datetime.fromisoformat(data["last_accessed"])
@@ -117,7 +117,7 @@ def dict_to_memory(data: Dict[str, Any]) -> Memory:
             logger.warning(f"Invalid last_accessed format: {data.get('last_accessed')}")
             data["last_accessed"] = None
     
-    ***REMOVED*** 处理 memory_type
+    # 处理 memory_type
     if "memory_type" in data and isinstance(data["memory_type"], str):
         try:
             data["memory_type"] = MemoryType(data["memory_type"])
@@ -125,7 +125,7 @@ def dict_to_memory(data: Dict[str, Any]) -> Memory:
             logger.warning(f"Invalid memory_type: {data['memory_type']}")
             data["memory_type"] = None
     
-    ***REMOVED*** 处理 layer
+    # 处理 layer
     if "layer" in data and isinstance(data["layer"], str):
         try:
             data["layer"] = MemoryLayer(data["layer"])
@@ -133,7 +133,7 @@ def dict_to_memory(data: Dict[str, Any]) -> Memory:
             logger.warning(f"Invalid layer: {data.get('layer')}, using LTM")
             data["layer"] = MemoryLayer.LTM
     
-    ***REMOVED*** 处理 links (set)
+    # 处理 links (set)
     if "links" in data and isinstance(data["links"], list):
         data["links"] = set(data["links"])
     

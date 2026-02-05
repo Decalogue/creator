@@ -150,7 +150,7 @@ def _load_previous_volume_context(previous_project_id: str) -> Optional[Dict[str
     if not isinstance(co, list):
         co = []
     overall = plan.get("overall") or {}
-    ***REMOVED*** 最后几章大纲摘要（用于接续）
+    # 最后几章大纲摘要（用于接续）
     last_n = min(5, len(co))
     last_outline_summaries = []
     for i in range(-last_n, 0):
@@ -161,7 +161,7 @@ def _load_previous_volume_context(previous_project_id: str) -> Optional[Dict[str
                 title = ch.get("title") or f"第{num}章"
                 summary = (ch.get("summary") or "")[:300]
                 last_outline_summaries.append(f"第{num}章《{title}》：{summary}")
-    ***REMOVED*** 若存在章节文件，取最后 2 章正文前段作为「当前状态」
+    # 若存在章节文件，取最后 2 章正文前段作为「当前状态」
     end_state_snippets = []
     if chapters_dir.exists():
         existing = sorted(
@@ -175,7 +175,7 @@ def _load_previous_volume_context(previous_project_id: str) -> Optional[Dict[str
                     end_state_snippets.append(text)
             except Exception as e:
                 logger.debug("读取前卷章节片段失败 %s: %s", f.name, e)
-    ***REMOVED*** 语义网格关键实体（简要）
+    # 语义网格关键实体（简要）
     mesh_summary = ""
     if mesh_file.exists():
         try:
@@ -227,7 +227,7 @@ def run_create(
 
     is_continuation = bool(previous_project_id and previous_project_id.strip())
     if is_continuation:
-        ***REMOVED*** 接续前卷：本卷作品名必填或从前卷推导
+        # 接续前卷：本卷作品名必填或从前卷推导
         new_id = (project_id or "").strip()
         if not new_id:
             new_id = _sanitize_project_id(previous_project_id.strip() + "_第二卷", max_len=24)
@@ -240,7 +240,7 @@ def run_create(
         logger.info("run_create 接续前卷: previous=%r, project_id=%r, start_chapter=%s, target_chapters=%s",
                     previous_project_id, project_id, start_ch, target_ch)
     else:
-        ***REMOVED*** 新作：LLM 解析书名
+        # 新作：LLM 解析书名
         llm = _default_llm()
         project_id = _extract_novel_title(theme, llm)
         start_ch = 1
@@ -269,7 +269,7 @@ def run_create(
             start_chapter=start_ch,
             on_event=on_event,
         )
-        ***REMOVED*** 生成简短摘要供前端展示
+        # 生成简短摘要供前端展示
         lines = []
         if isinstance(plan, dict):
             bg = plan.get("background") or plan.get("overall", {}).get("background") if isinstance(plan.get("overall"), dict) else None
@@ -329,9 +329,9 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
         except Exception:
             pass
     start_chapter = plan.get("start_chapter", 1)
-    ***REMOVED*** 下一章号：有文件则 max+1，否则用 start_chapter（多卷时为本卷起始章，如 101）
+    # 下一章号：有文件则 max+1，否则用 start_chapter（多卷时为本卷起始章，如 101）
     next_num = (max(existing_nums) + 1) if existing_nums else start_chapter
-    ***REMOVED*** 大纲索引：本卷内第几章（0-based），多卷时 co 仅含本卷 100 章
+    # 大纲索引：本卷内第几章（0-based），多卷时 co 仅含本卷 100 章
     outline_index = next_num - start_chapter
     if outline_index < 0 or outline_index >= len(co):
         return 1, "已写完所有大纲章节", None
@@ -339,7 +339,7 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
     ch = co[outline_index]
     if not isinstance(ch, dict):
         return 1, "大纲章节格式异常", None
-    ***REMOVED*** 使用大纲中的章节号（多卷时为 101、102…），用于正文与文件名
+    # 使用大纲中的章节号（多卷时为 101、102…），用于正文与文件名
     chapter_number = ch.get("chapter_number", next_num)
     title = ch.get("title") or f"第{chapter_number}章"
     summary = ch.get("summary") or ""

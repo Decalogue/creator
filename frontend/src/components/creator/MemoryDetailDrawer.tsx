@@ -56,7 +56,7 @@ export const MemoryDetailDrawer: React.FC<MemoryDetailDrawerProps> = ({
       styles={{
         body: {
           padding: 0,
-          background: 'linear-gradient(180deg, ***REMOVED***1a1a2e 0%, ***REMOVED***0f0f1a 100%)',
+          background: 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)',
           color: T.text,
         },
         header: {
@@ -293,7 +293,7 @@ export const MemoryDetailDrawer: React.FC<MemoryDetailDrawerProps> = ({
                 borderRadius: 12,
                 border: 'none',
                 background: accent,
-                color: '***REMOVED***fff',
+                color: '#fff',
                 fontSize: 13,
                 fontWeight: T.fontWeightSemibold,
                 cursor: 'pointer',

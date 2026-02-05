@@ -16,10 +16,10 @@ class TestContextManager(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** Mock LLM 函数
+        # Mock LLM 函数
         self.mock_llm = Mock(return_value="Compressed content")
         
-        ***REMOVED*** Mock 存储
+        # Mock 存储
         self.mock_storage = Mock()
         
         self.manager = ContextManager(
@@ -66,7 +66,7 @@ class TestContextManager(unittest.TestCase):
     
     def test_retrieve_context(self):
         """测试检索上下文"""
-        ***REMOVED*** Mock 存储返回结果
+        # Mock 存储返回结果
         from unimem.memory_types import Memory, MemoryType
         from datetime import datetime
         
@@ -83,11 +83,11 @@ class TestContextManager(unittest.TestCase):
     
     def test_get_cached_context(self):
         """测试获取缓存的上下文"""
-        ***REMOVED*** 先设置缓存
+        # 先设置缓存
         query = "test query"
         context = "cached context"
         
-        ***REMOVED*** 通过检索设置缓存
+        # 通过检索设置缓存
         from unimem.memory_types import Memory, MemoryType
         from datetime import datetime
         
@@ -99,17 +99,17 @@ class TestContextManager(unittest.TestCase):
         )
         self.mock_storage.retrieve.return_value = [memory]
         
-        ***REMOVED*** 第一次检索（会缓存）
+        # 第一次检索（会缓存）
         result1 = self.manager.retrieve_context(query, top_k=10)
         
-        ***REMOVED*** 第二次检索（应该使用缓存）
+        # 第二次检索（应该使用缓存）
         result2 = self.manager.retrieve_context(query, top_k=10)
         self.assertIsNotNone(result2)
     
     def test_clear_cache(self):
         """测试清理缓存"""
         self.manager.clear_cache()
-        ***REMOVED*** 应该不抛出异常
+        # 应该不抛出异常
 
 
 if __name__ == "__main__":

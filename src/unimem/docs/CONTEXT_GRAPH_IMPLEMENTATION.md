@@ -1,11 +1,11 @@
-***REMOVED*** Context Graph 改进实施总结
+# Context Graph 改进实施总结
 
-***REMOVED******REMOVED*** 实施时间
+## 实施时间
 2026-01-09
 
-***REMOVED******REMOVED*** 已完成的改进
+## 已完成的改进
 
-***REMOVED******REMOVED******REMOVED*** ✅ 1. Memory类增强 - 添加决策痕迹字段
+### ✅ 1. Memory类增强 - 添加决策痕迹字段
 
 **文件**: `memory_types.py`
 
@@ -15,7 +15,7 @@
 - 更新 `to_dict()` 和 `from_dict()` 方法支持新字段
 - 添加字段验证逻辑
 
-***REMOVED******REMOVED******REMOVED*** ✅ 2. REFLECT提示词增强 - 明确提取"为什么"
+### ✅ 2. REFLECT提示词增强 - 明确提取"为什么"
 
 **文件**: `adapters/operation_adapter.py`
 
@@ -33,7 +33,7 @@
   - 在创建经验记忆时提取并存储 `reasoning` 字段
   - 支持显式和隐式经验提取
 
-***REMOVED******REMOVED******REMOVED*** ✅ 3. Neo4j存储增强 - 支持reasoning和decision_trace
+### ✅ 3. Neo4j存储增强 - 支持reasoning和decision_trace
 
 **文件**: `neo4j.py`
 
@@ -48,7 +48,7 @@
   - 读取 `reasoning` 和 `decision_trace` 字段
   - 解析 `decision_trace` JSON字符串
 
-***REMOVED******REMOVED******REMOVED*** ✅ 4. RETAIN方法增强 - 捕获决策痕迹
+### ✅ 4. RETAIN方法增强 - 捕获决策痕迹
 
 **文件**: `core.py`
 
@@ -62,9 +62,9 @@
 - 提取 `reasoning` 从 `context.metadata`
 - 在创建 Memory 对象时传入 `reasoning` 和 `decision_trace`
 
-***REMOVED******REMOVED*** 使用方式
+## 使用方式
 
-***REMOVED******REMOVED******REMOVED*** 在RETAIN时捕获决策痕迹
+### 在RETAIN时捕获决策痕迹
 
 ```python
 from unimem import UniMem
@@ -72,13 +72,13 @@ from unimem.memory_types import Experience, Context
 
 unimem = UniMem(config)
 
-***REMOVED*** 创建经验，包含决策上下文
+# 创建经验，包含决策上下文
 experience = Experience(
     content="生成视频脚本：电商口红推广",
     timestamp=datetime.now()
 )
 
-***REMOVED*** 在context中提供决策痕迹
+# 在context中提供决策痕迹
 context = Context(
     metadata={
         "source": "video_script",
@@ -90,20 +90,20 @@ context = Context(
     }
 )
 
-***REMOVED*** 存储记忆（会自动捕获决策痕迹）
+# 存储记忆（会自动捕获决策痕迹）
 memory = unimem.retain(experience, context)
 ```
 
-***REMOVED******REMOVED******REMOVED*** 在REFLECT时提取"为什么"
+### 在REFLECT时提取"为什么"
 
 REFLECT操作会自动：
 1. 从LLM回答中提取"为什么"信息
 2. 将reasoning存储到经验记忆中
 3. 形成可搜索的决策理由
 
-***REMOVED******REMOVED*** 下一步
+## 下一步
 
-***REMOVED******REMOVED******REMOVED*** 待实施功能（P1优先级）
+### 待实施功能（P1优先级）
 
 1. **先例搜索功能**
    - 基于决策上下文（inputs, rules, exceptions）搜索相似先例
@@ -118,7 +118,7 @@ REFLECT操作会自动：
    - 支持多系统、多场景的决策痕迹捕获
    - 建立跨系统的记忆关联
 
-***REMOVED******REMOVED*** 测试建议
+## 测试建议
 
 1. 测试reasoning字段的提取和存储
 2. 测试decision_trace的完整性

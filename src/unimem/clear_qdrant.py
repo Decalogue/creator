@@ -2,7 +2,7 @@
 清空 Qdrant collection 的脚本
 """
 
-***REMOVED*** 注意：types.py 已重命名为 memory_types.py，不再与标准库冲突
+# 注意：types.py 已重命名为 memory_types.py，不再与标准库冲突
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
@@ -23,7 +23,7 @@ def clear_collection(collection_name: str, qdrant_host: str = "localhost", qdran
     try:
         client = QdrantClient(host=qdrant_host, port=qdrant_port)
         
-        ***REMOVED*** 检查 collection 是否存在
+        # 检查 collection 是否存在
         collections = client.get_collections().collections
         collection_names = [c.name for c in collections]
         
@@ -31,17 +31,17 @@ def clear_collection(collection_name: str, qdrant_host: str = "localhost", qdran
             logger.info(f"Collection '{collection_name}' 不存在，无需清空")
             return
         
-        ***REMOVED*** 删除 collection
+        # 删除 collection
         logger.info(f"正在删除 collection: {collection_name}")
         client.delete_collection(collection_name)
         logger.info(f"✅ Collection '{collection_name}' 已删除")
         
-        ***REMOVED*** 重新创建 collection（使用新的模型配置）
+        # 重新创建 collection（使用新的模型配置）
         logger.info(f"正在重新创建 collection: {collection_name}")
         client.create_collection(
             collection_name=collection_name,
             vectors_config=VectorParams(
-                size=384,  ***REMOVED*** multilingual-e5-small 的维度
+                size=384,  # multilingual-e5-small 的维度
                 distance=Distance.COSINE,
             ),
         )

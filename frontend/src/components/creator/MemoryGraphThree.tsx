@@ -8,9 +8,9 @@ import { CREATOR_THEME } from './creatorTheme';
 const T = CREATOR_THEME;
 
 const COLORS: Record<string, string> = {
-  entity: '***REMOVED***ff4b2f',
-  fact: '***REMOVED***ffa7a7',
-  atom: '***REMOVED***f59e0b',
+  entity: '#ff4b2f',
+  fact: '#ffa7a7',
+  atom: '#f59e0b',
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -195,7 +195,7 @@ function NodeMesh({
             whiteSpace: 'nowrap',
             cursor: 'pointer',
             background: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.7)',
-            color: isActive ? '***REMOVED***0a0a0a' : '***REMOVED***fafafa',
+            color: isActive ? '#0a0a0a' : '#fafafa',
             border: `2px solid ${color}`,
             transform: isActive ? 'scale(1.08)' : undefined,
             transition: 'background 0.2s, color 0.2s, transform 0.2s',
@@ -239,7 +239,7 @@ function Scene({
   return (
     <>
       <ambientLight intensity={0.45} />
-      <pointLight position={[10, 10, 10]} intensity={1} color="***REMOVED***ffffff" />
+      <pointLight position={[10, 10, 10]} intensity={1} color="#ffffff" />
       <pointLight position={[-8, -8, 6]} intensity={0.5} color={T.accent} />
       <BackgroundParticles />
       {links.map((l) => {
@@ -338,7 +338,7 @@ export const MemoryGraphThree: React.FC<MemoryGraphThreeProps> = ({
         height,
         borderRadius: 8,
         overflow: 'hidden',
-        background: `linear-gradient(180deg, ${T.bgGraphSolid} 0%, ***REMOVED***1a1a2e 100%)`,
+        background: `linear-gradient(180deg, ${T.bgGraphSolid} 0%, #1a1a2e 100%)`,
         position: 'relative',
       }}
     >
@@ -359,7 +359,7 @@ export const MemoryGraphThree: React.FC<MemoryGraphThreeProps> = ({
           border: `1px solid ${T.accentBorder}`,
         }}
       >
-        <span style={{ width: isIntro ? 10 : 8, height: isIntro ? 10 : 8, borderRadius: '50%', background: '***REMOVED***22c55e' }} />
+        <span style={{ width: isIntro ? 10 : 8, height: isIntro ? 10 : 8, borderRadius: '50%', background: '#22c55e' }} />
         <span style={{ fontSize: isIntro ? 15 : 13, fontWeight: T.fontWeightSemibold, color: T.accent, fontFamily: 'monospace' }}>
           记忆网络在线
         </span>

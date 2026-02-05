@@ -32,7 +32,7 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
     3. 修复常见的 JSON 格式问题
     4. 尝试部分提取（即使部分损坏）
     """
-    ***REMOVED*** 方法1: 查找 markdown 代码块
+    # 方法1: 查找 markdown 代码块
     if "```json" in text:
         json_start = text.find("```json") + 7
         json_end = text.find("```", json_start)
@@ -44,37 +44,37 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
         if json_end > json_start:
             text = text[json_start:json_end].strip()
     
-    ***REMOVED*** 方法2: 查找第一个 { 到最后一个 } 之间的内容
+    # 方法2: 查找第一个 { 到最后一个 } 之间的内容
     first_brace = text.find('{')
     last_brace = text.rfind('}')
     if first_brace >= 0 and last_brace > first_brace:
         text = text[first_brace:last_brace + 1]
     
-    ***REMOVED*** 方法3: 修复常见的 JSON 问题
+    # 方法3: 修复常见的 JSON 问题
     try:
-        ***REMOVED*** 移除控制字符（除了换行和制表符）
+        # 移除控制字符（除了换行和制表符）
         text = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f]', '', text)
-        ***REMOVED*** 修复单引号为双引号（在键名和字符串值中）
+        # 修复单引号为双引号（在键名和字符串值中）
         text = re.sub(r"'(\w+)':", r'"\1":', text)
         text = re.sub(r":\s*'([^']*)'", r': "\1"', text)
-        ***REMOVED*** 修复尾随逗号
+        # 修复尾随逗号
         text = re.sub(r',\s*}', '}', text)
         text = re.sub(r',\s*]', ']', text)
-        ***REMOVED*** 修复缺失的引号（在键名中）
+        # 修复缺失的引号（在键名中）
         text = re.sub(r'(\w+):', r'"\1":', text)
-        ***REMOVED*** 修复未转义的换行符
+        # 修复未转义的换行符
         text = text.replace('\n', '\\n').replace('\r', '\\r')
         
         return json.loads(text)
     except json.JSONDecodeError as e:
-        ***REMOVED*** 方法4: 尝试部分提取 - 找到 episode_outlines 数组
+        # 方法4: 尝试部分提取 - 找到 episode_outlines 数组
         try:
-            ***REMOVED*** 查找 "episode_outlines" 数组
+            # 查找 "episode_outlines" 数组
             outlines_start = text.find('"episode_outlines"')
             if outlines_start >= 0:
                 array_start = text.find('[', outlines_start)
                 if array_start >= 0:
-                    ***REMOVED*** 尝试提取数组内容
+                    # 尝试提取数组内容
                     bracket_count = 0
                     array_end = array_start
                     for i in range(array_start, len(text)):
@@ -88,22 +88,22 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
                     
                     if array_end > array_start:
                         array_text = text[array_start:array_end]
-                        ***REMOVED*** 尝试解析数组
+                        # 尝试解析数组
                         outlines = json.loads(array_text)
                         return {"episode_outlines": outlines}
         except:
             pass
         
-        ***REMOVED*** 方法5: 尝试逐行修复
+        # 方法5: 尝试逐行修复
         try:
             lines = text.split('\n')
             fixed_lines = []
             for line in lines:
-                ***REMOVED*** 跳过注释行
-                if line.strip().startswith('//') or line.strip().startswith('***REMOVED***'):
+                # 跳过注释行
+                if line.strip().startswith('//') or line.strip().startswith('#'):
                     continue
-                ***REMOVED*** 修复常见的行内问题
-                line = re.sub(r',\s*$', '', line)  ***REMOVED*** 移除行尾逗号
+                # 修复常见的行内问题
+                line = re.sub(r',\s*$', '', line)  # 移除行尾逗号
                 fixed_lines.append(line)
             fixed_text = '\n'.join(fixed_lines)
             return json.loads(fixed_text)
@@ -172,7 +172,7 @@ def generate_script_outline(adapter: ScriptAdapter, theme: str = "都市悬疑")
             return json.dumps(result, ensure_ascii=False, indent=2)
         else:
             logger.warning("大纲生成失败，尝试手动提取 JSON...")
-            ***REMOVED*** 尝试更宽松的 JSON 提取
+            # 尝试更宽松的 JSON 提取
             result = extract_json_from_text(response_text)
             if result:
                 logger.info("✅ 通过手动提取成功解析大纲")
@@ -218,7 +218,7 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
     logger.info(f"步骤2: 生成{num_episodes}集分集大纲")
     logger.info("="*60)
     
-    ***REMOVED*** 将大纲转换为文本
+    # 将大纲转换为文本
     outline_text = f"""
 标题：{outline.get('title', '')}
 题材：{outline.get('genre', '')}
@@ -233,11 +233,11 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
 关键转折点：{json.dumps(outline.get('key_turning_points', [])[:5], ensure_ascii=False)}
 """
     
-    ***REMOVED*** 分批生成（每次生成5集，降低出错概率）
+    # 分批生成（每次生成5集，降低出错概率）
     all_outlines = []
     batch_size = 5
-    max_retries = 3  ***REMOVED*** 每批次最多重试3次
-    failed_batches = []  ***REMOVED*** 记录失败的批次
+    max_retries = 3  # 每批次最多重试3次
+    failed_batches = []  # 记录失败的批次
     
     for batch_start in range(0, num_episodes, batch_size):
         batch_end = min(batch_start + batch_size, num_episodes)
@@ -279,7 +279,7 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
     ]
 }}"""
         
-        ***REMOVED*** 重试机制
+        # 重试机制
         batch_success = False
         for attempt in range(max_retries):
             try:
@@ -291,7 +291,7 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
                 
                 _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=4096)
                 
-                ***REMOVED*** 保存原始响应（用于调试）
+                # 保存原始响应（用于调试）
                 if attempt == 0:
                     debug_file = Path(__file__).parent.parent.parent / 'data' / f'debug_batch_{batch_start+1}_{batch_end}.txt'
                     with open(debug_file, 'w', encoding='utf-8') as f:
@@ -299,7 +299,7 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
                 
                 result = adapter._parse_json_response(response_text)
                 
-                ***REMOVED*** 如果解析失败，尝试手动提取
+                # 如果解析失败，尝试手动提取
                 if not result:
                     if attempt < max_retries - 1:
                         logger.warning(f"第 {batch_start+1}-{batch_end} 集 JSON 解析失败（尝试 {attempt+1}/{max_retries}），尝试手动提取...")
@@ -310,7 +310,7 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
                 if result and "episode_outlines" in result:
                     batch_outlines = result["episode_outlines"]
                     
-                    ***REMOVED*** 验证批次完整性
+                    # 验证批次完整性
                     expected_episodes = set(range(batch_start + 1, batch_end + 1))
                     actual_episodes = set(ep.get('episode_num', 0) for ep in batch_outlines)
                     
@@ -347,12 +347,12 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
             failed_batches.append((batch_start + 1, batch_end))
             logger.error(f"❌ 第 {batch_start+1}-{batch_end} 集大纲生成失败，已重试 {max_retries} 次")
         
-        ***REMOVED*** 添加延迟避免 API 限流
+        # 添加延迟避免 API 限流
         import time
         if batch_end < num_episodes:
             time.sleep(2)
     
-    ***REMOVED*** 完整性检查和补生成
+    # 完整性检查和补生成
     logger.info(f"\n📊 完整性检查：已生成 {len(all_outlines)}/{num_episodes} 集")
     
     if len(all_outlines) < num_episodes:
@@ -364,7 +364,7 @@ def generate_episode_outlines(adapter: ScriptAdapter, outline: Dict[str, Any], n
     
     logger.info(f"\n✅ 所有分集大纲生成完成，共 {len(all_outlines)} 集")
     
-    ***REMOVED*** 最终验证
+    # 最终验证
     final_check = verify_outlines_completeness(all_outlines, num_episodes)
     if not final_check:
         logger.error(f"❌ 完整性验证失败：仍有缺失集数")
@@ -391,7 +391,7 @@ def check_and_fill_missing_outlines(adapter: ScriptAdapter, outline: Dict[str, A
     
     filled_outlines = []
     
-    ***REMOVED*** 将缺失的集数分组（每组最多5集）
+    # 将缺失的集数分组（每组最多5集）
     batch_size = 5
     for i in range(0, len(missing), batch_size):
         missing_batch = missing[i:i+batch_size]
@@ -488,29 +488,29 @@ def validate_generated_script(script_content: str, expected_outline: Dict[str, A
     
     Returns:
         {
-            'accuracy_score': float,  ***REMOVED*** 准确度评分 0-1
-            'validation_result': dict,  ***REMOVED*** 详细校验结果
-            'issues': list,  ***REMOVED*** 发现的问题
-            'suggestions': list  ***REMOVED*** 优化建议
+            'accuracy_score': float,  # 准确度评分 0-1
+            'validation_result': dict,  # 详细校验结果
+            'issues': list,  # 发现的问题
+            'suggestions': list  # 优化建议
         }
     """
     if not adapter.is_available():
         return {'accuracy_score': 0.5, 'validation_result': {}, 'issues': [], 'suggestions': []}
     
     try:
-        ***REMOVED*** 1. 对生成剧本进行反向结构化分析
+        # 1. 对生成剧本进行反向结构化分析
         logger.info("  进行反向结构化分析...")
         generated_analysis = adapter._analyze_script_content(
-            script_content[:2000]  ***REMOVED*** 限制长度
+            script_content[:2000]  # 限制长度
         )
         
-        ***REMOVED*** 2. 对预期分集大纲进行结构化分析
+        # 2. 对预期分集大纲进行结构化分析
         expected_summary = expected_outline.get('summary', '')
         expected_analysis = adapter._analyze_script_content(
             expected_summary
         )
         
-        ***REMOVED*** 3. 对比分析
+        # 3. 对比分析
         logger.info("  进行对比校验...")
         from unimem.chat import ark_deepseek_v3_2
         
@@ -600,21 +600,21 @@ def build_enhanced_prompt_with_feedback(original_prompt: str, validation_result:
     
     feedback_section = "\n\n【重要：根据上一版生成结果的反馈，请特别注意以下要求】\n"
     
-    ***REMOVED*** 1. 明确指出需要避免的问题
+    # 1. 明确指出需要避免的问题
     if issues:
         feedback_section += "\n【需要避免的问题】\n"
         for i, issue in enumerate(issues[:5], 1):
             feedback_section += f"{i}. {issue}\n"
         feedback_section += "\n请确保生成的内容避免上述问题。\n"
     
-    ***REMOVED*** 2. 提供具体的改进建议
+    # 2. 提供具体的改进建议
     if suggestions:
         feedback_section += "\n【改进方向】\n"
         for i, suggestion in enumerate(suggestions[:5], 1):
             feedback_section += f"{i}. {suggestion}\n"
         feedback_section += "\n请在生成时充分考虑并体现上述改进建议。\n"
     
-    ***REMOVED*** 3. 根据各维度评分提供针对性指导
+    # 3. 根据各维度评分提供针对性指导
     if coverage:
         feedback_section += "\n【各维度要求】\n"
         if coverage.get('plot_coverage', 1.0) < 0.8:
@@ -650,11 +650,11 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
     episode_num = episode_outline.get('episode_num', 1)
     logger.info(f"\n生成第 {episode_num} 集完整剧本...")
     
-    ***REMOVED*** 构建上下文信息
+    # 构建上下文信息
     context_text = ""
     if context_memories:
         context_text = "\n\n【前集上下文】\n"
-        for mem in context_memories[:3]:  ***REMOVED*** 使用最近3集的记忆
+        for mem in context_memories[:3]:  # 使用最近3集的记忆
             context_text += f"- {mem.content[:200]}\n"
             if mem.metadata and mem.metadata.get("script_dimensions"):
                 dims = mem.metadata["script_dimensions"]
@@ -663,7 +663,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                 if dims.get("characters"):
                     context_text += f"  人物: {', '.join(dims['characters'][:2])}\n"
     
-    ***REMOVED*** 如果有前集的校验反馈，加入指导
+    # 如果有前集的校验反馈，加入指导
     previous_feedback = ""
     if 'validation_feedback' in outline and outline['validation_feedback']:
         recent_feedback = outline['validation_feedback'][-1]
@@ -674,7 +674,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                 for i, sug in enumerate(recent_feedback['suggestions'], 1):
                     previous_feedback += f"{i}. {sug}\n"
     
-    ***REMOVED*** 如果有前集的自动优化反馈，加入指导
+    # 如果有前集的自动优化反馈，加入指导
     if 'optimization_feedback' in outline and outline['optimization_feedback']:
         recent_opt_feedback = outline['optimization_feedback'][-1]
         if recent_opt_feedback.get('episode') < episode_num:
@@ -688,7 +688,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                 for i, sug in enumerate(recent_opt_feedback['suggestions'], 1):
                     previous_feedback += f"{i}. {sug}\n"
             
-            ***REMOVED*** 添加剧本特定的优化建议
+            # 添加剧本特定的优化建议
             script_specific = recent_opt_feedback.get('script_specific', {})
             if script_specific:
                 if script_specific.get('shot_design'):
@@ -698,7 +698,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                 if script_specific.get('rhythm_control'):
                     previous_feedback += f"节奏控制建议: {script_specific['rhythm_control']}\n"
     
-    ***REMOVED*** 构建初始生成 prompt
+    # 构建初始生成 prompt
     initial_prompt = f"""请根据以下分集大纲和创作设定，生成第{episode_num}集的完整短剧剧本。
 
 创作设定：
@@ -744,14 +744,14 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
 【场景2：地点 - 时间】
 ..."""
     
-    ***REMOVED*** 生成前：使用 optimize_script_prompt 优化初始 prompt（仅第一集或每5集优化一次）
+    # 生成前：使用 optimize_script_prompt 优化初始 prompt（仅第一集或每5集优化一次）
     shot_script_prompt = initial_prompt
     if episode_num == 1 or episode_num % 5 == 0:
         logger.info(f"  🔧 生成前自动优化 prompt（第 {episode_num} 集）...")
         try:
             optimization_result = adapter.optimize_script_prompt(
                 input_text=f"分集大纲：{episode_outline.get('summary', '')}\n关键场景：{json.dumps(episode_outline.get('key_scenes', []), ensure_ascii=False)}",
-                execution_result="",  ***REMOVED*** 首次生成，无执行结果
+                execution_result="",  # 首次生成，无执行结果
                 current_prompt=initial_prompt
             )
             
@@ -759,7 +759,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                 shot_script_prompt = optimization_result['optimized_prompt']
                 logger.info(f"  ✅ Prompt 已优化（基于短剧剧本特殊需求）")
                 
-                ***REMOVED*** 记录优化建议到上下文
+                # 记录优化建议到上下文
                 if optimization_result.get('optimized_context', {}).get('script_specific'):
                     script_specific = optimization_result['optimized_context']['script_specific']
                     if script_specific.get('shot_design'):
@@ -782,13 +782,13 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=2048)
             
-            ***REMOVED*** 清理响应文本
+            # 清理响应文本
             script = response_text.strip()
             if script.startswith("```"):
                 lines = script.split('\n')
                 script = '\n'.join([line for line in lines if not line.strip().startswith('```')])
             
-            ***REMOVED*** 反向结构化校验
+            # 反向结构化校验
             validation_result = None
             if enable_validation:
                 validation_result = validate_generated_script(
@@ -800,7 +800,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                 if accuracy_score < validation_threshold and attempt < max_retries:
                     logger.warning(f"  ⚠️ 准确度评分 {accuracy_score:.2f} 低于阈值 {validation_threshold}，尝试重新生成...")
                     
-                    ***REMOVED*** 使用 issues 和 suggestions 指导重新生成
+                    # 使用 issues 和 suggestions 指导重新生成
                     enhanced_prompt = build_enhanced_prompt_with_feedback(
                         original_prompt=shot_script_prompt,
                         validation_result=validation_result,
@@ -813,7 +813,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                     logger.info(f"  ✅ 校验通过，准确度评分: {accuracy_score:.2f}")
                     if validation_result.get('issues'):
                         logger.info(f"  ⚠️ 发现 {len(validation_result['issues'])} 个问题（但不影响使用）")
-                        ***REMOVED*** 记录 issues 和 suggestions 供后续集参考
+                        # 记录 issues 和 suggestions 供后续集参考
                         if validation_result.get('suggestions'):
                             logger.info(f"  💡 生成 {len(validation_result['suggestions'])} 条优化建议（已记录）")
                             if 'validation_feedback' not in outline:
@@ -824,17 +824,17 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
                                 'suggestions': validation_result.get('suggestions', [])[:3]
                             })
             
-            ***REMOVED*** 生成后：使用 optimize_script_prompt 分析结果并优化后续 prompt（每集都分析，但仅记录优化建议）
+            # 生成后：使用 optimize_script_prompt 分析结果并优化后续 prompt（每集都分析，但仅记录优化建议）
             if script and adapter.is_available():
                 try:
                     logger.info(f"  🔧 生成后自动分析并优化（用于指导后续集）...")
                     post_optimization = adapter.optimize_script_prompt(
                         input_text=f"分集大纲：{episode_outline.get('summary', '')}",
-                        execution_result=script[:1000],  ***REMOVED*** 使用生成结果的前1000字进行分析
+                        execution_result=script[:1000],  # 使用生成结果的前1000字进行分析
                         current_prompt=shot_script_prompt
                     )
                     
-                    ***REMOVED*** 将优化建议存储到 outline 中，供后续集参考
+                    # 将优化建议存储到 outline 中，供后续集参考
                     if post_optimization.get('analysis', {}).get('suggestions'):
                         if 'optimization_feedback' not in outline:
                             outline['optimization_feedback'] = []
@@ -864,7 +864,7 @@ def generate_full_script(adapter: ScriptAdapter, episode_outline: Dict[str, Any]
 
 def main():
     """主函数"""
-    ***REMOVED*** 初始化适配器
+    # 初始化适配器
     config = {
         'local_model_path': '/root/data/AI/pretrain/multilingual-e5-small',
         'qdrant_host': 'localhost',
@@ -875,12 +875,12 @@ def main():
     adapter = ScriptAdapter(config)
     adapter.initialize()
     
-    ***REMOVED*** 选择主题
+    # 选择主题
     data_dir = Path(__file__).parent.parent.parent / 'data'
     test_outline_file = data_dir / 'test_script_outline.json'
     test_outlines_file = data_dir / 'test_script_episode_outlines.json'
     
-    ***REMOVED*** 优先使用测试通过的大纲
+    # 优先使用测试通过的大纲
     if test_outline_file.exists() and test_outlines_file.exists():
         logger.info("✅ 使用测试通过的大纲文件...")
         with open(test_outline_file, 'r', encoding='utf-8') as f:
@@ -893,19 +893,19 @@ def main():
         logger.info(f"题材类型: {outline.get('genre', '')}")
         logger.info(f"分集大纲: {len(episode_outlines)} 集（已加载）")
         
-        ***REMOVED*** 验证完整性
+        # 验证完整性
         if len(episode_outlines) < 50:
             logger.warning(f"⚠️ 分集大纲不完整：只有 {len(episode_outlines)}/50 集，将重新生成")
             episode_outlines = None
     else:
         episode_outlines = None
     
-    ***REMOVED*** 如果没有测试大纲，则生成新的大纲
+    # 如果没有测试大纲，则生成新的大纲
     if episode_outlines is None:
         theme = "甜宠"
         logger.info(f"选择主题: {theme}")
         
-        ***REMOVED*** 1. 生成故事大纲
+        # 1. 生成故事大纲
         outline_json = generate_script_outline(adapter, theme)
         if not outline_json:
             logger.error("故事大纲生成失败，退出")
@@ -915,55 +915,55 @@ def main():
         logger.info(f"作品标题: {outline.get('title', '')}")
         logger.info(f"题材类型: {outline.get('genre', '')}")
         
-        ***REMOVED*** 保存大纲
+        # 保存大纲
         outline_file = data_dir / 'script_outline.json'
         with open(outline_file, 'w', encoding='utf-8') as f:
             json.dump(outline, f, ensure_ascii=False, indent=2)
         logger.info(f"大纲已保存到: {outline_file}")
         
-        ***REMOVED*** 2. 生成分集大纲（50集）
+        # 2. 生成分集大纲（50集）
         episode_outlines = generate_episode_outlines(adapter, outline, num_episodes=50)
     
     if not episode_outlines:
         logger.error("分集大纲生成失败，退出")
         return
     
-    ***REMOVED*** 最终完整性验证
+    # 最终完整性验证
     if len(episode_outlines) < 50:
         logger.error(f"❌ 分集大纲不完整：只有 {len(episode_outlines)}/50 集，退出")
         return
     
-    ***REMOVED*** 保存分集大纲
+    # 保存分集大纲
     outlines_file = data_dir / 'script_episode_outlines.json'
     with open(outlines_file, 'w', encoding='utf-8') as f:
         json.dump({"episode_outlines": episode_outlines}, f, ensure_ascii=False, indent=2)
     logger.info(f"分集大纲已保存到: {outlines_file}")
     
-    ***REMOVED*** 验证保存的文件
+    # 验证保存的文件
     with open(outlines_file, 'r', encoding='utf-8') as f:
         saved_data = json.load(f)
         saved_count = len(saved_data.get('episode_outlines', []))
         logger.info(f"✅ 验证：保存的文件包含 {saved_count} 集")
     
-    ***REMOVED*** 3. 生成完整剧本（逐集生成，每集使用上下文和反向结构化校验）
+    # 3. 生成完整剧本（逐集生成，每集使用上下文和反向结构化校验）
     num_episodes_to_generate = len(episode_outlines)
     logger.info(f"\n生成全部 {num_episodes_to_generate} 集完整剧本（逐集生成，带上下文和校验）...")
     logger.info(f"校验模式: 前 5 集强制校验，阈值 0.7")
     
-    ***REMOVED*** 创建保存目录
+    # 创建保存目录
     script_dir = data_dir / 'script'
     script_dir.mkdir(exist_ok=True)
     logger.info(f"剧本保存目录: {script_dir}")
     
     scripts = []
-    context_memories = []  ***REMOVED*** 用于累积上下文记忆
-    validate_first_n = 5  ***REMOVED*** 前5集强制校验
+    context_memories = []  # 用于累积上下文记忆
+    validate_first_n = 5  # 前5集强制校验
     
-    ***REMOVED*** 逐集生成（不使用批次）
+    # 逐集生成（不使用批次）
     for i, ep_outline in enumerate(episode_outlines, 1):
         episode_num = ep_outline.get('episode_num', i)
         
-        ***REMOVED*** 决定是否启用校验：前N集强制校验，其余章节可选
+        # 决定是否启用校验：前N集强制校验，其余章节可选
         should_validate = episode_num <= validate_first_n
         
         script, validation_result = generate_full_script(
@@ -985,7 +985,7 @@ def main():
                 "word_count": len(script)
             }
             
-            ***REMOVED*** 添加校验结果
+            # 添加校验结果
             if validation_result:
                 script_data['validation'] = {
                     'accuracy_score': validation_result.get('accuracy_score', 0),
@@ -996,12 +996,12 @@ def main():
             
             scripts.append(script_data)
             
-            ***REMOVED*** 立即保存单集剧本到文件
+            # 立即保存单集剧本到文件
             episode_file = script_dir / f"episode_{episode_num:02d}.json"
             with open(episode_file, 'w', encoding='utf-8') as f:
                 json.dump(script_data, f, ensure_ascii=False, indent=2)
             
-            ***REMOVED*** 同时保存纯文本版本
+            # 同时保存纯文本版本
             episode_txt_file = script_dir / f"episode_{episode_num:02d}.txt"
             with open(episode_txt_file, 'w', encoding='utf-8') as f:
                 f.write(f"第{episode_num}集：{script_data['title']}\n")
@@ -1010,24 +1010,24 @@ def main():
             
             logger.info(f"  ✅ 第 {episode_num} 集完成 ({len(script)} 字) - 已保存到 {episode_file.name}")
             
-            ***REMOVED*** 将生成的剧本内容存储为记忆，用于后续集的上下文
+            # 将生成的剧本内容存储为记忆，用于后续集的上下文
             if adapter.is_available():
                 memory = adapter.construct_script_note(
-                    content=script[:1000],  ***REMOVED*** 只存储部分内容作为上下文
+                    content=script[:1000],  # 只存储部分内容作为上下文
                     timestamp=datetime.now(),
                     entities=[],
                     generate_summary=False
                 )
                 context_memories.append(memory)
-                if len(context_memories) > 3:  ***REMOVED*** 只保留最近3集作为上下文
+                if len(context_memories) > 3:  # 只保留最近3集作为上下文
                     context_memories = context_memories[-3:]
         
-        ***REMOVED*** 添加延迟避免 API 限流
+        # 添加延迟避免 API 限流
         import time
         if i < num_episodes_to_generate:
             time.sleep(1)
     
-    ***REMOVED*** 保存完整剧本汇总（所有集数已单独保存，这里保存汇总）
+    # 保存完整剧本汇总（所有集数已单独保存，这里保存汇总）
     scripts_file = data_dir / 'script_episodes.json'
     scripts_data = {
         "novel_info": {
@@ -1043,7 +1043,7 @@ def main():
         json.dump(scripts_data, f, ensure_ascii=False, indent=2)
     logger.info(f"完整剧本汇总已保存到: {scripts_file}")
     
-    ***REMOVED*** 生成纯文本汇总版本
+    # 生成纯文本汇总版本
     txt_file = data_dir / 'script_episodes.txt'
     with open(txt_file, 'w', encoding='utf-8') as f:
         f.write(f"{outline.get('title', '短剧剧本')}\n")
@@ -1056,7 +1056,7 @@ def main():
     logger.info(f"纯文本汇总版本已保存到: {txt_file}")
     logger.info(f"单集剧本文件已保存到: {script_dir}/")
     
-    ***REMOVED*** 打印统计信息
+    # 打印统计信息
     logger.info("\n" + "="*60)
     logger.info("生成统计")
     logger.info("="*60)

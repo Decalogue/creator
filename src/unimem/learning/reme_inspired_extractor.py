@@ -18,34 +18,34 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StructuredExperience:
     """结构化经验（借鉴 ReMe 的 Experience E）"""
-    ***REMOVED*** 适用场景（applicable scenario）ω
-    scenario: str  ***REMOVED*** 例如："角色首次出场"、"矛盾冲突升级"
-    scenario_description: str  ***REMOVED*** 详细的场景描述
+    # 适用场景（applicable scenario）ω
+    scenario: str  # 例如："角色首次出场"、"矛盾冲突升级"
+    scenario_description: str  # 详细的场景描述
     
-    ***REMOVED*** 核心内容（core content）e
-    content: str  ***REMOVED*** 经验的核心内容
-    pattern_type: str  ***REMOVED*** 情节类型：打脸/装逼/反转/高潮等
+    # 核心内容（core content）e
+    content: str  # 经验的核心内容
+    pattern_type: str  # 情节类型：打脸/装逼/反转/高潮等
     
-    ***REMOVED*** 关键词（keywords）κ
+    # 关键词（keywords）κ
     keywords: List[str] = field(default_factory=list)
     
-    ***REMOVED*** 置信度（confidence）c
-    confidence: float = 0.8  ***REMOVED*** 0-1，基于验证次数和效果
+    # 置信度（confidence）c
+    confidence: float = 0.8  # 0-1，基于验证次数和效果
     
-    ***REMOVED*** 使用的工具（tools used）τ
-    tools: List[str] = field(default_factory=list)  ***REMOVED*** 需要的 Agent 或工具
+    # 使用的工具（tools used）τ
+    tools: List[str] = field(default_factory=list)  # 需要的 Agent 或工具
     
-    ***REMOVED*** 扩展字段（ReMe 没有，但我们需要的）
-    success_score: float = 0.0  ***REMOVED*** 成功案例的评分（如果有）
-    failure_count: int = 0  ***REMOVED*** 失败次数
-    usage_count: int = 0  ***REMOVED*** 使用次数
-    utility_score: float = 0.0  ***REMOVED*** 效用评分（usage_count > 0 时的平均效果）
+    # 扩展字段（ReMe 没有，但我们需要的）
+    success_score: float = 0.0  # 成功案例的评分（如果有）
+    failure_count: int = 0  # 失败次数
+    usage_count: int = 0  # 使用次数
+    utility_score: float = 0.0  # 效用评分（usage_count > 0 时的平均效果）
     
-    ***REMOVED*** 来源信息
-    source_novel: str = ""  ***REMOVED*** 来源小说
-    extraction_method: str = ""  ***REMOVED*** 提取方法：success/failure/comparison
+    # 来源信息
+    source_novel: str = ""  # 来源小说
+    extraction_method: str = ""  # 提取方法：success/failure/comparison
     
-    ***REMOVED*** 时间戳
+    # 时间戳
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     
@@ -82,7 +82,7 @@ class RemeInspiredExtractor:
         """
         self.llm_func = llm_func
         
-        ***REMOVED*** 情节类型关键词（继承自 novel_processor）
+        # 情节类型关键词（继承自 novel_processor）
         self.plot_keywords = {
             "打脸": ["打脸", "反击", "碾压", "秒杀", "完虐", "吊打"],
             "装逼": ["装逼", "震撼", "惊艳", "惊叹", "不可思议", "逆天"],
@@ -111,22 +111,22 @@ class RemeInspiredExtractor:
         """
         experiences = []
         
-        ***REMOVED*** 如果没有成功指标，使用简单的启发式规则
+        # 如果没有成功指标，使用简单的启发式规则
         if success_indicators is None:
             success_indicators = self._estimate_success_indicators(chapters)
         
-        ***REMOVED*** 识别高成功章节
+        # 识别高成功章节
         high_success_chapters = [
             (ch, score) for ch, score in zip(chapters, 
                 [success_indicators.get(str(ch.get("chapter_number", "")), 0.5) 
                  for ch in chapters])
-            if score > 0.7  ***REMOVED*** 阈值
+            if score > 0.7  # 阈值
         ]
         
         logger.info(f"识别到 {len(high_success_chapters)} 个高成功章节")
         
         for chapter, score in high_success_chapters:
-            ***REMOVED*** 提取成功模式
+            # 提取成功模式
             patterns = self._extract_success_patterns(chapter, score)
             experiences.extend(patterns)
         
@@ -149,22 +149,22 @@ class RemeInspiredExtractor:
         """
         experiences = []
         
-        ***REMOVED*** 如果没有失败指标，使用简单的启发式规则
+        # 如果没有失败指标，使用简单的启发式规则
         if failure_indicators is None:
             failure_indicators = self._estimate_failure_indicators(chapters)
         
-        ***REMOVED*** 识别高失败章节
+        # 识别高失败章节
         high_failure_chapters = [
             (ch, score) for ch, score in zip(chapters,
                 [failure_indicators.get(str(ch.get("chapter_number", "")), 0.3)
                  for ch in chapters])
-            if score > 0.6  ***REMOVED*** 失败分数高
+            if score > 0.6  # 失败分数高
         ]
         
         logger.info(f"识别到 {len(high_failure_chapters)} 个高失败章节")
         
         for chapter, score in high_failure_chapters:
-            ***REMOVED*** 提取失败模式
+            # 提取失败模式
             patterns = self._extract_failure_patterns(chapter, score)
             experiences.extend(patterns)
         
@@ -196,17 +196,17 @@ class RemeInspiredExtractor:
         if failure_indicators is None:
             failure_indicators = self._estimate_failure_indicators(chapters)
         
-        ***REMOVED*** 1. 找到相似场景的不同处理
+        # 1. 找到相似场景的不同处理
         similar_scenarios = self._find_similar_scenarios(chapters)
         
         logger.info(f"找到 {len(similar_scenarios)} 组相似场景")
         
-        ***REMOVED*** 2. 对比每组的成功和失败案例
+        # 2. 对比每组的成功和失败案例
         for scenario_group in similar_scenarios:
             if len(scenario_group) < 2:
                 continue
             
-            ***REMOVED*** 分离成功和失败案例
+            # 分离成功和失败案例
             success_cases = [
                 ch for ch in scenario_group
                 if success_indicators.get(str(ch.get("chapter_number", "")), 0.5) > 0.7
@@ -217,7 +217,7 @@ class RemeInspiredExtractor:
             ]
             
             if success_cases and failure_cases:
-                ***REMOVED*** 提取比较性洞察
+                # 提取比较性洞察
                 insights = self._analyze_comparison(success_cases[0], failure_cases[0])
                 experiences.extend(insights)
         
@@ -234,24 +234,24 @@ class RemeInspiredExtractor:
         content = chapter.get("content", "")
         title = chapter.get("chapter_title", "")
         
-        ***REMOVED*** 识别情节类型
+        # 识别情节类型
         pattern_type = self._identify_plot_type(content)
         
-        ***REMOVED*** 提取场景
+        # 提取场景
         scenario = self._extract_scenario(chapter)
         
-        ***REMOVED*** 提取关键事件
+        # 提取关键事件
         key_events = self._extract_key_events(content)
         
-        ***REMOVED*** 构建经验
+        # 构建经验
         experience = StructuredExperience(
             scenario=scenario,
             scenario_description=f"章节《{title}》中的{scenario}场景",
-            content=f"成功模式：{key_events[:2]}",  ***REMOVED*** 前2个关键事件
+            content=f"成功模式：{key_events[:2]}",  # 前2个关键事件
             pattern_type=pattern_type,
             keywords=self._extract_keywords(content),
-            confidence=0.8 + success_score * 0.2,  ***REMOVED*** 基于成功分数
-            tools=["planning", "reasoning"],  ***REMOVED*** 默认工具
+            confidence=0.8 + success_score * 0.2,  # 基于成功分数
+            tools=["planning", "reasoning"],  # 默认工具
             success_score=success_score,
             source_novel=chapter.get("source_novel", ""),
             extraction_method="success",
@@ -271,23 +271,23 @@ class RemeInspiredExtractor:
         content = chapter.get("content", "")
         title = chapter.get("chapter_title", "")
         
-        ***REMOVED*** 识别问题点
+        # 识别问题点
         problems = self._identify_problems(content)
         
         if not problems:
             return experiences
         
-        ***REMOVED*** 提取场景
+        # 提取场景
         scenario = self._extract_scenario(chapter)
         
-        ***REMOVED*** 构建经验（用于预防）
+        # 构建经验（用于预防）
         experience = StructuredExperience(
             scenario=scenario,
             scenario_description=f"章节《{title}》中的失败场景",
-            content=f"失败模式：应避免{problems[0]}",  ***REMOVED*** 主要问题
+            content=f"失败模式：应避免{problems[0]}",  # 主要问题
             pattern_type="failure_prevention",
             keywords=self._extract_keywords(content),
-            confidence=0.7,  ***REMOVED*** 失败模式置信度稍低
+            confidence=0.7,  # 失败模式置信度稍低
             tools=["planning", "reasoning"],
             failure_count=1,
             source_novel=chapter.get("source_novel", ""),
@@ -308,25 +308,25 @@ class RemeInspiredExtractor:
         success_content = success_chapter.get("content", "")
         failure_content = failure_chapter.get("content", "")
         
-        ***REMOVED*** 提取关键差异（简化版，实际应该用 LLM）
+        # 提取关键差异（简化版，实际应该用 LLM）
         differences = self._extract_differences(success_content, failure_content)
         
         if not differences:
             return experiences
         
-        ***REMOVED*** 构建比较性洞察
+        # 构建比较性洞察
         scenario = self._extract_scenario(success_chapter)
         
         experience = StructuredExperience(
             scenario=scenario,
             scenario_description=f"相似场景的成功与失败对比",
-            content=f"改进建议：{differences[0]}",  ***REMOVED*** 主要差异
+            content=f"改进建议：{differences[0]}",  # 主要差异
             pattern_type="comparison_insight",
             keywords=list(set(
                 self._extract_keywords(success_content) +
                 self._extract_keywords(failure_content)
             )),
-            confidence=0.85,  ***REMOVED*** 比较性洞察置信度较高
+            confidence=0.85,  # 比较性洞察置信度较高
             tools=["planning", "reasoning"],
             source_novel=success_chapter.get("source_novel", ""),
             extraction_method="comparison",
@@ -346,19 +346,19 @@ class RemeInspiredExtractor:
             ch_num = str(chapter.get("chapter_number", ""))
             content = chapter.get("content", "")
             
-            ***REMOVED*** 简单的成功指标
-            score = 0.5  ***REMOVED*** 基础分
+            # 简单的成功指标
+            score = 0.5  # 基础分
             
-            ***REMOVED*** 长度适中（3000-6000字）加分
+            # 长度适中（3000-6000字）加分
             word_count = len(content)
             if 3000 <= word_count <= 6000:
                 score += 0.1
             
-            ***REMOVED*** 包含高潮情节加分
+            # 包含高潮情节加分
             if any(kw in content for kw in self.plot_keywords.get("高潮", [])):
                 score += 0.1
             
-            ***REMOVED*** 包含反转情节加分
+            # 包含反转情节加分
             if any(kw in content for kw in self.plot_keywords.get("反转", [])):
                 score += 0.1
             
@@ -377,19 +377,19 @@ class RemeInspiredExtractor:
             ch_num = str(chapter.get("chapter_number", ""))
             content = chapter.get("content", "")
             
-            ***REMOVED*** 简单的失败指标
+            # 简单的失败指标
             score = 0.0
             
-            ***REMOVED*** 内容过短（<1000字）扣分
+            # 内容过短（<1000字）扣分
             word_count = len(content)
             if word_count < 1000:
                 score += 0.5
             
-            ***REMOVED*** 内容过长（>8000字）可能也是问题
+            # 内容过长（>8000字）可能也是问题
             if word_count > 8000:
                 score += 0.2
             
-            ***REMOVED*** 缺少关键情节元素
+            # 缺少关键情节元素
             has_plot = any(
                 any(kw in content for kw in keywords)
                 for keywords in self.plot_keywords.values()
@@ -406,7 +406,7 @@ class RemeInspiredExtractor:
         chapters: List[Dict[str, Any]]
     ) -> List[List[Dict[str, Any]]]:
         """找到相似场景的章节分组（简化版）"""
-        ***REMOVED*** 按场景类型分组
+        # 按场景类型分组
         scenario_groups: Dict[str, List[Dict[str, Any]]] = {}
         
         for chapter in chapters:
@@ -415,15 +415,15 @@ class RemeInspiredExtractor:
                 scenario_groups[scenario] = []
             scenario_groups[scenario].append(chapter)
         
-        ***REMOVED*** 返回包含多个章节的组
+        # 返回包含多个章节的组
         return [group for group in scenario_groups.values() if len(group) >= 2]
     
     def _extract_scenario(self, chapter: Dict[str, Any]) -> str:
         """提取场景类型"""
         title = chapter.get("chapter_title", "")
-        content = chapter.get("content", "")[:500]  ***REMOVED*** 前500字
+        content = chapter.get("content", "")[:500]  # 前500字
         
-        ***REMOVED*** 简单的场景识别
+        # 简单的场景识别
         if any(kw in title or kw in content for kw in ["出场", "遇见", "相遇", "初遇"]):
             return "角色首次出场"
         elif any(kw in title or kw in content for kw in ["冲突", "矛盾", "对抗", "战斗"]):
@@ -455,14 +455,14 @@ class RemeInspiredExtractor:
         
         events = []
         for pattern in event_patterns:
-            matches = re.findall(pattern, content[:5000])  ***REMOVED*** 前5000字
-            events.extend(matches[:3])  ***REMOVED*** 最多3个
+            matches = re.findall(pattern, content[:5000])  # 前5000字
+            events.extend(matches[:3])  # 最多3个
         
         return events
     
     def _extract_keywords(self, content: str) -> List[str]:
         """提取关键词"""
-        ***REMOVED*** 提取3-6字的中文短语
+        # 提取3-6字的中文短语
         phrases = re.findall(r'[一-龥]{3,6}', content[:10000])
         common = Counter(phrases).most_common(5)
         return [phrase for phrase, count in common if count > 2]
@@ -471,15 +471,15 @@ class RemeInspiredExtractor:
         """识别问题点（简化版）"""
         problems = []
         
-        ***REMOVED*** 内容过短
+        # 内容过短
         if len(content) < 1000:
             problems.append("内容过短，缺乏细节")
         
-        ***REMOVED*** 缺少对话
+        # 缺少对话
         if content.count('"') < 5 and content.count('"') < 5:
             problems.append("缺少对话，缺乏互动")
         
-        ***REMOVED*** 缺少动作
+        # 缺少动作
         action_words = ["走", "跑", "跳", "打", "看", "说", "想"]
         if not any(word in content for word in action_words):
             problems.append("缺少动作描写，缺乏画面感")
@@ -494,13 +494,13 @@ class RemeInspiredExtractor:
         """提取成功与失败的差异（简化版）"""
         differences = []
         
-        ***REMOVED*** 长度差异
+        # 长度差异
         if len(success_content) > len(failure_content) * 1.5:
             differences.append("成功案例更注重细节描写")
         elif len(failure_content) > len(success_content) * 1.5:
             differences.append("失败案例过于冗长，应精简")
         
-        ***REMOVED*** 对话比例
+        # 对话比例
         success_dialog_ratio = (success_content.count('"') + success_content.count('"')) / max(len(success_content), 1)
         failure_dialog_ratio = (failure_content.count('"') + failure_content.count('"')) / max(len(failure_content), 1)
         
@@ -527,15 +527,15 @@ class RemeInspiredExtractor:
         """
         logger.info("开始多面蒸馏提取...")
         
-        ***REMOVED*** 1. 成功模式
+        # 1. 成功模式
         success_experiences = self.extract_from_success(chapters, success_indicators)
         logger.info(f"提取了 {len(success_experiences)} 个成功模式")
         
-        ***REMOVED*** 2. 失败模式
+        # 2. 失败模式
         failure_experiences = self.extract_from_failure(chapters, failure_indicators)
         logger.info(f"提取了 {len(failure_experiences)} 个失败模式")
         
-        ***REMOVED*** 3. 比较性洞察
+        # 3. 比较性洞察
         comparison_experiences = self.extract_from_comparison(
             chapters, success_indicators, failure_indicators
         )

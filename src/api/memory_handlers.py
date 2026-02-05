@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 _BASE = Path(__file__).resolve().parent.parent
 _OUTPUTS = _BASE / "task" / "novel" / "outputs"
 
-***REMOVED*** UniMem 可选后端：环境变量 UNIMEM_ENABLED=1 时启用
+# UniMem 可选后端：环境变量 UNIMEM_ENABLED=1 时启用
 _unimem_instance: Optional[Any] = None
 _unimem_init_failed: bool = False
 _unimem_lock = threading.Lock()
@@ -60,7 +60,7 @@ def _get_unimem() -> Optional[Any]:
         def _init():
             try:
                 from unimem import UniMem
-                ***REMOVED*** 从环境变量构建 config，使 LayeredStorageAdapter / GraphAdapter / AtomLinkAdapter 使用 Redis / Neo4j / Qdrant
+                # 从环境变量构建 config，使 LayeredStorageAdapter / GraphAdapter / AtomLinkAdapter 使用 Redis / Neo4j / Qdrant
                 sb = os.getenv("UNIMEM_STORAGE_BACKEND", "memory").strip().lower()
                 gb = os.getenv("UNIMEM_GRAPH_BACKEND", "neo4j").strip().lower()
                 vb = os.getenv("UNIMEM_VECTOR_BACKEND", "memory").strip().lower()
@@ -69,7 +69,7 @@ def _get_unimem() -> Optional[Any]:
                         "UniMem using memory-only backends; data will not persist to Qdrant/Neo4j. "
                         "Set UNIMEM_STORAGE_BACKEND=redis, UNIMEM_GRAPH_BACKEND=neo4j, UNIMEM_VECTOR_BACKEND=qdrant for persistence."
                     )
-                ***REMOVED*** 未设置 UNIMEM_LIGHTRAG_URL 时不连 LightRAG（避免 POST /query 到 localhost:9621 报错）
+                # 未设置 UNIMEM_LIGHTRAG_URL 时不连 LightRAG（避免 POST /query 到 localhost:9621 报错）
                 lightrag_url = (os.getenv("UNIMEM_LIGHTRAG_URL") or "").strip()
                 unimem_config = {
                     "storage": {
@@ -291,7 +291,7 @@ def get_graph(project_id: Optional[str] = None, max_nodes: int = 80) -> Dict[str
             "body": content if node_type == "atom" and content else None,
         }
 
-    ***REMOVED*** 先选少量 chapter，再按 order 填满
+    # 先选少量 chapter，再按 order 填满
     for eid, e in (by_type.get("chapter") or [])[:12]:
         add_node(eid, e)
     for k in order:
@@ -316,7 +316,7 @@ def get_graph(project_id: Optional[str] = None, max_nodes: int = 80) -> Dict[str
                 "relation": (r.get("relation_type") or "").replace("_", "") or None,
             })
 
-    ***REMOVED*** UniMem 合并：recall 结果作为节点，links 作为边
+    # UniMem 合并：recall 结果作为节点，links 作为边
     u = _get_unimem()
     if u and len(id_to_node) < max_nodes:
         try:
@@ -396,7 +396,7 @@ def get_note(node_id: str, project_id: Optional[str] = None) -> Optional[Dict[st
                     }
             except Exception as e:
                 logger.debug("UniMem get_note skip: %s", e)
-        ***REMOVED*** Neo4j 中无该节点时（如 LTM 为 memory 或仅写入 Qdrant）返回占位，避免 404
+        # Neo4j 中无该节点时（如 LTM 为 memory 或仅写入 Qdrant）返回占位，避免 404
         return {
             "id": node_id,
             "label": node_id,

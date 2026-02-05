@@ -49,7 +49,7 @@ from .adapters.base import (
 
 logger = logging.getLogger(__name__)
 
-***REMOVED*** Redis 连接配置
+# Redis 连接配置
 _redis_client: Optional[Any] = None
 _connection_pool: Optional[Any] = None
 _client_lock = threading.Lock()
@@ -120,14 +120,14 @@ def get_redis_client(
     if not REDIS_AVAILABLE:
         raise AdapterNotAvailableError("Redis library not available", adapter_name="RedisClient")
     
-    ***REMOVED*** 读取配置（简化版）
+    # 读取配置（简化版）
     host = host or os.getenv("REDIS_HOST", "localhost")
     port = port or int(os.getenv("REDIS_PORT", "6379"))
     db = db or int(os.getenv("REDIS_DB", "0"))
     password = password or os.getenv("REDIS_PASSWORD")
     max_connections = max_connections or int(os.getenv("REDIS_MAX_CONNECTIONS", "50"))
     
-    ***REMOVED*** 验证配置
+    # 验证配置
     if not (1 <= port <= 65535):
         raise AdapterConfigurationError(f"Invalid Redis port: {port}", adapter_name="RedisClient")
     if db < 0:
@@ -136,7 +136,7 @@ def get_redis_client(
     with _client_lock:
         if _redis_client is None or connection_pool:
             try:
-                ***REMOVED*** 使用连接池（线程安全，支持连接复用）
+                # 使用连接池（线程安全，支持连接复用）
                 pool = connection_pool or redis.ConnectionPool(
                     host=host,
                     port=port,
@@ -154,7 +154,7 @@ def get_redis_client(
                 
                 _redis_client = redis.Redis(connection_pool=pool)
                 
-                ***REMOVED*** 测试连接（带重试）
+                # 测试连接（带重试）
                 for attempt in range(3):
                     try:
                         _redis_client.ping()
@@ -189,13 +189,13 @@ def _execute_with_retry(operation: callable, operation_name: str = "operation", 
         except (ConnectionError, TimeoutError) as e:
             last_error = e
             if attempt < max_retries:
-                wait_time = _retry_delay * (2 ** attempt)  ***REMOVED*** 指数退避
+                wait_time = _retry_delay * (2 ** attempt)  # 指数退避
                 logger.warning(f"{operation_name} failed (attempt {attempt + 1}/{max_retries + 1}): {e}, retrying in {wait_time:.3f}s...")
                 time.sleep(wait_time)
             else:
                 logger.error(f"{operation_name} failed after {max_retries + 1} attempts: {e}")
         except RedisError as e:
-            ***REMOVED*** Redis 其他错误不重试
+            # Redis 其他错误不重试
             logger.error(f"{operation_name} failed with Redis error: {e}")
             raise AdapterError(
                 f"{operation_name} failed: {e}",
@@ -203,7 +203,7 @@ def _execute_with_retry(operation: callable, operation_name: str = "operation", 
                 cause=e
             ) from e
         except Exception as e:
-            ***REMOVED*** 未知错误不重试
+            # 未知错误不重试
             logger.error(f"{operation_name} failed with unexpected error: {e}", exc_info=True)
             raise AdapterError(
                 f"{operation_name} failed: {e}",
@@ -245,36 +245,36 @@ def _memory_to_dict(memory: Memory) -> Dict[str, Any]:
 
 def _dict_to_memory(data: Dict[str, Any]) -> Memory:
     """将字典转换为 Memory 对象"""
-    ***REMOVED*** 处理 timestamp
+    # 处理 timestamp
     if "timestamp" in data and isinstance(data["timestamp"], str):
         data["timestamp"] = datetime.fromisoformat(data["timestamp"])
     
-    ***REMOVED*** 处理 last_accessed
+    # 处理 last_accessed
     if "last_accessed" in data and isinstance(data["last_accessed"], str):
         data["last_accessed"] = datetime.fromisoformat(data["last_accessed"])
     
-    ***REMOVED*** 处理 memory_type
+    # 处理 memory_type
     if "memory_type" in data and isinstance(data["memory_type"], str):
         try:
             data["memory_type"] = MemoryType(data["memory_type"])
         except ValueError:
             data["memory_type"] = None
     
-    ***REMOVED*** 处理 layer
+    # 处理 layer
     if "layer" in data and isinstance(data["layer"], str):
         try:
             data["layer"] = MemoryLayer(data["layer"])
         except ValueError:
             data["layer"] = MemoryLayer.LTM
     
-    ***REMOVED*** 处理 links (list -> set)
+    # 处理 links (list -> set)
     if "links" in data and isinstance(data["links"], list):
         data["links"] = set(data["links"])
     
     return Memory(**data)
 
 
-***REMOVED*** ==================== FoA (Focus of Attention) 层操作 ====================
+# ==================== FoA (Focus of Attention) 层操作 ====================
 
 def add_to_foa(memory: Memory, client: Optional[Any] = None, ttl: int = 3600) -> bool:
     """
@@ -318,25 +318,25 @@ def add_to_foa(memory: Memory, client: Optional[Any] = None, ttl: int = 3600) ->
     
     try:
         def add_operation():
-            ***REMOVED*** 1. 存储记忆对象（JSON）
+            # 1. 存储记忆对象（JSON）
             memory_key = f"foa:memory:{memory.id}"
             memory_data = _memory_to_dict(memory)
             client.setex(memory_key, ttl, json.dumps(memory_data, ensure_ascii=False))
             
-            ***REMOVED*** 2. 添加到 FoA 记忆列表（最近访问的记忆）
+            # 2. 添加到 FoA 记忆列表（最近访问的记忆）
             list_key = "foa:memories"
             client.lpush(list_key, memory.id)
             client.expire(list_key, ttl)
             
-            ***REMOVED*** 3. 限制列表长度（保留最近1000个）
+            # 3. 限制列表长度（保留最近1000个）
             client.ltrim(list_key, 0, 999)
             
-            ***REMOVED*** 4. 如果有关联的会话，添加到会话列表
+            # 4. 如果有关联的会话，添加到会话列表
             if memory.metadata.get("session_id"):
                 session_key = f"foa:session:{memory.metadata['session_id']}"
                 client.lpush(session_key, memory.id)
                 client.expire(session_key, ttl)
-                client.ltrim(session_key, 0, 499)  ***REMOVED*** 每个会话保留最近500个
+                client.ltrim(session_key, 0, 499)  # 每个会话保留最近500个
         
         _execute_with_retry(add_operation, operation_name="add_to_foa")
         
@@ -382,11 +382,11 @@ def get_from_foa(memory_id: str, client: Optional[Any] = None) -> Optional[Memor
         data = json.loads(memory_data)
         memory = _dict_to_memory(data)
         
-        ***REMOVED*** 更新访问统计
+        # 更新访问统计
         memory.last_accessed = datetime.now()
         memory.retrieval_count += 1
         
-        ***REMOVED*** 更新存储
+        # 更新存储
         ttl = client.ttl(memory_key)
         if ttl > 0:
             client.setex(memory_key, ttl, json.dumps(_memory_to_dict(memory), ensure_ascii=False))
@@ -416,11 +416,11 @@ def remove_from_foa(memory_id: str, client: Optional[Any] = None) -> bool:
         return False
     
     try:
-        ***REMOVED*** 删除记忆对象
+        # 删除记忆对象
         memory_key = f"foa:memory:{memory_id}"
         client.delete(memory_key)
         
-        ***REMOVED*** 从列表中移除
+        # 从列表中移除
         list_key = "foa:memories"
         client.lrem(list_key, 0, memory_id)
         
@@ -520,7 +520,7 @@ def clear_foa(session_id: Optional[str] = None, client: Optional[Any] = None) ->
     
     try:
         if session_id:
-            ***REMOVED*** 清空会话记忆
+            # 清空会话记忆
             session_key = f"foa:session:{session_id}"
             memory_ids = client.lrange(session_key, 0, -1)
             for memory_id in memory_ids:
@@ -528,7 +528,7 @@ def clear_foa(session_id: Optional[str] = None, client: Optional[Any] = None) ->
             client.delete(session_key)
             logger.info(f"Cleared FoA for session {session_id}")
         else:
-            ***REMOVED*** 清空所有 FoA 记忆
+            # 清空所有 FoA 记忆
             pattern = "foa:memory:*"
             keys = client.keys(pattern)
             if keys:
@@ -541,7 +541,7 @@ def clear_foa(session_id: Optional[str] = None, client: Optional[Any] = None) ->
         return False
 
 
-***REMOVED*** ==================== DA (Direct Access) 层操作 ====================
+# ==================== DA (Direct Access) 层操作 ====================
 
 def add_to_da(memory: Memory, client: Optional[Any] = None, ttl: int = 86400) -> bool:
     """
@@ -568,29 +568,29 @@ def add_to_da(memory: Memory, client: Optional[Any] = None, ttl: int = 86400) ->
         return False
     
     try:
-        ***REMOVED*** 1. 存储记忆对象
+        # 1. 存储记忆对象
         memory_key = f"da:memory:{memory.id}"
         memory_data = _memory_to_dict(memory)
         client.setex(memory_key, ttl, json.dumps(memory_data, ensure_ascii=False))
         
-        ***REMOVED*** 2. 添加到 DA 记忆集合
+        # 2. 添加到 DA 记忆集合
         set_key = "da:memories"
         client.sadd(set_key, memory.id)
         client.expire(set_key, ttl)
         
-        ***REMOVED*** 3. 如果有关联的会话，添加到会话集合
+        # 3. 如果有关联的会话，添加到会话集合
         if memory.metadata.get("session_id"):
             session_key = f"da:session:{memory.metadata['session_id']}"
             client.sadd(session_key, memory.id)
             client.expire(session_key, ttl)
         
-        ***REMOVED*** 4. 按记忆类型索引
+        # 4. 按记忆类型索引
         if memory.memory_type:
             type_key = f"da:type:{memory.memory_type.value}"
             client.sadd(type_key, memory.id)
             client.expire(type_key, ttl)
         
-        ***REMOVED*** 5. 按标签索引
+        # 5. 按标签索引
         for tag in memory.tags:
             tag_key = f"da:tag:{tag}"
             client.sadd(tag_key, memory.id)
@@ -630,11 +630,11 @@ def get_from_da(memory_id: str, client: Optional[Any] = None) -> Optional[Memory
         data = json.loads(memory_data)
         memory = _dict_to_memory(data)
         
-        ***REMOVED*** 更新访问统计
+        # 更新访问统计
         memory.last_accessed = datetime.now()
         memory.retrieval_count += 1
         
-        ***REMOVED*** 更新存储
+        # 更新存储
         ttl = client.ttl(memory_key)
         if ttl > 0:
             client.setex(memory_key, ttl, json.dumps(_memory_to_dict(memory), ensure_ascii=False))
@@ -664,18 +664,18 @@ def remove_from_da(memory_id: str, client: Optional[Any] = None) -> bool:
         return False
     
     try:
-        ***REMOVED*** 获取记忆信息（用于清理索引）
+        # 获取记忆信息（用于清理索引）
         memory = get_from_da(memory_id, client)
         
-        ***REMOVED*** 删除记忆对象
+        # 删除记忆对象
         memory_key = f"da:memory:{memory_id}"
         client.delete(memory_key)
         
-        ***REMOVED*** 从集合中移除
+        # 从集合中移除
         set_key = "da:memories"
         client.srem(set_key, memory_id)
         
-        ***REMOVED*** 清理索引
+        # 清理索引
         if memory:
             if memory.metadata.get("session_id"):
                 session_key = f"da:session:{memory.metadata['session_id']}"
@@ -799,7 +799,7 @@ def get_da_memories_by_tag(tag: str, limit: int = 100, client: Optional[Any] = N
         return []
 
 
-***REMOVED*** ==================== 批量操作 ====================
+# ==================== 批量操作 ====================
 
 def add_to_foa_batch(memories: List[Memory], client: Optional[Any] = None, ttl: int = 3600) -> int:
     """
@@ -841,7 +841,7 @@ def add_to_da_batch(memories: List[Memory], client: Optional[Any] = None, ttl: i
     return success_count
 
 
-***REMOVED*** ==================== 工具函数 ====================
+# ==================== 工具函数 ====================
 
 def ping(client: Optional[Any] = None) -> bool:
     """
@@ -895,7 +895,7 @@ def get_stats(client: Optional[Any] = None) -> Dict[str, Any]:
                 "foa_keys": len(client.keys("foa:memory:*")),
                 "da_keys": len(client.keys("da:memory:*")),
             }
-            ***REMOVED*** 获取连接池信息
+            # 获取连接池信息
             if _connection_pool:
                 stats["connection_pool"] = {
                     "created_connections": _connection_pool.created_connections,
@@ -939,13 +939,13 @@ def health_check(client: Optional[Any] = None) -> Dict[str, Any]:
                 "timestamp": datetime.now().isoformat(),
             }
         
-        ***REMOVED*** 检查连接
+        # 检查连接
         is_alive = ping(client)
         
-        ***REMOVED*** 获取统计信息
+        # 获取统计信息
         stats = get_stats(client)
         
-        ***REMOVED*** 获取连接池信息
+        # 获取连接池信息
         pool_info = {}
         if _connection_pool:
             try:

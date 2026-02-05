@@ -1,6 +1,6 @@
-***REMOVED*** 基于 ReAct 的中长篇小说创作系统
+# 基于 ReAct 的中长篇小说创作系统
 
-***REMOVED******REMOVED*** 概述
+## 概述
 
 利用结合了 Cursor 和 Manus 思路的 ReAct 系统进行中长篇小说创作，充分利用以下特性。
 
@@ -11,39 +11,39 @@
 - **分层行动空间**：灵活使用 L1/L2/L3 工具
 - **多 Agent 协作**：可选的多 Agent 协作模式
 
-***REMOVED******REMOVED*** 设计思路
+## 设计思路
 
-***REMOVED******REMOVED******REMOVED*** 1. 分章节创作
+### 1. 分章节创作
 
 将长篇小说分解为多个章节，每章独立创作，降低上下文压力。
 
-***REMOVED******REMOVED******REMOVED*** 2. 上下文管理
+### 2. 上下文管理
 
 - 每章完成后进行 Compaction，保留关键信息
 - 使用章节摘要确保前后章节连贯性
 - 每5章进行一次上下文压缩
 
-***REMOVED******REMOVED******REMOVED*** 3. 渐进式创作
+### 3. 渐进式创作
 
 支持边写边改，迭代优化。可以：
 - 从任意章节开始续写
 - 修改已有章节
 - 调整大纲
 
-***REMOVED******REMOVED*** 使用方法
+## 使用方法
 
-***REMOVED******REMOVED******REMOVED*** 基本使用
+### 基本使用
 
 ```python
 from task.novel import ReactNovelCreator
 
-***REMOVED*** 创建小说创作器
+# 创建小说创作器
 creator = ReactNovelCreator(
     novel_title="时空旅者的日记",
     enable_context_offloading=True
 )
 
-***REMOVED*** 创作小说
+# 创作小说
 result = creator.create_novel(
     genre="科幻",
     theme="时间旅行、平行世界、人性探索",
@@ -53,10 +53,10 @@ result = creator.create_novel(
 )
 ```
 
-***REMOVED******REMOVED******REMOVED*** 分步创作
+### 分步创作
 
 ```python
-***REMOVED*** 1. 创建大纲
+# 1. 创建大纲
 plan = creator.create_novel_plan(
     genre="科幻",
     theme="时间旅行",
@@ -64,7 +64,7 @@ plan = creator.create_novel_plan(
     words_per_chapter=3000
 )
 
-***REMOVED*** 2. 创作单个章节
+# 2. 创作单个章节
 chapter = creator.create_chapter(
     chapter_number=1,
     chapter_title="第一章：起点",
@@ -72,35 +72,35 @@ chapter = creator.create_chapter(
     target_words=3000
 )
 
-***REMOVED*** 3. 继续创作下一章
+# 3. 继续创作下一章
 next_chapter = creator.create_chapter(
     chapter_number=2,
     chapter_title="第二章：第一次旅行",
     chapter_summary="主角进行第一次时间旅行",
-    previous_chapters_summary=chapter.summary,  ***REMOVED*** 传递前面章节摘要
+    previous_chapters_summary=chapter.summary,  # 传递前面章节摘要
     target_words=3000
 )
 ```
 
-***REMOVED******REMOVED*** 输出结构
+## 输出结构
 
 ```
 task/novel/outputs/{novel_title}/
-├── novel_plan.json          ***REMOVED*** 小说大纲
-├── metadata.json            ***REMOVED*** 元数据
-├── {novel_title}_完整版.txt ***REMOVED*** 完整小说
-├── chapters/                ***REMOVED*** 章节文件
+├── novel_plan.json          # 小说大纲
+├── metadata.json            # 元数据
+├── {novel_title}_完整版.txt # 完整小说
+├── chapters/                # 章节文件
 │   ├── chapter_001.txt
 │   ├── chapter_001_meta.json
 │   ├── chapter_002.txt
 │   └── ...
-├── summaries/               ***REMOVED*** 章节摘要
-└── drafts/                  ***REMOVED*** 草稿
+├── summaries/               # 章节摘要
+└── drafts/                  # 草稿
 ```
 
-***REMOVED******REMOVED*** 核心特性
+## 核心特性
 
-***REMOVED******REMOVED******REMOVED*** 1. 字数控制（基于番茄小说爆款数据统计）
+### 1. 字数控制（基于番茄小说爆款数据统计）
 
 - **目标字数**：2048字（完美落点）
 - **允许范围**：1500-3000字
@@ -108,7 +108,7 @@ task/novel/outputs/{novel_title}/
 - **智能截断**：超过3000字时自动截断，保留核心情节
 - **字数优化**：初始生成使用较高 token 限制（3072），字数控制通过 prompt 实现；重写时根据原始字数进行优化或补充
 
-***REMOVED******REMOVED******REMOVED*** 2. 情节节奏控制
+### 2. 情节节奏控制
 
 每章按照以下节奏结构创作：
 - **开头（约25%）**：快速进入情节，引入本章核心冲突
@@ -116,21 +116,21 @@ task/novel/outputs/{novel_title}/
 - **高潮（约25%）**：冲突达到顶点或出现转折
 - **结尾（约10%）**：自然过渡，为下一章埋下伏笔
 
-***REMOVED******REMOVED******REMOVED*** 3. 对话质量优化
+### 3. 对话质量优化
 
 - **对话占比**：20-40%（确保平衡）
 - **对话功能**：推进情节、展现人物、制造冲突、提供信息
 - **对话风格**：保持角色语言风格一致
 - **对话技巧**：避免信息转储，使用潜台词，结合动作描写
 
-***REMOVED******REMOVED******REMOVED*** 4. 上下文管理
+### 4. 上下文管理
 
 - 自动使用 Context Offloading 管理上下文
 - 每章完成后生成摘要，用于后续章节连贯性
 - 每5章进行一次上下文压缩
 - **分层摘要系统**：最近章节摘要、阶段摘要、关键节点摘要
 
-***REMOVED******REMOVED******REMOVED*** 5. 章节连贯性
+### 5. 章节连贯性
 
 - 使用前面章节的摘要保持连贯性
 - 自动检查人物性格一致性
@@ -143,9 +143,9 @@ task/novel/outputs/{novel_title}/
   - Gemini 提取的实体作为补充（如果 Kimi 没有提取到）
   - 自动去重和合并相似实体
 
-***REMOVED******REMOVED******REMOVED*** 6. 质量监控与优化
+### 6. 质量监控与优化
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6.1 单章质量检查
+#### 6.1 单章质量检查
 
 每章完成后自动进行全面的质量检查：
 
@@ -160,7 +160,7 @@ task/novel/outputs/{novel_title}/
   - 过度心理活动检测（限制：全章不超过10句）
   - 描述与情节推进的平衡
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6.2 阶段性质量检查
+#### 6.2 阶段性质量检查
 
 每10章进行一次综合质量评估：
 
@@ -173,7 +173,7 @@ task/novel/outputs/{novel_title}/
   - 相比关键词匹配，能更准确识别深层悬疑元素
 - **综合评分**：综合所有维度（低于0.7时触发警告）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6.3 智能重写机制（Phase 1 & 2 优化）
+#### 6.3 智能重写机制（Phase 1 & 2 优化）
 
 当检测到严重质量问题时会自动触发重写：
 
@@ -211,7 +211,7 @@ task/novel/outputs/{novel_title}/
   - 重写后重新进行质量检查
 - **效果追踪**：记录重写前后的质量对比
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6.4 动态调整机制
+#### 6.4 动态调整机制
 
 根据质量反馈动态调整后续章节的生成策略：
 
@@ -221,7 +221,7 @@ task/novel/outputs/{novel_title}/
 - **描述问题调整**：当检测到冗余描述或过度心理活动时，限制描述篇幅
 - **一致性问题调整**：当检测到一致性问题时，强化一致性检查
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6.5 自适应生成策略
+#### 6.5 自适应生成策略
 
 根据质量反馈自动调整生成参数：
 
@@ -230,24 +230,24 @@ task/novel/outputs/{novel_title}/
 - **悬念控制**：当悬念得分低时，启用悬念控制
 - **动态字数调整**：根据历史平均字数动态调整目标字数
 
-***REMOVED******REMOVED******REMOVED*** 7. 渐进式大纲（100+章节）
+### 7. 渐进式大纲（100+章节）
 
 - **整体大纲**：100-200章的整体故事框架
 - **阶段大纲**：每20章一个阶段，详细规划
 - **章节大纲**：每章的具体内容摘要
 - 支持动态生成阶段大纲，避免一次性生成所有章节大纲
 
-***REMOVED******REMOVED******REMOVED*** 8. 灵活创作
+### 8. 灵活创作
 
 - 支持从任意章节开始续写
 - 支持修改已有章节
 - 支持调整大纲
 
-***REMOVED******REMOVED*** LLM 配置
+## LLM 配置
 
 系统采用混合模型策略，根据任务特点选择最适合的模型（基于实际对比测试结果）：
 
-***REMOVED******REMOVED******REMOVED*** 1. 章节生成
+### 1. 章节生成
 
 - **模型**：`gemini_3_flash`（默认，推荐）
 - **原因**：
@@ -258,7 +258,7 @@ task/novel/outputs/{novel_title}/
   - 环境变量：`export NOVEL_LLM_MODEL=gemini_3_flash`
   - 代码参数：`ReactNovelCreator(llm_client=gemini_3_flash)`
 
-***REMOVED******REMOVED******REMOVED*** 2. 重写机制
+### 2. 重写机制
 
 - **模型**：使用章节生成相同的模型（`gemini_3_flash`）
 - **原因**：
@@ -266,7 +266,7 @@ task/novel/outputs/{novel_title}/
   - 平均重写轮数相当（2.60 vs 2.57）
 - **实现**：通过 `self.agent.run()` 调用，自动使用传入的 `llm_client`
 
-***REMOVED******REMOVED******REMOVED*** 3. 悬念评估
+### 3. 悬念评估
 
 - **模型**：`deepseek_v3_2`（固定）
 - **原因**：
@@ -274,7 +274,7 @@ task/novel/outputs/{novel_title}/
   - 能够准确识别深层悬疑元素
 - **实现**：`_calculate_suspense_score()` 方法中固定使用
 
-***REMOVED******REMOVED******REMOVED*** 4. 实体提取
+### 4. 实体提取
 
 - **模型**：多模型投票（`kimi_k2` + `gemini_3_flash`）
 - **原因**：
@@ -288,46 +288,46 @@ task/novel/outputs/{novel_title}/
   - 辅助模型（Gemini）提取的实体作为补充
   - 多个模型都提取到的实体，合并描述提高质量
 
-***REMOVED******REMOVED******REMOVED*** 5. 质量检查
+### 5. 质量检查
 
 - **方法**：基于规则的检查系统
 - **说明**：不直接使用LLM，通过规则检查一致性、连贯性、风格等问题
 
-***REMOVED******REMOVED******REMOVED*** 配置变更历史
+### 配置变更历史
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 2026-01-22
+#### 2026-01-22
 - **变更**：实体提取模型从 `gemini_3_flash + deepseek_v3_2` 改为 `kimi_k2 + gemini_3_flash`
 - **依据**：Kimi K2 实体提取能力最强（7种类型，18-25个实体/章），字数控制最佳（13.1%偏差）
 - **变更**：实施质量优先策略，`max_new_tokens` 始终不低于 2048
 - **变更**：实施 Phase 1 & 2 优化（渐进式修复、历史学习、效果预测、自适应重试）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 2026-01-21
+#### 2026-01-21
 - **变更**：默认章节生成模型从 `deepseek_v3_2` 改为 `gemini_3_flash`
 - **依据**：LLM对比测试结果
 
-***REMOVED******REMOVED******REMOVED*** 使用建议
+### 使用建议
 
 1. **默认配置**：直接使用，无需修改（已优化为最佳配置）
 2. **自定义配置**：可通过环境变量 `NOVEL_LLM_MODEL` 临时切换
 3. **评估任务**：不建议修改悬念评估和质量评估的模型配置
 4. **实体提取**：保持多模型投票，确保高精度
 
-***REMOVED******REMOVED*** 优化功能
+## 优化功能
 
-***REMOVED******REMOVED******REMOVED*** Phase 1: 基础优化（已完成 ✅）
+### Phase 1: 基础优化（已完成 ✅）
 
 1. **字数控制**：基于番茄小说爆款数据统计，目标2048字，上限3000字
 2. **实体管理系统**：实体重要性评分、分层传递、多模型投票提取
 3. **渐进式大纲**：三层次大纲（整体、阶段、章节），支持100+章节
 4. **分层摘要**：最近章节摘要、阶段摘要、关键节点摘要
 
-***REMOVED******REMOVED******REMOVED*** Phase 2: 质量优化（已完成 ✅）
+### Phase 2: 质量优化（已完成 ✅）
 
 1. **情节节奏控制**：开头25%、发展40%、高潮25%、结尾10%
 2. **对话质量优化**：对话占比20-40%，确保对话推进情节
 3. **阶段性质量检查**：每10章自动评估综合质量（连贯性、人物一致性、节奏、世界观、悬念）
 
-***REMOVED******REMOVED******REMOVED*** Phase 3: 高级优化（已完成 ✅）
+### Phase 3: 高级优化（已完成 ✅）
 
 1. **质量指标追踪**：持续追踪所有质量指标（字数、对话占比、质量问题等）
 2. **LLM悬念评估**：使用 deepseek_v3_2 进行智能悬念得分评估，替代关键词匹配
@@ -336,7 +336,7 @@ task/novel/outputs/{novel_title}/
 5. **自适应生成策略**：根据质量反馈自动调整生成参数和策略
 6. **质量追踪系统**：完整记录每章的质量指标，支持质量趋势分析
 
-***REMOVED******REMOVED******REMOVED*** Phase 4: 智能重写优化（已完成 ✅）
+### Phase 4: 智能重写优化（已完成 ✅）
 
 1. **渐进式修复**：每次只修复1-2个最高优先级问题，避免一次性修复过多问题
 2. **修复策略库**：针对不同问题类型定义专门的修复策略、提示词和 few-shot 示例
@@ -348,14 +348,14 @@ task/novel/outputs/{novel_title}/
 8. **自适应重试机制**：当一种策略失败时，自动尝试备用策略
 9. **验证逻辑优化**：避免0.00评分，更准确反映改善程度，所有验证评分至少为0.1-0.2
 
-***REMOVED******REMOVED*** 重写机制说明
+## 重写机制说明
 
-***REMOVED******REMOVED******REMOVED*** 触发条件
+### 触发条件
 
 - **严重问题数 >= 1**，或
 - **总问题数 >= 3**
 
-***REMOVED******REMOVED******REMOVED*** 重写流程
+### 重写流程
 
 1. **问题选择**：
    - 按优先级分组：一致性 > 对话 > 描述 > 其他
@@ -388,39 +388,39 @@ task/novel/outputs/{novel_title}/
    - 更新策略成功率
    - 用于优化未来策略选择
 
-***REMOVED******REMOVED******REMOVED*** 重写策略类型
+### 重写策略类型
 
 - **CONSERVATIVE**：保守修复，最小改动
 - **AGGRESSIVE**：激进修复，彻底重构
 - **SURGICAL**：精准修复，针对特定问题
 - **ITERATIVE**：迭代修复，逐步改进
 
-***REMOVED******REMOVED******REMOVED*** 重写停止条件
+### 重写停止条件
 
 - 改善 >= 50% 或问题数 <= 1：停止重写（效果优秀）
 - 改善 >= 30% 且重写轮次 >= 2：停止重写（效果良好）
 - 改善 <= 0 且重写轮次 >= 3：停止重写（已尝试3轮）
 - 改善 <= 0 且重写轮次 == 2：继续第3轮（尝试备用策略）
 
-***REMOVED******REMOVED*** 实体提取改进
+## 实体提取改进
 
-***REMOVED******REMOVED******REMOVED*** Kimi 实体提取优势
+### Kimi 实体提取优势
 
 1. **分类更细致**：7大类（人物、组织、地点、物品、生物、概念、时间）vs 当前3类
 2. **提取更全面**：18-25个实体/章，包含概念、规则、时间等抽象实体
 3. **描述更详细**：包含括号内的关键信息补充
 4. **结构化输出**：按类别分组，已去重
 
-***REMOVED******REMOVED******REMOVED*** 多模型投票策略
+### 多模型投票策略
 
 - **主模型（Kimi K2）**：优先保留所有提取结果
 - **辅助模型（Gemini 3 Flash）**：作为验证和补充
 - **投票机制**：多个模型都提取到的实体，合并描述提高质量
 - **提取精度**：95%+
 
-***REMOVED******REMOVED*** 测试结果
+## 测试结果
 
-***REMOVED******REMOVED******REMOVED*** 阶段性质量检查示例（12章测试）
+### 阶段性质量检查示例（12章测试）
 
 ```json
 {
@@ -449,7 +449,7 @@ task/novel/outputs/{novel_title}/
 - 问题章节会自动触发重写机制
 - 质量指标持续追踪，支持趋势分析
 
-***REMOVED******REMOVED******REMOVED*** 重写机制优化效果
+### 重写机制优化效果
 
 **Phase 1 & 2 优化前**：
 - 重写改善率：16.7%（1/6章改善）
@@ -464,7 +464,7 @@ task/novel/outputs/{novel_title}/
 - 验证评分：平均0.51，最低0.15（显著提升）
 - 智能问题选择：平均预测成功率0.54
 
-***REMOVED******REMOVED*** 与 UniMem 的集成（未来）
+## 与 UniMem 的集成（未来）
 
 当前版本不使用 UniMem，但设计上已考虑未来集成：
 
@@ -473,7 +473,7 @@ task/novel/outputs/{novel_title}/
 - 情节线索可以存储到 UniMem
 - 使用 UniMem 检索相关章节和人物信息
 
-***REMOVED******REMOVED*** 注意事项
+## 注意事项
 
 1. **LLM 配置**：确保 `orchestrator/react.py` 中的 LLM 配置正确，支持通过环境变量 `NOVEL_LLM_MODEL` 指定模型
 2. **上下文长度**：长篇小说创作时注意上下文长度管理，系统会自动进行压缩
@@ -485,7 +485,7 @@ task/novel/outputs/{novel_title}/
 6. **质量优化**：系统会自动根据质量反馈调整后续章节，无需手动干预
 7. **质量优先策略**：`max_new_tokens` 始终不低于 2048，字数控制通过 prompt 实现，如果内容优质，字数可以适当浮动（±20%以内都可以接受）
 
-***REMOVED******REMOVED*** 示例与脚本
+## 示例与脚本
 
 - **质量优化测试**（本目录）：`python -m task.novel.test_quality_optimizations`（需在 `src` 下执行）
 - **100 章创作、后台运行、测试监控脚本**：见 **`scripts/novel/README.md`**（非主路径，主路径为前端 + `/api/creator/stream`）

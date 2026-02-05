@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Context Graph 综合测试框架
 
@@ -21,7 +21,7 @@ import random
 import logging
 from typing import List, Dict, Any, Optional
 
-***REMOVED*** 添加项目路径
+# 添加项目路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -31,7 +31,7 @@ from unimem.examples.generate_video_script import VideoScriptGenerator
 from unimem.neo4j import get_decision_events_for_memory
 from py2neo import Graph
 
-***REMOVED*** 初始化logger
+# 初始化logger
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +44,7 @@ class ContextGraphTestFramework:
         print("Context Graph 综合测试框架")
         print("="*70)
         
-        ***REMOVED*** 初始化UniMem
+        # 初始化UniMem
         config = {
             "storage": {
                 "foa_backend": "redis",
@@ -65,13 +65,13 @@ class ContextGraphTestFramework:
         self.unimem = UniMem(config=config)
         self.generator = VideoScriptGenerator(use_service=False)
         
-        ***REMOVED*** 连接Neo4j
+        # 连接Neo4j
         self.graph = Graph("bolt://localhost:7680", auth=('neo4j', 'seeme_db'), name='neo4j')
         
-        ***REMOVED*** 测试场景配置
+        # 测试场景配置
         self.test_scenarios = self._generate_diverse_scenarios()
         
-        ***REMOVED*** 测试结果
+        # 测试结果
         self.test_results = []
         
         print(f"✓ 测试框架初始化完成")
@@ -85,7 +85,7 @@ class ContextGraphTestFramework:
         """
         scenarios = []
         
-        ***REMOVED*** 场景1: 电商-美妆-小红书（简单需求）
+        # 场景1: 电商-美妆-小红书（简单需求）
         scenarios.append({
             "id": "scenario_1",
             "name": "电商-美妆-小红书-简单",
@@ -111,7 +111,7 @@ class ContextGraphTestFramework:
             ]
         })
         
-        ***REMOVED*** 场景2: 教育-编程-抖音（中等复杂度）
+        # 场景2: 教育-编程-抖音（中等复杂度）
         scenarios.append({
             "id": "scenario_2",
             "name": "教育-编程-抖音-中等",
@@ -133,7 +133,7 @@ class ContextGraphTestFramework:
             ]
         })
         
-        ***REMOVED*** 场景3: 娱乐-搞笑-抖音（简单）
+        # 场景3: 娱乐-搞笑-抖音（简单）
         scenarios.append({
             "id": "scenario_3",
             "name": "娱乐-搞笑-抖音-简单",
@@ -155,12 +155,12 @@ class ContextGraphTestFramework:
             ]
         })
         
-        ***REMOVED*** 场景4: 电商-服装-淘宝（复杂需求）
+        # 场景4: 电商-服装-淘宝（复杂需求）
         scenarios.append({
             "id": "scenario_4",
             "name": "电商-服装-淘宝-复杂",
             "video_type": "ecommerce",
-            "platform": "douyin",  ***REMOVED*** 注意：实际应该是淘宝，但测试用douyin
+            "platform": "douyin",  # 注意：实际应该是淘宝，但测试用douyin
             "duration": 60,
             "complexity": "complex",
             "task_memories": [
@@ -186,7 +186,7 @@ class ContextGraphTestFramework:
             ]
         })
         
-        ***REMOVED*** 场景5: 知识-科技-抖音（高复杂度）
+        # 场景5: 知识-科技-抖音（高复杂度）
         scenarios.append({
             "id": "scenario_5",
             "name": "知识-科技-抖音-复杂",
@@ -211,7 +211,7 @@ class ContextGraphTestFramework:
             ]
         })
         
-        ***REMOVED*** 为了提升测试效率，只返回第1个场景用于迭代测试
+        # 为了提升测试效率，只返回第1个场景用于迭代测试
         return scenarios[:1]
     
     def create_word_document(self, scenario: Dict[str, Any], output_path: str) -> str:
@@ -229,40 +229,40 @@ class ContextGraphTestFramework:
         
         doc = Document()
         
-        ***REMOVED*** 标题
+        # 标题
         doc.add_heading('短视频剧本需求文档', level=1)
         doc.add_paragraph(f'场景ID: {scenario["id"]}')
         doc.add_paragraph(f'场景名称: {scenario["name"]}')
         doc.add_paragraph(f'生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
         doc.add_paragraph()
         
-        ***REMOVED*** 基本信息
+        # 基本信息
         doc.add_heading('一、基本信息', level=1)
         doc.add_paragraph(f'视频类型: {scenario["video_type"]}')
         doc.add_paragraph(f'目标平台: {scenario["platform"]}')
         doc.add_paragraph(f'目标时长: {scenario["duration"]}秒')
         doc.add_paragraph()
         
-        ***REMOVED*** 当前任务需求
+        # 当前任务需求
         doc.add_heading('二、当前任务需求', level=1)
         for memory in scenario["task_memories"]:
             doc.add_paragraph(memory)
         doc.add_paragraph()
         
-        ***REMOVED*** 商品信息（如果有）
+        # 商品信息（如果有）
         if scenario.get("product_info"):
             doc.add_heading('三、商品信息', level=1)
             for key, value in scenario["product_info"].items():
                 doc.add_paragraph(f'{key}: {value}')
             doc.add_paragraph()
         
-        ***REMOVED*** 通用记忆总结（模拟）
+        # 通用记忆总结（模拟）
         doc.add_heading('四、通用记忆总结', level=1)
         doc.add_paragraph('喜欢用生活化语言')
         doc.add_paragraph('偏好真实体验分享')
         doc.add_paragraph()
         
-        ***REMOVED*** 镜头素材（根据视频类型和时长动态生成）
+        # 镜头素材（根据视频类型和时长动态生成）
         doc.add_heading('五、镜头素材', level=1)
         shot_materials = self._generate_shot_materials(
             video_type=scenario.get("video_type", "ecommerce"),
@@ -274,7 +274,7 @@ class ContextGraphTestFramework:
             doc.add_paragraph(shot)
         doc.add_paragraph()
         
-        ***REMOVED*** 保存文档
+        # 保存文档
         doc.save(output_path)
         return output_path
     
@@ -297,13 +297,13 @@ class ContextGraphTestFramework:
         Returns:
             镜头素材列表
         """
-        ***REMOVED*** 根据时长估算需要的镜头数量（每7-10秒一个镜头）
+        # 根据时长估算需要的镜头数量（每7-10秒一个镜头）
         num_shots = max(5, min(12, int(duration / 8)))
         
         shots = []
         
         if video_type == "ecommerce":
-            ***REMOVED*** 电商类视频镜头素材
+            # 电商类视频镜头素材
             base_shots = [
                 "镜头1: 产品整体展示（全景，展示产品全貌）",
                 "镜头2: 产品特写（细节展示，突出卖点）",
@@ -315,7 +315,7 @@ class ContextGraphTestFramework:
                 "镜头8: 结尾转化镜头（引导购买，优惠信息展示）"
             ]
             
-            ***REMOVED*** 根据商品信息调整镜头描述
+            # 根据商品信息调整镜头描述
             if product_info:
                 product_name = product_info.get("产品名称", "产品")
                 core_selling_point = product_info.get("核心卖点", "")
@@ -346,7 +346,7 @@ class ContextGraphTestFramework:
             shots = base_shots[:num_shots]
             
         elif video_type == "knowledge":
-            ***REMOVED*** 知识类视频镜头素材
+            # 知识类视频镜头素材
             base_shots = [
                 "镜头1: 标题和讲师介绍（开场，建立权威性）",
                 "镜头2: 核心概念展示（动画/图示，可视化解释）",
@@ -358,7 +358,7 @@ class ContextGraphTestFramework:
                 "镜头8: 总结和回顾（结尾，关键点回顾）"
             ]
             
-            ***REMOVED*** 根据主题调整镜头描述
+            # 根据主题调整镜头描述
             task_memories_str = " ".join(task_memories) if task_memories else ""
             if "编程" in task_memories_str or "Python" in task_memories_str:
                 base_shots = [
@@ -386,7 +386,7 @@ class ContextGraphTestFramework:
             shots = base_shots[:num_shots]
             
         elif video_type == "entertainment":
-            ***REMOVED*** 娱乐类视频镜头素材
+            # 娱乐类视频镜头素材
             base_shots = [
                 "镜头1: 开场悬念（吸引注意，制造好奇心）",
                 "镜头2: 日常场景（建立情境，生活化场景）",
@@ -400,7 +400,7 @@ class ContextGraphTestFramework:
             shots = base_shots[:min(num_shots, len(base_shots))]
             
         else:
-            ***REMOVED*** 默认通用镜头素材
+            # 默认通用镜头素材
             base_shots = [
                 "镜头1: 开场镜头（吸引注意，建立情境）",
                 "镜头2: 主要内容展示（核心内容呈现）",
@@ -413,7 +413,7 @@ class ContextGraphTestFramework:
             
             shots = base_shots[:num_shots]
         
-        ***REMOVED*** 确保镜头编号连续
+        # 确保镜头编号连续
         for i in range(len(shots)):
             if shots[i].startswith("镜头"):
                 shots[i] = f"镜头{i+1}: {shots[i].split(':', 1)[1].strip()}"
@@ -449,9 +449,9 @@ class ContextGraphTestFramework:
         }
         
         try:
-            ***REMOVED*** 步骤1: 使用新模板格式的Word需求文档
+            # 步骤1: 使用新模板格式的Word需求文档
             print("【步骤1】使用新模板格式的Word需求文档...")
-            ***REMOVED*** 优先使用已创建的新模板文档，否则使用旧格式创建
+            # 优先使用已创建的新模板文档，否则使用旧格式创建
             new_template_path = f"/root/data/AI/creator/src/unimem/examples/test_docs_new_template/{scenario['id']}.docx"
             if os.path.exists(new_template_path):
                 doc_path = new_template_path
@@ -467,7 +467,7 @@ class ContextGraphTestFramework:
                 "doc_path": doc_path
             })
             
-            ***REMOVED*** 步骤2: 解析文档
+            # 步骤2: 解析文档
             print("【步骤2】解析Word文档...")
             try:
                 doc_data = self.generator.parse_word_document(doc_path)
@@ -486,7 +486,7 @@ class ContextGraphTestFramework:
                 print(f"  ✗ 解析失败: {e}\n")
                 return test_result
             
-            ***REMOVED*** 步骤3: 搜索先例（可选功能，用于提高质量，但不影响剧本生成）
+            # 步骤3: 搜索先例（可选功能，用于提高质量，但不影响剧本生成）
             print("【步骤3】搜索相似先例（可选，用于提高质量）...")
             precedents = []
             try:
@@ -523,7 +523,7 @@ class ContextGraphTestFramework:
                 })
                 print()
             except Exception as e:
-                ***REMOVED*** 先例搜索失败不影响后续流程，只记录警告，不添加到errors
+                # 先例搜索失败不影响后续流程，只记录警告，不添加到errors
                 logger.warning(f"搜索先例失败（不影响剧本生成）: {e}")
                 print(f"  ⚠ 搜索先例失败（不影响剧本生成）: {e}")
                 print(f"  ✓ 将继续使用默认规则生成剧本\n")
@@ -534,20 +534,20 @@ class ContextGraphTestFramework:
                     "precedents_count": 0
                 })
             
-            ***REMOVED*** 步骤4: 生成初始剧本
+            # 步骤4: 生成初始剧本
             print("【步骤4】生成初始剧本...")
             try:
                 initial_script = self.generator.generate_script(doc_data)
-                ***REMOVED*** 从adapter中获取script_memory_id
+                # 从adapter中获取script_memory_id
                 script_memory_id = None
                 if hasattr(self.generator, 'adapter') and hasattr(self.generator.adapter, 'last_script_memory_id'):
                     script_memory_id = self.generator.adapter.last_script_memory_id
                 elif hasattr(self.generator, 'script_memory_id'):
                     script_memory_id = self.generator.script_memory_id
                 
-                ***REMOVED*** 如果还是没有，尝试从UniMem中查找最近的脚本记忆
+                # 如果还是没有，尝试从UniMem中查找最近的脚本记忆
                 if not script_memory_id:
-                    ***REMOVED*** 使用recall查找最近的脚本记忆
+                    # 使用recall查找最近的脚本记忆
                     recall_results = self.unimem.recall(
                         query=f"{doc_data.get('video_type', '')} {doc_data.get('platform', '')} 脚本",
                         top_k=1
@@ -556,18 +556,18 @@ class ContextGraphTestFramework:
                         script_memory_id = recall_results[0].memory.id
                 
                 if script_memory_id:
-                    ***REMOVED*** 验证reasoning和decision_trace
-                    ***REMOVED*** 使用neo4j.get_memory获取记忆
+                    # 验证reasoning和decision_trace
+                    # 使用neo4j.get_memory获取记忆
                     from unimem.neo4j import get_memory
                     memory = get_memory(script_memory_id)
                     if memory:
                         test_result["memory_ids"].append(script_memory_id)
                         
-                        ***REMOVED*** 增强调试日志
+                        # 增强调试日志
                         has_reasoning = memory.reasoning is not None and memory.reasoning.strip() != ""
                         has_decision_trace = memory.decision_trace is not None and isinstance(memory.decision_trace, dict)
                         
-                        ***REMOVED*** 如果decision_trace为空，尝试从Neo4j直接查询
+                        # 如果decision_trace为空，尝试从Neo4j直接查询
                         if not has_decision_trace:
                             try:
                                 from py2neo import Graph
@@ -591,7 +591,7 @@ class ContextGraphTestFramework:
                             "decision_trace_type": type(memory.decision_trace).__name__ if memory.decision_trace else None
                         })
                         
-                        ***REMOVED*** 验证DecisionEvent节点
+                        # 验证DecisionEvent节点
                         events = get_decision_events_for_memory(script_memory_id)
                         if events:
                             test_result["decision_events"].append({
@@ -600,7 +600,7 @@ class ContextGraphTestFramework:
                                 "latest_event": events[0] if events else None
                             })
                         else:
-                            ***REMOVED*** 如果应该有decision_trace但没有事件，记录日志
+                            # 如果应该有decision_trace但没有事件，记录日志
                             if has_decision_trace:
                                 logger.debug(f"Memory {script_memory_id} has decision_trace but no DecisionEvent created")
                 
@@ -620,7 +620,7 @@ class ContextGraphTestFramework:
                 print(f"  ✗ 生成剧本失败: {e}\n")
                 return test_result
             
-            ***REMOVED*** 步骤5: 多轮反馈优化
+            # 步骤5: 多轮反馈优化
             print("【步骤5】多轮反馈优化...")
             feedback_count = 0
             accumulated_modifications = []
@@ -632,7 +632,7 @@ class ContextGraphTestFramework:
                 print(f"  轮次 {round_num}: {feedback_text}")
                 
                 try:
-                    ***REMOVED*** 存储反馈
+                    # 存储反馈
                     if script_memory_id:
                         feedback_memory_id = self.generator.store_feedback_to_unimem(
                             feedback_text,
@@ -645,7 +645,7 @@ class ContextGraphTestFramework:
                             feedback_memory = get_memory(feedback_memory_id)
                             if feedback_memory:
                                 test_result["memory_ids"].append(feedback_memory_id)
-                                ***REMOVED*** 检查reasoning和decision_trace
+                                # 检查reasoning和decision_trace
                                 has_reasoning = feedback_memory.reasoning is not None and feedback_memory.reasoning.strip() != ""
                                 has_decision_trace = feedback_memory.decision_trace is not None and isinstance(feedback_memory.decision_trace, dict)
                                 
@@ -659,7 +659,7 @@ class ContextGraphTestFramework:
                                         "decision_trace_keys": list(feedback_memory.decision_trace.keys()) if feedback_memory.decision_trace else []
                                     })
                                 else:
-                                    ***REMOVED*** 即使没有reasoning，也记录decision_trace信息
+                                    # 即使没有reasoning，也记录decision_trace信息
                                     test_result["reasoning_extracted"].append({
                                         "memory_id": feedback_memory_id,
                                         "source": "user_feedback",
@@ -669,9 +669,9 @@ class ContextGraphTestFramework:
                                     })
                         except Exception as e:
                             logger.warning(f"Failed to get feedback memory {feedback_memory_id}: {e}")
-                            pass  ***REMOVED*** 如果获取失败，继续执行
+                            pass  # 如果获取失败，继续执行
                     
-                    ***REMOVED*** 提取修改需求
+                    # 提取修改需求
                     modifications = self.generator.extract_modification_feedback(
                         feedback_text,
                         existing_modifications=accumulated_modifications
@@ -680,7 +680,7 @@ class ContextGraphTestFramework:
                     if modifications:
                         accumulated_modifications.extend(modifications)
                         
-                        ***REMOVED*** 调用优化方法
+                        # 调用优化方法
                         try:
                             optimized_script = self.generator.optimize_and_regenerate(
                                 original_doc_data=doc_data,
@@ -690,9 +690,9 @@ class ContextGraphTestFramework:
                             )
                             
                             if optimized_script:
-                                initial_script = optimized_script  ***REMOVED*** 保存用于下一轮
+                                initial_script = optimized_script  # 保存用于下一轮
                                 
-                                ***REMOVED*** 尝试获取新的script_memory_id
+                                # 尝试获取新的script_memory_id
                                 if hasattr(self.generator, 'adapter') and hasattr(self.generator.adapter, 'last_script_memory_id'):
                                     new_script_memory_id = self.generator.adapter.last_script_memory_id
                                     if new_script_memory_id and new_script_memory_id != script_memory_id:
@@ -720,10 +720,10 @@ class ContextGraphTestFramework:
                 "feedback_rounds": feedback_count
             })
             
-            ***REMOVED*** 步骤6: REFLECT操作
+            # 步骤6: REFLECT操作
             print("【步骤6】执行REFLECT操作...")
             try:
-                ***REMOVED*** 收集相关记忆
+                # 收集相关记忆
                 from unimem.neo4j import get_memory
                 related_memories = []
                 for mem_id in test_result["memory_ids"]:
@@ -744,7 +744,7 @@ class ContextGraphTestFramework:
                         current_task=task
                     )
                     
-                    ***REMOVED*** 检查是否提取到新经验
+                    # 检查是否提取到新经验
                     new_experiences = [m for m in evolved_memories if m.memory_type is not None and m.memory_type.value == "experience"]
                     if new_experiences:
                         print(f"  ✓ REFLECT完成，提取了 {len(new_experiences)} 条经验记忆:")
@@ -779,30 +779,30 @@ class ContextGraphTestFramework:
                 test_result["errors"].append(f"REFLECT失败: {e}")
                 print(f"  ✗ REFLECT失败: {e}\n")
             
-            ***REMOVED*** 步骤7: 验证Context Graph功能
+            # 步骤7: 验证Context Graph功能
             print("【步骤7】验证Context Graph功能...")
             self._verify_context_graph(test_result)
             print()
             
-            ***REMOVED*** 步骤8: 获取并保存最终剧本
+            # 步骤8: 获取并保存最终剧本
             print("【步骤8】获取最终剧本...")
             import sys
-            sys.stdout.flush()  ***REMOVED*** 确保print输出被刷新
+            sys.stdout.flush()  # 确保print输出被刷新
             logger.info("Step 8: Getting final script...")
             try:
-                ***REMOVED*** 优先使用测试过程中保存的完整脚本内容（initial_script）
-                ***REMOVED*** 因为store_script_to_unimem只存储了脚本预览，不是完整内容
+                # 优先使用测试过程中保存的完整脚本内容（initial_script）
+                # 因为store_script_to_unimem只存储了脚本预览，不是完整内容
                 final_script_content = None
                 final_script_memory_id = None
                 
-                ***REMOVED*** 从test_result的steps中查找最新的脚本
+                # 从test_result的steps中查找最新的脚本
                 for step in reversed(test_result["steps"]):
                     if step.get("step") == "generate_script" and step.get("script_memory_id"):
                         final_script_memory_id = step.get("script_memory_id")
                         logger.info(f"Found script_memory_id from steps: {final_script_memory_id}")
                         break
                 
-                ***REMOVED*** 如果optimize_and_regenerate创建了新的脚本，使用新的memory_id
+                # 如果optimize_and_regenerate创建了新的脚本，使用新的memory_id
                 if hasattr(self.generator, 'adapter') and hasattr(self.generator.adapter, 'last_script_memory_id'):
                     new_script_id = self.generator.adapter.last_script_memory_id
                     if new_script_id:
@@ -811,12 +811,12 @@ class ContextGraphTestFramework:
                             final_script_memory_id = new_script_id
                             logger.info(f"Using new script_memory_id: {final_script_memory_id}")
                 
-                ***REMOVED*** 尝试从initial_script获取完整脚本内容
+                # 尝试从initial_script获取完整脚本内容
                 if initial_script and initial_script.get("script"):
                     final_script_content = initial_script.get("script")
                     logger.info(f"Found full script content from initial_script, length={len(final_script_content)}")
                 elif initial_script and initial_script.get("segments"):
-                    ***REMOVED*** 如果没有script字段，从segments构建
+                    # 如果没有script字段，从segments构建
                     segments = initial_script.get("segments", [])
                     final_script_content = "\n\n".join([
                         f"【片段{i+1}】{seg.get('content', '')}" 
@@ -829,7 +829,7 @@ class ContextGraphTestFramework:
                     from unimem.neo4j import get_memory
                     final_memory = None
                     
-                    ***REMOVED*** 尝试多次获取Memory（重试机制）
+                    # 尝试多次获取Memory（重试机制）
                     for retry in range(3):
                         try:
                             final_memory = get_memory(final_script_memory_id)
@@ -839,20 +839,20 @@ class ContextGraphTestFramework:
                             else:
                                 logger.warning(f"Memory not found in Neo4j (attempt {retry + 1}), retrying...")
                                 import time
-                                time.sleep(0.5)  ***REMOVED*** 等待0.5秒后重试
+                                time.sleep(0.5)  # 等待0.5秒后重试
                         except Exception as e:
                             logger.warning(f"Error getting memory from Neo4j (attempt {retry + 1}): {e}")
                             if retry < 2:
                                 import time
                                 time.sleep(0.5)
                     
-                    ***REMOVED*** 优先使用从initial_script获取的完整脚本内容
+                    # 优先使用从initial_script获取的完整脚本内容
                     if final_script_content:
-                        ***REMOVED*** 使用完整脚本内容，从Memory获取元数据
+                        # 使用完整脚本内容，从Memory获取元数据
                         if final_memory:
                             test_result["final_script"] = {
                                 "memory_id": final_script_memory_id,
-                                "content": final_script_content,  ***REMOVED*** 使用完整脚本内容
+                                "content": final_script_content,  # 使用完整脚本内容
                                 "content_preview": final_script_content[:500] + "..." if len(final_script_content) > 500 else final_script_content,
                                 "keywords": final_memory.keywords[:10] if final_memory.keywords else [],
                                 "tags": final_memory.tags[:10] if final_memory.tags else [],
@@ -861,7 +861,7 @@ class ContextGraphTestFramework:
                                 "source": "initial_script"
                             }
                         else:
-                            ***REMOVED*** 即使无法获取Memory，也保存完整脚本内容，但尝试从Neo4j直接查询reasoning和decision_trace
+                            # 即使无法获取Memory，也保存完整脚本内容，但尝试从Neo4j直接查询reasoning和decision_trace
                             logger.warning(f"Failed to get memory object from Neo4j, trying direct query for {final_script_memory_id}")
                             try:
                                 from py2neo import Graph
@@ -886,7 +886,7 @@ class ContextGraphTestFramework:
                                     }
                                     logger.info(f"Retrieved reasoning and decision_trace from Neo4j direct query")
                                 else:
-                                    ***REMOVED*** 如果直接查询也失败，保存基本信息
+                                    # 如果直接查询也失败，保存基本信息
                                     test_result["final_script"] = {
                                         "memory_id": final_script_memory_id,
                                         "content": final_script_content,
@@ -918,7 +918,7 @@ class ContextGraphTestFramework:
                             print(f"  ✓ 决策理由: {final_memory.reasoning[:80]}...")
                             sys.stdout.flush()
                     elif final_memory:
-                        ***REMOVED*** 如果没有完整脚本内容，使用Memory中的内容（可能是预览）
+                        # 如果没有完整脚本内容，使用Memory中的内容（可能是预览）
                         test_result["final_script"] = {
                             "memory_id": final_script_memory_id,
                             "content": final_memory.content,
@@ -937,12 +937,12 @@ class ContextGraphTestFramework:
                             print(f"  ✓ 决策理由: {final_memory.reasoning[:80]}...")
                             sys.stdout.flush()
                     else:
-                        ***REMOVED*** 尝试从Qdrant获取（fallback）
+                        # 尝试从Qdrant获取（fallback）
                         logger.warning(f"Failed to get memory from Neo4j: {final_script_memory_id}, trying Qdrant fallback...")
                         try:
                             from unimem.adapters.atom_link_adapter import AtomLinkAdapter
                             if hasattr(self.unimem, 'network_adapter') and isinstance(self.unimem.network_adapter, AtomLinkAdapter):
-                                ***REMOVED*** 尝试通过语义检索找到这个memory
+                                # 尝试通过语义检索找到这个memory
                                 results = self.unimem.recall(query=f"memory_id:{final_script_memory_id}", top_k=1)
                                 if results and len(results) > 0 and results[0].memory:
                                     final_memory = results[0].memory
@@ -977,13 +977,13 @@ class ContextGraphTestFramework:
                     print(f"  ⚠ 未找到最终剧本Memory ID")
                     sys.stdout.flush()
                     logger.warning("No final script memory_id found")
-                    ***REMOVED*** 尝试从test_result["memory_ids"]中查找可能的脚本memory
+                    # 尝试从test_result["memory_ids"]中查找可能的脚本memory
                     if test_result.get("memory_ids"):
                         logger.info(f"Trying to find script from memory_ids: {test_result['memory_ids']}")
                         for mem_id in reversed(test_result["memory_ids"]):
                             try:
                                 mem = get_memory(mem_id)
-                                if mem and len(mem.content) > 500:  ***REMOVED*** 脚本通常比较长
+                                if mem and len(mem.content) > 500:  # 脚本通常比较长
                                     logger.info(f"Found potential script memory: {mem_id}, content_length={len(mem.content)}")
                                     final_script_memory_id = mem_id
                                     test_result["final_script"] = {
@@ -1022,7 +1022,7 @@ class ContextGraphTestFramework:
         """验证Context Graph功能"""
         verifications = []
         
-        ***REMOVED*** 验证1: reasoning字段覆盖率
+        # 验证1: reasoning字段覆盖率
         total_memories = len(test_result["memory_ids"])
         memories_with_reasoning = sum(1 for r in test_result["reasoning_extracted"] if r.get("reasoning"))
         reasoning_coverage = memories_with_reasoning / total_memories * 100 if total_memories > 0 else 0
@@ -1034,7 +1034,7 @@ class ContextGraphTestFramework:
         })
         print(f"  {verifications[-1]['status']} {verifications[-1]['check']}: {verifications[-1]['result']}")
         
-        ***REMOVED*** 验证2: decision_trace覆盖率
+        # 验证2: decision_trace覆盖率
         memories_with_trace = sum(1 for r in test_result["reasoning_extracted"] if r.get("has_decision_trace"))
         trace_coverage = memories_with_trace / total_memories * 100 if total_memories > 0 else 0
         
@@ -1045,7 +1045,7 @@ class ContextGraphTestFramework:
         })
         print(f"  {verifications[-1]['status']} {verifications[-1]['check']}: {verifications[-1]['result']}")
         
-        ***REMOVED*** 验证3: DecisionEvent节点创建
+        # 验证3: DecisionEvent节点创建
         events_count = len(test_result["decision_events"])
         verifications.append({
             "check": "DecisionEvent节点创建",
@@ -1054,7 +1054,7 @@ class ContextGraphTestFramework:
         })
         print(f"  {verifications[-1]['status']} {verifications[-1]['check']}: {verifications[-1]['result']}")
         
-        ***REMOVED*** 验证4: 先例搜索功能
+        # 验证4: 先例搜索功能
         precedents_count = len(test_result["precedents_found"])
         verifications.append({
             "check": "先例搜索功能",
@@ -1082,7 +1082,7 @@ class ContextGraphTestFramework:
             all_results["scenarios"].append(result)
             self.test_results.append(result)
             
-            ***REMOVED*** 每个场景结束后立即保存该场景的最终剧本
+            # 每个场景结束后立即保存该场景的最终剧本
             final_script = result.get("final_script")
             if final_script:
                 if final_script.get("content"):
@@ -1094,7 +1094,7 @@ class ContextGraphTestFramework:
                     import sys
                     sys.stdout.flush()
             
-            ***REMOVED*** 每次测试后等待一小段时间，确保数据完整写入
+            # 每次测试后等待一小段时间，确保数据完整写入
             import time
             time.sleep(1)
         
@@ -1120,17 +1120,17 @@ class ContextGraphTestFramework:
             "improvements": []
         }
         
-        ***REMOVED*** 统计reasoning覆盖率
+        # 统计reasoning覆盖率
         all_reasoning = []
         for r in results:
             all_reasoning.extend(r.get("reasoning_extracted", []))
         
-        ***REMOVED*** 修复：使用has_reasoning字段而不是reasoning字段
+        # 修复：使用has_reasoning字段而不是reasoning字段
         memories_with_reasoning = sum(1 for re in all_reasoning if re.get("has_reasoning") or re.get("reasoning"))
         total_memories = summary["total_memories"]
         summary["reasoning_coverage"] = memories_with_reasoning / total_memories * 100 if total_memories > 0 else 0
         
-        ***REMOVED*** 统计先例
+        # 统计先例
         summary["precedents_found"] = sum(len(r.get("precedents_found", [])) for r in results)
         
         print(f"【总体统计】")
@@ -1141,18 +1141,18 @@ class ContextGraphTestFramework:
         print(f"  Reasoning覆盖率: {summary['reasoning_coverage']:.1f}%")
         print(f"  找到先例数: {summary['precedents_found']}")
         
-        ***REMOVED*** 分析公共模式
+        # 分析公共模式
         print(f"\n【公共模式识别】")
         common_feedbacks = {}
         for r in results:
             for step in r.get("steps", []):
                 if step.get("step") == "multi_round_optimization":
-                    ***REMOVED*** 这里可以从记忆中提取公共反馈模式
+                    # 这里可以从记忆中提取公共反馈模式
                     pass
         
-        ***REMOVED*** 从Neo4j中分析
+        # 从Neo4j中分析
         try:
-            ***REMOVED*** 查询所有experience类型记忆
+            # 查询所有experience类型记忆
             query = """
             MATCH (m:Memory)
             WHERE m.memory_type = 'experience'
@@ -1171,7 +1171,7 @@ class ContextGraphTestFramework:
                     if reasoning:
                         print(f"       理由: {reasoning[:60]}...")
             
-            ***REMOVED*** 查询决策事件统计
+            # 查询决策事件统计
             event_query = """
             MATCH (de:DecisionEvent)
             RETURN count(de) as total_events
@@ -1184,7 +1184,7 @@ class ContextGraphTestFramework:
         except Exception as e:
             print(f"  ⚠ 分析Neo4j数据失败: {e}")
         
-        ***REMOVED*** 改进建议
+        # 改进建议
         print(f"\n【改进建议】")
         if summary["reasoning_coverage"] < 80:
             print(f"  ⚠ Reasoning覆盖率偏低 ({summary['reasoning_coverage']:.1f}%)，建议增强REFLECT提示词")
@@ -1210,7 +1210,7 @@ class ContextGraphTestFramework:
         final_script = scenario_result.get("final_script")
         if final_script and final_script.get("content"):
             scenario_name = scenario_result.get("scenario_name", f"scenario_{scenario_index}")
-            ***REMOVED*** 清理文件名中的特殊字符
+            # 清理文件名中的特殊字符
             safe_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in scenario_name)
             script_file = scripts_dir / f"{safe_name}_final_script.txt"
             with open(script_file, 'w', encoding='utf-8') as f:
@@ -1232,7 +1232,7 @@ class ContextGraphTestFramework:
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2, default=str)
         
-        ***REMOVED*** 检查是否所有场景的最终剧本都已保存（可能已经在每个场景结束后保存了）
+        # 检查是否所有场景的最终剧本都已保存（可能已经在每个场景结束后保存了）
         scripts_dir = Path(output_path).parent / "final_scripts"
         scripts_dir.mkdir(exist_ok=True)
         
@@ -1241,10 +1241,10 @@ class ContextGraphTestFramework:
             final_script = scenario.get("final_script")
             if final_script and final_script.get("content"):
                 scenario_name = scenario.get("scenario_name", f"scenario_{i}")
-                ***REMOVED*** 清理文件名中的特殊字符
+                # 清理文件名中的特殊字符
                 safe_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in scenario_name)
                 script_file = scripts_dir / f"{safe_name}_final_script.txt"
-                ***REMOVED*** 如果文件已存在，说明已经在场景结束时保存过了，跳过
+                # 如果文件已存在，说明已经在场景结束时保存过了，跳过
                 if not script_file.exists():
                     with open(script_file, 'w', encoding='utf-8') as f:
                         f.write(f"场景: {scenario_name}\n")
@@ -1257,7 +1257,7 @@ class ContextGraphTestFramework:
                     saved_count += 1
                     print(f"  ✓ 场景 {i} 最终剧本已保存: {script_file.name}")
                 else:
-                    saved_count += 1  ***REMOVED*** 已存在，计入总数
+                    saved_count += 1  # 已存在，计入总数
         
         print(f"\n测试结果已保存到: {output_path}")
         if saved_count > 0:
@@ -1276,23 +1276,23 @@ class ContextGraphTestFramework:
         
         evolution_actions = []
         
-        ***REMOVED*** 1. 提取高频反馈模式，总结为经验
+        # 1. 提取高频反馈模式，总结为经验
         print("【1. 提取反馈模式】")
         feedback_patterns = {}
         for scenario_result in results.get("scenarios", []):
             for step in scenario_result.get("steps", []):
                 if step.get("step") == "multi_round_optimization":
-                    ***REMOVED*** 可以分析反馈内容
+                    # 可以分析反馈内容
                     pass
         
-        ***REMOVED*** 2. 分析决策理由模式
+        # 2. 分析决策理由模式
         print("【2. 分析决策理由模式】")
         reasoning_patterns = {}
         for scenario_result in results.get("scenarios", []):
             for reasoning_data in scenario_result.get("reasoning_extracted", []):
                 reasoning = reasoning_data.get("reasoning", "")
                 if reasoning:
-                    ***REMOVED*** 提取关键词
+                    # 提取关键词
                     keywords = ["因为", "基于", "根据", "由于"]
                     for kw in keywords:
                         if kw in reasoning:
@@ -1304,7 +1304,7 @@ class ContextGraphTestFramework:
             for pattern, count in sorted(reasoning_patterns.items(), key=lambda x: x[1], reverse=True)[:5]:
                 print(f"    - {pattern}: {count}次")
         
-        ***REMOVED*** 3. 优化建议
+        # 3. 优化建议
         print("\n【3. 系统优化建议】")
         summary = results.get("summary", {})
         
@@ -1324,10 +1324,10 @@ class ContextGraphTestFramework:
             })
             print("  - 检查DecisionEvent节点创建逻辑")
         
-        ***REMOVED*** 4. 提取公共创作原则
+        # 4. 提取公共创作原则
         print("\n【4. 提取公共创作原则】")
         try:
-            ***REMOVED*** 查询所有experience记忆，提取创作原则
+            # 查询所有experience记忆，提取创作原则
             query = """
             MATCH (m:Memory)
             WHERE m.memory_type = 'experience' AND m.source IN ['reflect', 'reflect_implicit']
@@ -1388,16 +1388,16 @@ def main():
     
     framework = ContextGraphTestFramework()
     
-    ***REMOVED*** 运行所有测试
+    # 运行所有测试
     results = framework.run_all_tests()
     
-    ***REMOVED*** 保存结果
+    # 保存结果
     results_path = framework.save_results(results)
     
-    ***REMOVED*** 系统进化分析
+    # 系统进化分析
     evolution_report = framework.evolve_system(results)
     
-    ***REMOVED*** 保存进化报告
+    # 保存进化报告
     evolution_path = results_path.replace("_results_", "_evolution_")
     with open(evolution_path, 'w', encoding='utf-8') as f:
         json.dump(evolution_report, f, ensure_ascii=False, indent=2, default=str)

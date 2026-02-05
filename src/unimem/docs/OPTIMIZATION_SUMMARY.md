@@ -1,11 +1,11 @@
-***REMOVED*** Context Graph 优化总结
+# Context Graph 优化总结
 
-***REMOVED******REMOVED*** 优化时间
+## 优化时间
 2026-01-09
 
-***REMOVED******REMOVED*** 基于测试结果的优化
+## 基于测试结果的优化
 
-***REMOVED******REMOVED******REMOVED*** 测试发现的问题
+### 测试发现的问题
 
 1. **REFLECT经验提取不足**
    - 所有场景的`new_experiences`都是0
@@ -23,9 +23,9 @@
    - 场景5没有创建DecisionEvent节点
    - 需要确保所有有decision_trace的记忆都创建节点
 
-***REMOVED******REMOVED*** 已实施的优化
+## 已实施的优化
 
-***REMOVED******REMOVED******REMOVED*** 1. ✅ 增强REFLECT经验提取主动性
+### 1. ✅ 增强REFLECT经验提取主动性
 
 **文件**: `operation_adapter.py`
 
@@ -40,22 +40,22 @@
 
 **代码改进**:
 ```python
-***REMOVED*** 扩展提取条件
+# 扩展提取条件
 should_extract_implicit = (
     not new_experiences and (
         any(keyword in task.description.lower() for keyword in ["经验", "模式", "策略", "最佳实践", "总结", "优化", "改进"]) or
-        len(original_memories) >= 3  ***REMOVED*** 多轮对话，更可能有可提取的经验
+        len(original_memories) >= 3  # 多轮对话，更可能有可提取的经验
     )
 )
 
-***REMOVED*** 主动总结反馈模式
+# 主动总结反馈模式
 if not new_experiences and len(original_memories) >= 2:
     feedback_memories = [m for m in original_memories if m.metadata.get("source") == "user_feedback"]
     if len(feedback_memories) >= 2:
         pattern_summary = self._summarize_feedback_patterns(feedback_memories, task)
 ```
 
-***REMOVED******REMOVED******REMOVED*** 2. ✅ 确保反馈记忆包含decision_trace
+### 2. ✅ 确保反馈记忆包含decision_trace
 
 **文件**: `generate_video_script.py`
 
@@ -68,7 +68,7 @@ if not new_experiences and len(original_memories) >= 2:
 context = Context(
     metadata={
         "source": "user_feedback",
-        ***REMOVED*** ... 其他字段 ...
+        # ... 其他字段 ...
         "decision_trace": {
             "inputs": [feedback],
             "rules_applied": [
@@ -84,7 +84,7 @@ context = Context(
 )
 ```
 
-***REMOVED******REMOVED******REMOVED*** 3. ✅ 优化decision_trace构建逻辑
+### 3. ✅ 优化decision_trace构建逻辑
 
 **文件**: `core.py`
 
@@ -96,10 +96,10 @@ context = Context(
 
 **代码改进**:
 ```python
-***REMOVED*** 优先使用已有的decision_trace
+# 优先使用已有的decision_trace
 decision_trace = context.metadata.get("decision_trace") if context.metadata else None
 
-***REMOVED*** 如果没有，从metadata构建
+# 如果没有，从metadata构建
 if not decision_trace and context.metadata:
     has_trace_fields = any([
         context.metadata.get("inputs"),
@@ -109,11 +109,11 @@ if not decision_trace and context.metadata:
     ])
     
     if has_trace_fields:
-        decision_trace = {...}  ***REMOVED*** 构建完整trace
+        decision_trace = {...}  # 构建完整trace
     else:
-        decision_trace = {...}  ***REMOVED*** 构建基础trace
+        decision_trace = {...}  # 构建基础trace
 
-***REMOVED*** 确保必要字段存在
+# 确保必要字段存在
 if decision_trace:
     if "timestamp" not in decision_trace:
         decision_trace["timestamp"] = experience.timestamp.isoformat()
@@ -121,7 +121,7 @@ if decision_trace:
         decision_trace["operation_id"] = operation_id
 ```
 
-***REMOVED******REMOVED******REMOVED*** 4. ✅ 改进DecisionEvent节点创建条件
+### 4. ✅ 改进DecisionEvent节点创建条件
 
 **文件**: `core.py`
 
@@ -144,7 +144,7 @@ should_create_event = (
 )
 ```
 
-***REMOVED******REMOVED******REMOVED*** 5. ✅ 增强reasoning提取
+### 5. ✅ 增强reasoning提取
 
 **文件**: `core.py`
 
@@ -163,31 +163,31 @@ if not reasoning and context.metadata:
     elif context.metadata.get("source"):
         reasoning = f"来源：{context.metadata.get('source', '')}"
     else:
-        reasoning = ""  ***REMOVED*** 设置为空字符串而不是None
+        reasoning = ""  # 设置为空字符串而不是None
 ```
 
-***REMOVED******REMOVED*** 预期改进效果
+## 预期改进效果
 
-***REMOVED******REMOVED******REMOVED*** 1. 经验提取
+### 1. 经验提取
 - **预期**: 每个场景至少提取1条经验记忆
 - **方法**: 主动从多轮反馈中总结模式
 
-***REMOVED******REMOVED******REMOVED*** 2. Reasoning覆盖率
+### 2. Reasoning覆盖率
 - **当前**: 77.3%
 - **目标**: >85%
 - **方法**: 确保所有记忆都有reasoning（即使是从metadata推断的）
 
-***REMOVED******REMOVED******REMOVED*** 3. Decision_trace覆盖率
+### 3. Decision_trace覆盖率
 - **当前**: 部分场景25%
 - **目标**: >90%
 - **方法**: 确保所有反馈记忆都有decision_trace
 
-***REMOVED******REMOVED******REMOVED*** 4. DecisionEvent节点
+### 4. DecisionEvent节点
 - **当前**: 4个场景创建了节点
 - **目标**: 所有有decision_trace的场景都创建节点
 - **方法**: 改进创建条件判断
 
-***REMOVED******REMOVED*** 下一步测试建议
+## 下一步测试建议
 
 1. **重新运行测试**
    - 使用清空的unimem_memories集合
@@ -205,7 +205,7 @@ if not reasoning and context.metadata:
    - 增强经验提取的LLM提示
    - 检查DecisionEvent创建逻辑
 
-***REMOVED******REMOVED*** 总结
+## 总结
 
 所有优化已完成并验证通过语法检查。系统现在应该能够：
 - ✅ 更主动地提取经验模式

@@ -19,7 +19,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-***REMOVED*** 添加项目根目录到路径
+# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -59,7 +59,7 @@ class VideoScriptGenerator:
         
         if not skip_unimem:
             if self.use_service:
-                ***REMOVED*** 使用 HTTP 服务
+                # 使用 HTTP 服务
                 try:
                     from ..service.client import UniMemServiceClient
                     service_url = service_url or os.getenv("UNIMEM_SERVICE_URL", "http://localhost:9622")
@@ -71,12 +71,12 @@ class VideoScriptGenerator:
                     self.use_service = False
             
             if not self.use_service:
-                ***REMOVED*** 使用本地实例
+                # 使用本地实例
                 try:
                     if unimem_config:
                         self.unimem = UniMem(config=unimem_config)
                     else:
-                        ***REMOVED*** 使用生产配置（连接到 Redis、Neo4j、Qdrant）
+                        # 使用生产配置（连接到 Redis、Neo4j、Qdrant）
                         production_config = self._get_production_unimem_config()
                         self.unimem = UniMem(config=production_config)
                     logger.info("VideoScriptGenerator initialized with UniMem local instance")
@@ -84,7 +84,7 @@ class VideoScriptGenerator:
                     logger.warning(f"UniMem initialization failed: {e}, using standalone mode")
                     self.unimem = None
         
-        ***REMOVED*** 初始化 VideoAdapter（传入 UniMem 实例以启用深度集成）
+        # 初始化 VideoAdapter（传入 UniMem 实例以启用深度集成）
         self.adapter = VideoAdapter(
             config={},
             unimem_instance=self.unimem
@@ -105,7 +105,7 @@ class VideoScriptGenerator:
         这个配置使用外部服务，提供完整的持久化和检索功能
         """
         return {
-            ***REMOVED*** 图数据库配置（使用 Neo4j）
+            # 图数据库配置（使用 Neo4j）
             "graph": {
                 "backend": "neo4j",
                 "workspace": "./unimem_workspace",
@@ -117,23 +117,23 @@ class VideoScriptGenerator:
                 "neo4j_password": os.getenv("NEO4J_PASSWORD", "seeme_db"),
                 "neo4j_database": os.getenv("NEO4J_DATABASE", "neo4j"),
             },
-            ***REMOVED*** 向量数据库配置（使用 Qdrant）
+            # 向量数据库配置（使用 Qdrant）
             "vector": {
                 "backend": "qdrant"
             },
-            ***REMOVED*** 存储配置（使用 Redis）
+            # 存储配置（使用 Redis）
             "storage": {
                 "foa_backend": "redis",
                 "da_backend": "redis",
                 "ltm_backend": "neo4j",
             },
-            ***REMOVED*** 操作配置
+            # 操作配置
             "operation": {
                 "llm_provider": "ark_deepseek",
                 "llm_model": "deepseek-v3-2",
                 "llm_func": "ark_deepseek_v3_2",
             },
-            ***REMOVED*** 网络配置（使用本地模型和 Qdrant）
+            # 网络配置（使用本地模型和 Qdrant）
             "network": {
                 "model_name": "all-MiniLM-L6-v2",
                 "local_model_path": "/root/data/AI/pretrain/all-MiniLM-L6-v2",
@@ -144,12 +144,12 @@ class VideoScriptGenerator:
                 "qdrant_port": int(os.getenv("QDRANT_PORT", "6333")),
                 "collection_name": "unimem_memories",
             },
-            ***REMOVED*** 检索配置
+            # 检索配置
             "retrieval": {
                 "top_k": 10,
                 "rrf_k": 60,
             },
-            ***REMOVED*** 更新配置
+            # 更新配置
             "update": {
                 "sleep_interval": 3600,
             },
@@ -163,31 +163,31 @@ class VideoScriptGenerator:
         这个配置允许 UniMem 运行，即使外部服务不可用也会优雅降级
         """
         return {
-            ***REMOVED*** 图数据库配置（使用 networkx 作为降级选项）
+            # 图数据库配置（使用 networkx 作为降级选项）
             "graph": {
-                "backend": "networkx",  ***REMOVED*** 即使不可用，也会优雅降级
+                "backend": "networkx",  # 即使不可用，也会优雅降级
                 "workspace": "./unimem_workspace",
                 "llm_provider": "ark_deepseek",
                 "llm_model": "deepseek-v3-2",
                 "embedding_model": "text-embedding-3-small",
             },
-            ***REMOVED*** 向量数据库配置（即使不可用，也会优雅降级）
+            # 向量数据库配置（即使不可用，也会优雅降级）
             "vector": {
-                "backend": "qdrant"  ***REMOVED*** 即使不可用，也会优雅降级
+                "backend": "qdrant"  # 即使不可用，也会优雅降级
             },
-            ***REMOVED*** 存储配置（使用内存存储）
+            # 存储配置（使用内存存储）
             "storage": {
                 "foa_backend": "memory",
                 "da_backend": "memory",
                 "ltm_backend": "memory",
             },
-            ***REMOVED*** 操作配置
+            # 操作配置
             "operation": {
                 "llm_provider": "ark_deepseek",
                 "llm_model": "deepseek-v3-2",
                 "llm_func": "ark_deepseek_v3_2",
             },
-            ***REMOVED*** 网络配置（使用本地模型）
+            # 网络配置（使用本地模型）
             "network": {
                 "model_name": "all-MiniLM-L6-v2",
                 "local_model_path": "/root/data/AI/pretrain/all-MiniLM-L6-v2",
@@ -198,18 +198,18 @@ class VideoScriptGenerator:
                 "qdrant_port": 6333,
                 "collection_name": "unimem_memories",
             },
-            ***REMOVED*** 检索配置
+            # 检索配置
             "retrieval": {
                 "top_k": 10,
                 "rrf_k": 60,
             },
-            ***REMOVED*** 更新配置
+            # 更新配置
             "update": {
                 "sleep_interval": 3600,
             },
         }
         
-        ***REMOVED*** 初始化 VideoAdapter（传入 UniMem 实例以启用深度集成）
+        # 初始化 VideoAdapter（传入 UniMem 实例以启用深度集成）
         self.adapter = VideoAdapter(
             config={},
             unimem_instance=self.unimem
@@ -265,7 +265,7 @@ class VideoScriptGenerator:
         """
         logger.info("Generating video script...")
         
-        ***REMOVED*** 自动判断是否使用 UniMem
+        # 自动判断是否使用 UniMem
         if use_unimem is None:
             use_unimem = self.unimem is not None
         
@@ -279,8 +279,8 @@ class VideoScriptGenerator:
             video_type=doc_data.get("video_type", "ecommerce"),
             duration_seconds=doc_data.get("duration_seconds", 60),
             platform=doc_data.get("platform", "douyin"),
-            use_unimem_retrieval=use_unimem,  ***REMOVED*** 根据是否有 UniMem 实例决定
-            store_to_unimem=use_unimem  ***REMOVED*** 根据是否有 UniMem 实例决定
+            use_unimem_retrieval=use_unimem,  # 根据是否有 UniMem 实例决定
+            store_to_unimem=use_unimem  # 根据是否有 UniMem 实例决定
         )
         
         if script:
@@ -345,18 +345,18 @@ class VideoScriptGenerator:
         """
         logger.info("Optimizing script based on user feedback...")
         
-        ***REMOVED*** ========== 增强1：在优化前检索相关的历史反馈和成功模式 ==========
+        # ========== 增强1：在优化前检索相关的历史反馈和成功模式 ==========
         if self.unimem and original_script:
             video_type = original_doc_data.get("video_type", "ecommerce")
             platform = original_doc_data.get("platform", "douyin")
             
-            ***REMOVED*** 检索相关的历史反馈和成功模式
+            # 检索相关的历史反馈和成功模式
             feedback_query = f"{video_type} {platform} 用户反馈 修改需求 优化经验"
             try:
                 if hasattr(self.unimem, 'base_url'):
                     feedback_results = self.unimem.recall(
                         query=feedback_query,
-                        memory_type=MemoryType.EXPERIENCE,  ***REMOVED*** 优先检索经验类型
+                        memory_type=MemoryType.EXPERIENCE,  # 优先检索经验类型
                         top_k=5
                     )
                 else:
@@ -369,11 +369,11 @@ class VideoScriptGenerator:
                 
                 if feedback_results:
                     logger.info(f"Retrieved {len(feedback_results)} relevant feedback memories for optimization")
-                    ***REMOVED*** 将历史反馈经验加入到修改需求中（作为参考，但不强制执行）
+                    # 将历史反馈经验加入到修改需求中（作为参考，但不强制执行）
                     historical_feedback = [
                         f"[历史经验参考] {r.memory.content[:100]}"
                         for r in feedback_results[:3]
-                        if r.memory and r.score > 0.6  ***REMOVED*** 只使用相似度较高的
+                        if r.memory and r.score > 0.6  # 只使用相似度较高的
                     ]
                     if historical_feedback:
                         modification_feedback = historical_feedback + modification_feedback
@@ -381,30 +381,30 @@ class VideoScriptGenerator:
             except Exception as e:
                 logger.warning(f"Failed to retrieve historical feedback: {e}")
         
-        ***REMOVED*** ========== 增强2：提取结构化的修改需求 ==========
+        # ========== 增强2：提取结构化的修改需求 ==========
         structured_feedback = self._extract_structured_feedback(modification_feedback)
         if structured_feedback:
             logger.info(f"Extracted structured feedback: {len(structured_feedback.get('high_priority', []))} high, "
                        f"{len(structured_feedback.get('medium_priority', []))} medium, "
                        f"{len(structured_feedback.get('low_priority', []))} low")
-            ***REMOVED*** 按照优先级排序修改需求
+            # 按照优先级排序修改需求
             modification_feedback = (
                 structured_feedback.get("high_priority", []) +
                 structured_feedback.get("medium_priority", []) +
                 structured_feedback.get("low_priority", [])
             )
         
-        ***REMOVED*** 累积修改需求：将本次的修改需求添加到已有的修改需求中
+        # 累积修改需求：将本次的修改需求添加到已有的修改需求中
         if accumulated_modifications is not None:
-            ***REMOVED*** 如果提供了已累积的修改需求，使用它并追加新的
+            # 如果提供了已累积的修改需求，使用它并追加新的
             all_modifications = accumulated_modifications + modification_feedback
         else:
-            ***REMOVED*** 否则从原始文档数据中获取已有的修改需求，并追加新的
+            # 否则从原始文档数据中获取已有的修改需求，并追加新的
             all_modifications = (
                 original_doc_data.get("modification_memories", []) + modification_feedback
             )
         
-        ***REMOVED*** 将累积的修改需求添加到文档数据中
+        # 将累积的修改需求添加到文档数据中
         optimized_doc_data = original_doc_data.copy()
         optimized_doc_data["modification_memories"] = all_modifications
         
@@ -412,9 +412,9 @@ class VideoScriptGenerator:
                    f"(existing: {len(all_modifications) - len(modification_feedback)}, "
                    f"new: {len(modification_feedback)})")
         
-        ***REMOVED*** 如果提供了原始剧本，使用优化方法
+        # 如果提供了原始剧本，使用优化方法
         if original_script:
-            ***REMOVED*** 传递所有累积的修改需求作为反馈，并包含结构化信息
+            # 传递所有累积的修改需求作为反馈，并包含结构化信息
             feedback_text = "\n".join(all_modifications)
             if structured_feedback:
                 feedback_text = f"[优先级排序的修改需求]\n{feedback_text}"
@@ -424,20 +424,20 @@ class VideoScriptGenerator:
                 feedback=feedback_text
             )
             
-            ***REMOVED*** 改进：将优化后的脚本存储到UniMem（如果UniMem可用）
+            # 改进：将优化后的脚本存储到UniMem（如果UniMem可用）
             if optimized_script and self.unimem and self.adapter:
                 try:
-                    ***REMOVED*** 获取原始脚本的memory_id（如果有）
+                    # 获取原始脚本的memory_id（如果有）
                     original_script_memory_id = original_script.get("unimem_memory_id")
                     
-                    ***REMOVED*** 存储优化后的脚本到UniMem
+                    # 存储优化后的脚本到UniMem
                     video_type = original_doc_data.get("video_type", "ecommerce")
                     platform = original_doc_data.get("platform", "douyin")
                     task_memories = original_doc_data.get("task_memories", [])
                     
-                    ***REMOVED*** 构建包含反馈信息的decision_trace
+                    # 构建包含反馈信息的decision_trace
                     optimized_decision_trace = {
-                        "inputs": task_memories[:5] + all_modifications[:3],  ***REMOVED*** 任务记忆 + 反馈
+                        "inputs": task_memories[:5] + all_modifications[:3],  # 任务记忆 + 反馈
                         "rules_applied": [
                             f"{platform}平台规则",
                             f"{video_type}类型脚本规范",
@@ -448,10 +448,10 @@ class VideoScriptGenerator:
                         "approvals": ["用户反馈确认"],
                         "timestamp": datetime.now().isoformat(),
                         "operation_id": f"optimize_{original_script_memory_id}_{datetime.now().timestamp()}" if original_script_memory_id else f"optimize_{datetime.now().timestamp()}",
-                        "based_on_script": original_script_memory_id  ***REMOVED*** 记录基于哪个脚本优化
+                        "based_on_script": original_script_memory_id  # 记录基于哪个脚本优化
                     }
                     
-                    ***REMOVED*** 创建Experience和Context
+                    # 创建Experience和Context
                     from unimem.memory_types import Experience, Context
                     experience = Experience(
                         content=f"优化后的脚本（基于用户反馈）：{optimized_script.get('summary', {}).get('title', '')}",
@@ -471,18 +471,18 @@ class VideoScriptGenerator:
                         }
                     )
                     
-                    ***REMOVED*** 存储优化后的脚本
+                    # 存储优化后的脚本
                     optimized_memory = self.unimem.retain(experience, context)
                     optimized_script["unimem_memory_id"] = optimized_memory.id
                     logger.info(f"Stored optimized script to UniMem: memory_id={optimized_memory.id}")
                     
-                    ***REMOVED*** 建立与原始脚本的关系
+                    # 建立与原始脚本的关系
                     if original_script_memory_id:
                         optimized_memory.links.add(original_script_memory_id)
                         if hasattr(self.unimem, 'storage') and hasattr(self.unimem.storage, 'update_memory'):
                             self.unimem.storage.update_memory(optimized_memory)
                     
-                    ***REMOVED*** 为优化后的脚本创建DecisionEvent
+                    # 为优化后的脚本创建DecisionEvent
                     if optimized_memory.decision_trace:
                         from unimem.neo4j import create_decision_event
                         if create_decision_event(
@@ -495,16 +495,16 @@ class VideoScriptGenerator:
                 except Exception as e:
                     logger.warning(f"Failed to store optimized script to UniMem: {e}")
         else:
-            ***REMOVED*** 否则重新生成
+            # 否则重新生成
             optimized_script = self.generate_script(optimized_doc_data)
         
-        ***REMOVED*** ========== 增强3：优化后评估改进效果 ==========
+        # ========== 增强3：优化后评估改进效果 ==========
         if optimized_script and original_script:
             improvement_assessment = self._assess_improvement(original_script, optimized_script, all_modifications)
             if improvement_assessment:
                 optimized_script["improvement_assessment"] = improvement_assessment
                 logger.info(f"Improvement assessment: {improvement_assessment.get('overall_score', 'N/A')}/10")
-                ***REMOVED*** 如果改进效果显著，存储为成功经验
+                # 如果改进效果显著，存储为成功经验
                 if improvement_assessment.get("overall_score", 0) >= 7:
                     self._store_optimization_experience(
                         all_modifications, original_script, optimized_script, improvement_assessment
@@ -534,19 +534,19 @@ class VideoScriptGenerator:
                 timestamp=datetime.now()
             )
             
-            ***REMOVED*** 改进1：从关联的脚本Memory继承decision_trace
+            # 改进1：从关联的脚本Memory继承decision_trace
             inherited_decision_trace = None
             if script_memory_id:
                 try:
                     from unimem.neo4j import get_memory
                     script_memory = get_memory(script_memory_id)
                     if script_memory and script_memory.decision_trace:
-                        ***REMOVED*** 继承脚本Memory的decision_trace，但更新inputs和operation_id
+                        # 继承脚本Memory的decision_trace，但更新inputs和operation_id
                         inherited_decision_trace = script_memory.decision_trace.copy()
-                        inherited_decision_trace["inputs"] = [feedback]  ***REMOVED*** 更新为当前反馈
+                        inherited_decision_trace["inputs"] = [feedback]  # 更新为当前反馈
                         inherited_decision_trace["operation_id"] = f"feedback_{script_memory_id}_{datetime.now().timestamp()}"
                         inherited_decision_trace["timestamp"] = datetime.now().isoformat()
-                        ***REMOVED*** 添加反馈相关的规则
+                        # 添加反馈相关的规则
                         if "rules_applied" in inherited_decision_trace:
                             inherited_decision_trace["rules_applied"].extend([
                                 "用户反馈优先原则",
@@ -563,7 +563,7 @@ class VideoScriptGenerator:
                 except Exception as e:
                     logger.warning(f"Failed to inherit decision_trace from script memory {script_memory_id}: {e}")
             
-            ***REMOVED*** 如果没有继承到decision_trace，创建新的
+            # 如果没有继承到decision_trace，创建新的
             if not inherited_decision_trace:
                 inherited_decision_trace = {
                     "inputs": [feedback],
@@ -580,47 +580,47 @@ class VideoScriptGenerator:
             
             context = Context(
                 metadata={
-                    "source": "user_feedback",  ***REMOVED*** 明确标识来源
+                    "source": "user_feedback",  # 明确标识来源
                     "task_description": "用户对视频剧本的反馈和修改需求",
                     "feedback_type": "script_modification",
                     "related_script_id": script_memory_id,
-                    ***REMOVED*** 决策痕迹（Context Graph增强）
-                    "inputs": [feedback],  ***REMOVED*** 用户反馈作为输入
+                    # 决策痕迹（Context Graph增强）
+                    "inputs": [feedback],  # 用户反馈作为输入
                     "rules": [
                         "用户反馈优先原则",
                         "脚本优化规范",
                         "用户体验改进要求"
                     ],
-                    "exceptions": [],  ***REMOVED*** 可以记录特殊反馈情况
-                    "approvals": ["用户确认"],  ***REMOVED*** 用户反馈本身就是一种确认
+                    "exceptions": [],  # 可以记录特殊反馈情况
+                    "approvals": ["用户确认"],  # 用户反馈本身就是一种确认
                     "reasoning": f"用户反馈要求：{feedback[:100]}，需要据此优化脚本",
-                    ***REMOVED*** 使用继承或新建的decision_trace
+                    # 使用继承或新建的decision_trace
                     "decision_trace": inherited_decision_trace
                 }
             )
             
-            ***REMOVED*** 在retain之前设置links，确保关系被正确建立
-            ***REMOVED*** 注意：需要在retain之前通过context.metadata传递links信息
+            # 在retain之前设置links，确保关系被正确建立
+            # 注意：需要在retain之前通过context.metadata传递links信息
             if script_memory_id:
                 if not context.metadata:
                     context.metadata = {}
-                ***REMOVED*** 将脚本Memory ID添加到metadata中，retain方法会处理
+                # 将脚本Memory ID添加到metadata中，retain方法会处理
                 context.metadata["related_script_id"] = script_memory_id
-                ***REMOVED*** 同时设置links（如果retain方法支持从metadata读取）
+                # 同时设置links（如果retain方法支持从metadata读取）
                 if "links" not in context.metadata:
                     context.metadata["links"] = [script_memory_id]
             
             memory = self.unimem.retain(experience, context)
             logger.info(f"Feedback stored to UniMem: memory_id={memory.id}")
             
-            ***REMOVED*** 建立与脚本Memory的关系（改进：建立Memory关系网络）
+            # 建立与脚本Memory的关系（改进：建立Memory关系网络）
             if script_memory_id and memory.id:
                 try:
-                    ***REMOVED*** 确保links被设置
+                    # 确保links被设置
                     if not memory.links:
                         memory.links = set()
                     memory.links.add(script_memory_id)
-                    ***REMOVED*** 更新Memory以建立RELATED_TO关系
+                    # 更新Memory以建立RELATED_TO关系
                     if hasattr(self.unimem, 'storage') and hasattr(self.unimem.storage, 'update_memory'):
                         self.unimem.storage.update_memory(memory)
                         logger.debug(f"Established relationship: feedback memory {memory.id} -> script memory {script_memory_id}")
@@ -629,7 +629,7 @@ class VideoScriptGenerator:
                 except Exception as e:
                     logger.warning(f"Failed to establish relationship with script memory {script_memory_id}: {e}")
             
-            ***REMOVED*** 改进2：为反馈Memory创建DecisionEvent
+            # 改进2：为反馈Memory创建DecisionEvent
             if memory.decision_trace:
                 try:
                     from unimem.neo4j import create_decision_event
@@ -832,10 +832,10 @@ class VideoScriptGenerator:
         import re
         
         try:
-            ***REMOVED*** 尝试直接解析
+            # 尝试直接解析
             return json.loads(text)
         except json.JSONDecodeError:
-            ***REMOVED*** 尝试提取JSON代码块
+            # 尝试提取JSON代码块
             json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
             if json_match:
                 try:
@@ -873,38 +873,38 @@ class VideoScriptGenerator:
             return None
         
         try:
-            ***REMOVED*** 通过 recall 检索相关的剧本创作记忆
-            ***REMOVED*** 使用视频类型和平台作为查询，这样可以检索到相关的所有记忆
+            # 通过 recall 检索相关的剧本创作记忆
+            # 使用视频类型和平台作为查询，这样可以检索到相关的所有记忆
             query = f"{video_type} {platform} 短视频脚本 剧本创作"
-            ***REMOVED*** 检查是否是 HTTP 服务客户端（不需要 context 参数）
+            # 检查是否是 HTTP 服务客户端（不需要 context 参数）
             if hasattr(self.unimem, 'base_url'):
                 results = self.unimem.recall(
                     query=query,
-                    top_k=min(10, len(script_memory_ids) * 2)  ***REMOVED*** 检索足够多的相关记忆
+                    top_k=min(10, len(script_memory_ids) * 2)  # 检索足够多的相关记忆
                 )
             else:
                 results = self.unimem.recall(
                     query=query,
                     context=Context(),
-                    top_k=min(10, len(script_memory_ids) * 2)  ***REMOVED*** 检索足够多的相关记忆
+                    top_k=min(10, len(script_memory_ids) * 2)  # 检索足够多的相关记忆
                 )
             
-            ***REMOVED*** 筛选出与当前剧本相关的记忆
+            # 筛选出与当前剧本相关的记忆
             memories_to_reflect = []
             memory_id_set = set(script_memory_ids)
             
             for result in results:
                 memory = result.memory
-                ***REMOVED*** 检查是否是我们要反思的记忆，或者与这些记忆相关
+                # 检查是否是我们要反思的记忆，或者与这些记忆相关
                 if (memory.id in memory_id_set or 
                     any(linked_id in memory_id_set for linked_id in memory.links) or
                     memory.metadata.get("video_type") == video_type and 
                     memory.metadata.get("platform") == platform):
                     memories_to_reflect.append(memory)
             
-            ***REMOVED*** 如果通过 recall 没有找到足够的记忆，尝试直接使用存储适配器获取
+            # 如果通过 recall 没有找到足够的记忆，尝试直接使用存储适配器获取
             if len(memories_to_reflect) < len(script_memory_ids):
-                ***REMOVED*** 尝试从存储中直接获取记忆（如果存储适配器支持）
+                # 尝试从存储中直接获取记忆（如果存储适配器支持）
                 logger.info(f"Recall found {len(memories_to_reflect)} memories, trying direct retrieval from storage")
                 if hasattr(self.unimem, 'storage') and hasattr(self.unimem.storage, 'get_memory'):
                     for memory_id in script_memory_ids[:5]:
@@ -917,21 +917,21 @@ class VideoScriptGenerator:
                             except Exception as e:
                                 logger.debug(f"Could not get memory {memory_id} directly: {e}")
                 else:
-                    ***REMOVED*** 如果存储适配器不支持直接获取，尝试从 operation_adapter 中获取
-                    ***REMOVED*** 由于刚存储的记忆可能还没被索引，我们直接使用我们已知的 memory_ids
-                    ***REMOVED*** 创建一个简化的 Memory 对象用于 REFLECT
+                    # 如果存储适配器不支持直接获取，尝试从 operation_adapter 中获取
+                    # 由于刚存储的记忆可能还没被索引，我们直接使用我们已知的 memory_ids
+                    # 创建一个简化的 Memory 对象用于 REFLECT
                     logger.info("Storage adapter doesn't support direct retrieval, using script memory IDs directly")
-                    ***REMOVED*** 这里我们至少可以尝试 REFLECT，即使没有完整的记忆对象
-                    ***REMOVED*** REFLECT 操作应该能够处理这种情况
+                    # 这里我们至少可以尝试 REFLECT，即使没有完整的记忆对象
+                    # REFLECT 操作应该能够处理这种情况
             
-            ***REMOVED*** 如果仍然没有记忆，但提供了 script_memory_ids，我们至少记录这些 IDs
+            # 如果仍然没有记忆，但提供了 script_memory_ids，我们至少记录这些 IDs
             if not memories_to_reflect and script_memory_ids:
                 logger.warning(f"No memories found for reflection, but we have {len(script_memory_ids)} memory IDs: {script_memory_ids}")
-                ***REMOVED*** 尝试创建一个简化的任务，即使没有完整的记忆对象
-                ***REMOVED*** 这种情况下，REFLECT 可能无法完成，但我们至少尝试了
+                # 尝试创建一个简化的任务，即使没有完整的记忆对象
+                # 这种情况下，REFLECT 可能无法完成，但我们至少尝试了
                 return None
             
-            ***REMOVED*** 创建 REFLECT 任务（增强版：更具体的总结要求）
+            # 创建 REFLECT 任务（增强版：更具体的总结要求）
             task = Task(
                 id=f"reflect_script_{video_type}_{platform}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 description=f"总结{video_type}类型{platform}平台短视频剧本创作的成功模式和经验",
@@ -957,7 +957,7 @@ class VideoScriptGenerator:
                 """.strip()
             )
             
-            ***REMOVED*** 创建上下文（包含 Agent Profile）
+            # 创建上下文（包含 Agent Profile）
             context = Context(
                 metadata={
                     "task_description": "短视频剧本创作经验总结",
@@ -966,14 +966,14 @@ class VideoScriptGenerator:
                     "iteration_count": iteration_count,
                     "agent_background": "专业的短视频创作助手，擅长总结创作经验和优化策略",
                     "agent_disposition": {
-                        "skepticism": 2,  ***REMOVED*** 适度怀疑，但信任成功经验
-                        "literalism": 3,  ***REMOVED*** 平衡字面和灵活理解
-                        "empathy": 4  ***REMOVED*** 高同理心，理解用户需求
+                        "skepticism": 2,  # 适度怀疑，但信任成功经验
+                        "literalism": 3,  # 平衡字面和灵活理解
+                        "empathy": 4  # 高同理心，理解用户需求
                     }
                 }
             )
             
-            ***REMOVED*** 执行 REFLECT 操作
+            # 执行 REFLECT 操作
             logger.info(f"REFLECT: Reflecting on {len(memories_to_reflect)} script memories")
             evolved_memories = self.unimem.reflect(memories_to_reflect, task, context)
             
@@ -994,7 +994,7 @@ def interactive_mode(generator: VideoScriptGenerator):
     print("短视频剧本生成器 - 交互式模式")
     print("="*60 + "\n")
     
-    ***REMOVED*** 1. 创建或选择 Word 模板
+    # 1. 创建或选择 Word 模板
     template_path = "video_script_template.docx"
     if not os.path.exists(template_path):
         print(f"正在创建 Word 模板: {template_path}")
@@ -1003,7 +1003,7 @@ def interactive_mode(generator: VideoScriptGenerator):
         print(f"或者直接提供已填写的 Word 文档路径。")
         return
     
-    ***REMOVED*** 2. 解析 Word 文档
+    # 2. 解析 Word 文档
     doc_path = input(f"请输入 Word 文档路径（直接回车使用 {template_path}）: ").strip()
     if not doc_path:
         doc_path = template_path
@@ -1015,7 +1015,7 @@ def interactive_mode(generator: VideoScriptGenerator):
     print(f"\n正在解析文档: {doc_path}")
     doc_data = generator.parse_word_document(doc_path)
     
-    ***REMOVED*** 显示解析结果
+    # 显示解析结果
     print("\n解析结果：")
     print(f"  视频类型: {doc_data.get('video_type')}")
     print(f"  目标平台: {doc_data.get('platform')}")
@@ -1023,7 +1023,7 @@ def interactive_mode(generator: VideoScriptGenerator):
     print(f"  任务需求: {len(doc_data.get('task_memories', []))} 条")
     print(f"  通用记忆: {len(doc_data.get('general_memories', []))} 条")
     
-    ***REMOVED*** 3. 生成初始剧本
+    # 3. 生成初始剧本
     print("\n正在生成初始剧本...")
     script = generator.generate_script(doc_data)
     
@@ -1031,7 +1031,7 @@ def interactive_mode(generator: VideoScriptGenerator):
         print("错误：剧本生成失败")
         return
     
-    ***REMOVED*** 显示剧本摘要
+    # 显示剧本摘要
     print("\n" + "="*60)
     print("生成的剧本摘要：")
     print("="*60)
@@ -1045,37 +1045,37 @@ def interactive_mode(generator: VideoScriptGenerator):
     if "unimem_memory_id" in script:
         print(f"UniMem记忆ID: {script['unimem_memory_id']}")
     
-    ***REMOVED*** 保存剧本到文件
+    # 保存剧本到文件
     script_path = "generated_script.json"
     with open(script_path, "w", encoding="utf-8") as f:
         json.dump(script, f, ensure_ascii=False, indent=2)
     print(f"\n完整剧本已保存到: {script_path}")
     
-    ***REMOVED*** 4. 交互式优化循环（支持多次对话累积修改需求）
+    # 4. 交互式优化循环（支持多次对话累积修改需求）
     script_memory_id = script.get("unimem_memory_id")
     iteration = 0
-    accumulated_modifications = doc_data.get("modification_memories", []).copy()  ***REMOVED*** 累积所有修改需求
-    script_memory_ids = [script_memory_id] if script_memory_id else []  ***REMOVED*** 累积所有剧本记忆 ID
+    accumulated_modifications = doc_data.get("modification_memories", []).copy()  # 累积所有修改需求
+    script_memory_ids = [script_memory_id] if script_memory_id else []  # 累积所有剧本记忆 ID
     
-    ***REMOVED*** 显示初始的修改需求（如果有）
+    # 显示初始的修改需求（如果有）
     if accumulated_modifications:
         print(f"\n初始文档中的修改需求（{len(accumulated_modifications)} 条）：")
         for i, mod in enumerate(accumulated_modifications, 1):
             print(f"  {i}. {mod}")
     
-    ***REMOVED*** REFLECT 触发条件：每3次优化后自动触发
+    # REFLECT 触发条件：每3次优化后自动触发
     REFLECT_INTERVAL = 3
     
     while True:
         iteration += 1
         print("\n" + "="*60)
-        print(f"优化迭代 ***REMOVED***{iteration}")
+        print(f"优化迭代 #{iteration}")
         print("="*60)
         
-        ***REMOVED*** 显示已累积的修改需求
+        # 显示已累积的修改需求
         if accumulated_modifications:
             print(f"\n已累积的修改需求（共 {len(accumulated_modifications)} 条）：")
-            for i, mod in enumerate(accumulated_modifications[-5:], 1):  ***REMOVED*** 只显示最近5条
+            for i, mod in enumerate(accumulated_modifications[-5:], 1):  # 只显示最近5条
                 print(f"  {i}. {mod}")
             if len(accumulated_modifications) > 5:
                 print(f"  ... 还有 {len(accumulated_modifications) - 5} 条修改需求")
@@ -1085,7 +1085,7 @@ def interactive_mode(generator: VideoScriptGenerator):
         if not user_input or user_input.lower() == 'quit':
             break
         
-        ***REMOVED*** 提取修改需求（传入已有的修改需求，避免重复提取）
+        # 提取修改需求（传入已有的修改需求，避免重复提取）
         modifications = generator.extract_modification_feedback(
             user_input, 
             existing_modifications=accumulated_modifications
@@ -1099,44 +1099,44 @@ def interactive_mode(generator: VideoScriptGenerator):
         for i, mod in enumerate(modifications, 1):
             print(f"  {i}. {mod}")
         
-        ***REMOVED*** 将新的修改需求添加到累积列表中
+        # 将新的修改需求添加到累积列表中
         accumulated_modifications.extend(modifications)
         print(f"\n累积修改需求总数：{len(accumulated_modifications)} 条")
         
-        ***REMOVED*** 存储反馈到 UniMem
+        # 存储反馈到 UniMem
         feedback_memory_id = generator.store_feedback_to_unimem(
             feedback=user_input,
             script_memory_id=script_memory_id
         )
         
-        ***REMOVED*** 优化并重新生成（传入累积的修改需求）
+        # 优化并重新生成（传入累积的修改需求）
         print("\n正在基于所有累积的反馈优化剧本...")
         optimized_script = generator.optimize_and_regenerate(
             original_doc_data=doc_data,
-            modification_feedback=modifications,  ***REMOVED*** 本次新增的修改需求
+            modification_feedback=modifications,  # 本次新增的修改需求
             original_script=script,
-            accumulated_modifications=accumulated_modifications  ***REMOVED*** 所有累积的修改需求
+            accumulated_modifications=accumulated_modifications  # 所有累积的修改需求
         )
         
         if not optimized_script:
             print("优化失败，请重试。")
-            ***REMOVED*** 如果优化失败，回退本次添加的修改需求
+            # 如果优化失败，回退本次添加的修改需求
             accumulated_modifications = accumulated_modifications[:-len(modifications)]
             continue
         
-        ***REMOVED*** 显示优化后的摘要
+        # 显示优化后的摘要
         print("\n优化后的剧本摘要：")
         optimized_summary = optimized_script.get("summary", {})
         print(f"开头亮点: {optimized_summary.get('hook', 'N/A')}")
         print(f"核心内容: {optimized_summary.get('core_content', 'N/A')}")
         
-        ***REMOVED*** 保存优化后的剧本
+        # 保存优化后的剧本
         optimized_script_path = f"generated_script_optimized_v{iteration}.json"
         with open(optimized_script_path, "w", encoding="utf-8") as f:
             json.dump(optimized_script, f, ensure_ascii=False, indent=2)
         print(f"\n优化后的剧本已保存到: {optimized_script_path}")
         
-        ***REMOVED*** 更新当前剧本
+        # 更新当前剧本
         script = optimized_script
         if "unimem_memory_id" in script:
             new_memory_id = script["unimem_memory_id"]
@@ -1144,11 +1144,11 @@ def interactive_mode(generator: VideoScriptGenerator):
                 script_memory_ids.append(new_memory_id)
             script_memory_id = new_memory_id
         
-        ***REMOVED*** 更新文档数据中的修改需求（用于下次优化）
+        # 更新文档数据中的修改需求（用于下次优化）
         doc_data["modification_memories"] = accumulated_modifications.copy()
         
-        ***REMOVED*** ========== 增强：每轮优化后自动评估并总结 ==========
-        if iteration > 0 and iteration % 2 == 0:  ***REMOVED*** 每2轮优化后评估
+        # ========== 增强：每轮优化后自动评估并总结 ==========
+        if iteration > 0 and iteration % 2 == 0:  # 每2轮优化后评估
             logger.info(f"触发自动REFLECT操作（已优化{iteration}轮）...")
             if script_memory_ids:
                 evolved_ids = self.reflect_on_script_creation(
@@ -1160,7 +1160,7 @@ def interactive_mode(generator: VideoScriptGenerator):
                 if evolved_ids:
                     logger.info(f"REFLECT完成，生成{len(evolved_ids)}个演化记忆")
         
-        ***REMOVED*** 每 REFLECT_INTERVAL 次优化后，自动触发 REFLECT 操作
+        # 每 REFLECT_INTERVAL 次优化后，自动触发 REFLECT 操作
         if iteration % REFLECT_INTERVAL == 0 and iteration > 0:
             print(f"\n{'='*60}")
             print(f"触发 REFLECT 操作（已优化 {iteration} 次）")
@@ -1182,7 +1182,7 @@ def interactive_mode(generator: VideoScriptGenerator):
         
         print("\n优化完成！您可以继续提供反馈，或输入 'quit' 退出。")
     
-    ***REMOVED*** 交互式循环结束时，执行最终的 REFLECT 操作
+    # 交互式循环结束时，执行最终的 REFLECT 操作
     if iteration > 0 and script_memory_ids:
         print(f"\n{'='*60}")
         print("执行最终 REFLECT 操作：总结本次创作经验")
@@ -1221,14 +1221,14 @@ def main():
     
     args = parser.parse_args()
     
-    ***REMOVED*** 如果只是创建模板，跳过 UniMem 初始化
+    # 如果只是创建模板，跳过 UniMem 初始化
     if args.template:
         generator = VideoScriptGenerator(skip_unimem=True)
         generator.create_template(args.template_path)
         print(f"模板已创建: {args.template_path}")
         return
     
-    ***REMOVED*** 尝试初始化 UniMem，如果失败则使用独立模式
+    # 尝试初始化 UniMem，如果失败则使用独立模式
     try:
         generator = VideoScriptGenerator()
         print("✓ UniMem 已启用，将使用记忆检索和存储功能")
@@ -1237,30 +1237,30 @@ def main():
         print("⚠ 将使用独立模式（不使用 UniMem 功能）")
         generator = VideoScriptGenerator(skip_unimem=True)
     
-    ***REMOVED*** 交互式模式
+    # 交互式模式
     if args.interactive:
         if generator.unimem is None:
             print("⚠ 注意：独立模式下，交互式优化功能可能受限")
         interactive_mode(generator)
         return
     
-    ***REMOVED*** 命令行模式
+    # 命令行模式
     if args.doc:
-        ***REMOVED*** 解析文档
+        # 解析文档
         doc_data = generator.parse_word_document(args.doc)
         
-        ***REMOVED*** 生成剧本
+        # 生成剧本
         script = generator.generate_script(doc_data)
         
         if script:
-            ***REMOVED*** 保存剧本
+            # 保存剧本
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(script, f, ensure_ascii=False, indent=2)
             print(f"剧本已生成并保存到: {args.output}")
         else:
             print("剧本生成失败")
     else:
-        ***REMOVED*** 默认：交互式模式
+        # 默认：交互式模式
         if generator.unimem is None:
             print("⚠ 注意：独立模式下，交互式优化功能可能受限")
         interactive_mode(generator)

@@ -1,5 +1,5 @@
-***REMOVED***!/bin/bash
-***REMOVED*** 监控重写机制修复验证测试进度（需在 src 下执行，或从项目根执行时路径已自动切到 src）
+#!/bin/bash
+# 监控重写机制修复验证测试进度（需在 src 下执行，或从项目根执行时路径已自动切到 src）
 
 TEST_LOG="/tmp/test_rewrite_fix_verification.log"
 OUTPUT_DIR="task/novel/outputs/重写机制修复验证"

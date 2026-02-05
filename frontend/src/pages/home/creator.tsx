@@ -215,11 +215,11 @@ async function parseCreatorRunResponse(
 
 // 智能体定义：记忆为通用支撑（实体/关系/事实/原子笔记），排首位；其余为创作流水线
 const AGENTS = [
-  { key: 'memory', name: '记忆', icon: <DatabaseOutlined />, color: '***REMOVED***06b6d4' },
-  { key: 'planner', name: '大纲', icon: <BulbOutlined />, color: '***REMOVED***f59e0b' },
-  { key: 'writer', name: '写手', icon: <EditOutlined />, color: '***REMOVED***8b5cf6' },
-  { key: 'editor', name: '润色', icon: <EditOutlined />, color: '***REMOVED***10b981' },
-  { key: 'qa', name: '质检', icon: <SafetyCertificateOutlined />, color: '***REMOVED***ec4899' },
+  { key: 'memory', name: '记忆', icon: <DatabaseOutlined />, color: '#06b6d4' },
+  { key: 'planner', name: '大纲', icon: <BulbOutlined />, color: '#f59e0b' },
+  { key: 'writer', name: '写手', icon: <EditOutlined />, color: '#8b5cf6' },
+  { key: 'editor', name: '润色', icon: <EditOutlined />, color: '#10b981' },
+  { key: 'qa', name: '质检', icon: <SafetyCertificateOutlined />, color: '#ec4899' },
 ] as const;
 
 type AgentKey = (typeof AGENTS)[number]['key'];
@@ -1010,7 +1010,7 @@ const CreatorPage: React.FC = () => {
                     border: '1px solid rgba(255,75,47,0.2)',
                   }}
                 >
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '***REMOVED***22c55e' }} />
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
                   <span style={{ fontSize: 10, fontWeight: T.fontWeightSemibold, color: T.accent, letterSpacing: '0.04em' }}>实时编排</span>
                 </div>
                 <span style={{ fontSize: 11, color: T.textMuted, letterSpacing: '0.04em' }}>工作流</span>
@@ -1133,7 +1133,7 @@ const CreatorPage: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 36,
-                    color: '***REMOVED***fff',
+                    color: '#fff',
                   }}
                 >
                   <ThunderboltOutlined />
@@ -1398,7 +1398,7 @@ const CreatorPage: React.FC = () => {
                       {memoryView === 'graph' ? '记忆网络在线' : 'AI 记忆系统'}
                     </span>
                     {memoryView === 'graph' && memoryGraph.nodes.length > 0 && (
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '***REMOVED***22c55e' }} />
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
                     )}
                   </div>
                   <Segmented
@@ -1646,7 +1646,7 @@ const CreatorPage: React.FC = () => {
                             border: `1px solid ${T.border}`,
                           }}
                         >
-                          <span style={{ fontSize: 12, fontWeight: T.fontWeightBold, color: '***REMOVED***22c55e' }}>
+                          <span style={{ fontSize: 12, fontWeight: T.fontWeightBold, color: '#22c55e' }}>
                             {memoryGraph.links?.length ?? 0}
                           </span>
                           <span style={{ fontSize: 10, color: T.textMuted }}>连接</span>

@@ -62,11 +62,11 @@ class StructuredFormatter(logging.Formatter):
         if self.include_level:
             log_data["level"] = record.levelname
         
-        ***REMOVED*** 添加异常信息
+        # 添加异常信息
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
         
-        ***REMOVED*** 添加额外的上下文信息（如果有）
+        # 添加额外的上下文信息（如果有）
         if hasattr(record, "extra_fields"):
             log_data.update(record.extra_fields)
         
@@ -93,7 +93,7 @@ class StructuredLogger:
     def _log(self, level: int, msg: str, extra_fields: Optional[Dict[str, Any]] = None, **kwargs):
         """内部日志记录方法"""
         if extra_fields:
-            ***REMOVED*** 将额外字段添加到日志记录中
+            # 将额外字段添加到日志记录中
             extra = {"extra_fields": extra_fields}
             extra.update(kwargs)
             self.logger.log(level, msg, extra=extra, **kwargs)
@@ -160,14 +160,14 @@ def setup_structured_logging(
     """
     log_level = getattr(logging, level.upper(), logging.INFO)
     
-    ***REMOVED*** 创建根日志记录器
+    # 创建根日志记录器
     root_logger = logging.getLogger("unimem")
     root_logger.setLevel(log_level)
     
-    ***REMOVED*** 清除现有的处理器
+    # 清除现有的处理器
     root_logger.handlers.clear()
     
-    ***REMOVED*** 创建格式化器
+    # 创建格式化器
     if format_type == "json":
         formatter = StructuredFormatter()
     else:
@@ -175,7 +175,7 @@ def setup_structured_logging(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
     
-    ***REMOVED*** 创建处理器
+    # 创建处理器
     if log_file:
         handler = logging.FileHandler(log_file, encoding='utf-8')
     else:
@@ -186,7 +186,7 @@ def setup_structured_logging(
     
     root_logger.addHandler(handler)
     
-    ***REMOVED*** 设置子模块的日志级别
+    # 设置子模块的日志级别
     logging.getLogger("unimem").setLevel(log_level)
     logging.getLogger("unimem.core").setLevel(log_level)
     logging.getLogger("unimem.adapters").setLevel(log_level)

@@ -8,7 +8,7 @@ from collections import defaultdict
 from moviepy.editor import VideoFileClip
 from oss import oss_upload
 
-***REMOVED*** 填入控制台获取的app id和access token
+# 填入控制台获取的app id和access token
 appid = "6824042657"
 token = "nHYpO_wiMT56dvRHNlbgdC0YOrvbD7as"
 submit_url = "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit"
@@ -58,11 +58,11 @@ def submit_task(audio_url):
         },
         "audio": {
             "url": audio_url,
-            ***REMOVED*** "format": "mp3",
-            ***REMOVED*** "codec": "map3",
-            ***REMOVED*** "rate": 48000,
-            ***REMOVED*** "bits": 16,
-            ***REMOVED*** "channel": 2
+            # "format": "mp3",
+            # "codec": "map3",
+            # "rate": 48000,
+            # "bits": 16,
+            # "channel": 2
         },
         "request": {
             "model_name": "bigmodel",
@@ -71,10 +71,10 @@ def submit_task(audio_url):
             "enable_ddc": True,
             "enable_punc": True,
             "enable_itn": True,
-            ***REMOVED*** "show_utterances": True,
-            ***REMOVED*** "vad_segment": True,
+            # "show_utterances": True,
+            # "vad_segment": True,
             "corpus": {
-                ***REMOVED*** "boosting_table_name": "test",
+                # "boosting_table_name": "test",
                 "correct_table_name": "",
                 "context": ""
             }
@@ -100,7 +100,7 @@ def query_task(task_id, x_tt_logid):
         "X-Api-Access-Key": token,
         "X-Api-Resource-Id": "volc.bigasr.auc",
         "X-Api-Request-Id": task_id,
-        "X-Tt-Logid": x_tt_logid  ***REMOVED*** 固定传递 x-tt-logid
+        "X-Tt-Logid": x_tt_logid  # 固定传递 x-tt-logid
     }
 
     response = requests.post(query_url, json.dumps({}), headers=headers)
@@ -120,10 +120,10 @@ def asr(audio_url):
     while True:
         response = query_task(task_id, x_tt_logid)
         code = response.headers.get('X-Api-Status-Code', "")
-        if code == '20000000':  ***REMOVED*** task finished
+        if code == '20000000':  # task finished
             print("SUCCESS!")
             return response.json()
-        elif code != '20000001' and code != '20000002':  ***REMOVED*** task failed
+        elif code != '20000001' and code != '20000002':  # task failed
             print("FAILED!")
             return None
         time.sleep(1)
@@ -160,9 +160,9 @@ def asr2info(video_path, output_dir, audio_path=None, overwrite=False):
 
 
 if __name__ == '__main__':
-    ***REMOVED*** audio_url = "https://ttc-advisory-oss.oss-cn-hangzhou.aliyuncs.com/lark_audio/int/T_APLA_1941058348698869760.mp3"
-    ***REMOVED*** data = asr(audio_url)
-    ***REMOVED*** with open('output/asr.json', 'w', encoding='utf-8') as f:
-    ***REMOVED***     json.dump(data, f, ensure_ascii=False, indent=4)
+    # audio_url = "https://ttc-advisory-oss.oss-cn-hangzhou.aliyuncs.com/lark_audio/int/T_APLA_1941058348698869760.mp3"
+    # data = asr(audio_url)
+    # with open('output/asr.json', 'w', encoding='utf-8') as f:
+    #     json.dump(data, f, ensure_ascii=False, indent=4)
 
     asr2info('../data/task.mp4', output_dir='output')

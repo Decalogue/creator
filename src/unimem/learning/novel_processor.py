@@ -27,19 +27,19 @@ class NovelProcessor:
         """
         self.unimem = unimem_instance
         
-        ***REMOVED*** 章节标题模式（更宽松的匹配）
+        # 章节标题模式（更宽松的匹配）
         self.chapter_patterns = [
             r'第[一二三四五六七八九十百千万\d]+章[^\n]*',
             r'第[一二三四五六七八九十百千万\d]+[章节][^\n]*',
             r'Chapter\s+\d+[^\n]*',
             r'^\s*第?\s*\d+\s*[章节][^\n]*',
             r'^[上中下]?[卷部篇]\s*[一二三四五六七八九十\d]+[^\n]*',
-            r'^\s*卷\s*[一二三四五六七八九十\d]+[^\n]*',  ***REMOVED*** 卷X格式
-            r'^\s*[一二三四五六七八九十\d]+\s*[^\n]{0,50}$',  ***REMOVED*** 纯数字标题
-            r'^[^\n]{0,30}章节字数[^\n]*$',  ***REMOVED*** 包含"章节字数"的行
+            r'^\s*卷\s*[一二三四五六七八九十\d]+[^\n]*',  # 卷X格式
+            r'^\s*[一二三四五六七八九十\d]+\s*[^\n]{0,50}$',  # 纯数字标题
+            r'^[^\n]{0,30}章节字数[^\n]*$',  # 包含"章节字数"的行
         ]
         
-        ***REMOVED*** 情节类型关键词
+        # 情节类型关键词
         self.plot_keywords = {
             "打脸": ["打脸", "反击", "碾压", "秒杀", "完虐", "吊打"],
             "装逼": ["装逼", "震撼", "惊艳", "惊叹", "不可思议", "逆天"],
@@ -69,15 +69,15 @@ class NovelProcessor:
             "author": None,
         }
         
-        ***REMOVED*** 尝试从文件名提取信息
-        ***REMOVED*** 格式示例：电子书合集_10万+小说合集_12000本小说_TOP100-言情篇_No.11 仙侠奇缘之花千骨.txt
+        # 尝试从文件名提取信息
+        # 格式示例：电子书合集_10万+小说合集_12000本小说_TOP100-言情篇_No.11 仙侠奇缘之花千骨.txt
         parts = filename.replace(".txt", "").split("_")
         
-        ***REMOVED*** 提取标题（通常在最末尾）
+        # 提取标题（通常在最末尾）
         if len(parts) > 0:
             metadata["title"] = parts[-1].strip()
         
-        ***REMOVED*** 提取分类（通常在文件名中间部分）
+        # 提取分类（通常在文件名中间部分）
         for part in parts:
             if "言情" in part or "仙侠" in part or "网游" in part or "玄幻" in part:
                 metadata["category"] = part
@@ -108,25 +108,25 @@ class NovelProcessor:
         for i, line in enumerate(lines):
             line_stripped = line.strip()
             
-            ***REMOVED*** 跳过空行
+            # 跳过空行
             if not line_stripped:
                 if current_chapter is not None:
                     chapter_content.append("")
                 continue
             
-            ***REMOVED*** 检查是否是章节标题
+            # 检查是否是章节标题
             is_chapter = False
             for pattern in self.chapter_patterns:
                 if re.match(pattern, line_stripped, re.IGNORECASE):
                     is_chapter = True
                     break
             
-            ***REMOVED*** 额外检查：包含"章节字数"的行通常也是章节标题
+            # 额外检查：包含"章节字数"的行通常也是章节标题
             if "章节字数" in line_stripped and len(line_stripped) < 100:
                 is_chapter = True
             
             if is_chapter:
-                ***REMOVED*** 保存前一章
+                # 保存前一章
                 if current_chapter is not None:
                     structure["chapters"].append({
                         "title": current_chapter,
@@ -134,14 +134,14 @@ class NovelProcessor:
                         "length": len("\n".join(chapter_content)),
                     })
                 
-                ***REMOVED*** 开始新章节
+                # 开始新章节
                 current_chapter = line_stripped
                 chapter_content = []
             else:
                 if current_chapter is not None:
                     chapter_content.append(line)
         
-        ***REMOVED*** 保存最后一章
+        # 保存最后一章
         if current_chapter is not None:
             structure["chapters"].append({
                 "title": current_chapter,
@@ -165,14 +165,14 @@ class NovelProcessor:
         """
         plot_points = []
         
-        ***REMOVED*** 按段落分割
+        # 按段落分割
         paragraphs = re.split(r'\n\s*\n', text)
         
         for i, para in enumerate(paragraphs):
-            if len(para.strip()) < 50:  ***REMOVED*** 跳过太短的段落
+            if len(para.strip()) < 50:  # 跳过太短的段落
                 continue
             
-            ***REMOVED*** 检测情节类型
+            # 检测情节类型
             plot_types = []
             for plot_type, keywords in self.plot_keywords.items():
                 if any(keyword in para for keyword in keywords):
@@ -181,9 +181,9 @@ class NovelProcessor:
             if plot_types:
                 plot_points.append({
                     "index": i,
-                    "paragraph": para[:500],  ***REMOVED*** 只保存前500字符
+                    "paragraph": para[:500],  # 只保存前500字符
                     "types": plot_types,
-                    "position": i / max(len(paragraphs), 1),  ***REMOVED*** 位置比例
+                    "position": i / max(len(paragraphs), 1),  # 位置比例
                 })
         
         return plot_points
@@ -201,7 +201,7 @@ class NovelProcessor:
         characters = []
         character_freq = {}
         
-        ***REMOVED*** 过滤词（常见非人名的词）
+        # 过滤词（常见非人名的词）
         stop_words = {
             "什么", "怎么", "这样", "那个", "这个", "那个", "这样", "那样",
             "什么", "怎么", "如何", "因为", "所以", "但是", "然而", "然后",
@@ -211,34 +211,34 @@ class NovelProcessor:
             "关键字", "类别", "完结", "仙侠", "奇缘",
         }
         
-        ***REMOVED*** 提取可能的姓名（2-4字的中文名字）
-        ***REMOVED*** 分析前50000字以获取更准确的结果
+        # 提取可能的姓名（2-4字的中文名字）
+        # 分析前50000字以获取更准确的结果
         sample_text = text[:50000] if len(text) > 50000 else text
         
-        ***REMOVED*** 方法1: 直接提取2-4字中文词
+        # 方法1: 直接提取2-4字中文词
         name_candidates1 = re.findall(r'[一-龥]{2,4}', sample_text)
         
-        ***REMOVED*** 方法2: 提取引号内的人名（对话中的人名）
+        # 方法2: 提取引号内的人名（对话中的人名）
         name_candidates2 = re.findall(r'["""]([一-龥]{2,4})["""]', sample_text)
         
-        ***REMOVED*** 合并候选
+        # 合并候选
         all_candidates = name_candidates1 + name_candidates2
         
-        ***REMOVED*** 统计频率
+        # 统计频率
         for name in all_candidates:
-            ***REMOVED*** 过滤停止词和明显不是人名的词
+            # 过滤停止词和明显不是人名的词
             if (name not in stop_words and 
                 len(name) >= 2 and 
-                not re.match(r'^\d+$', name)):  ***REMOVED*** 不是纯数字
+                not re.match(r'^\d+$', name)):  # 不是纯数字
                 character_freq[name] = character_freq.get(name, 0) + 1
         
-        ***REMOVED*** 取频率最高的前15个作为候选
+        # 取频率最高的前15个作为候选
         sorted_chars = sorted(character_freq.items(), key=lambda x: x[1], reverse=True)[:15]
         
-        ***REMOVED*** 进一步筛选：出现频率足够高，且在文本中分布较广
+        # 进一步筛选：出现频率足够高，且在文本中分布较广
         for name, freq in sorted_chars:
-            if freq >= 3:  ***REMOVED*** 降低阈值，至少出现3次
-                ***REMOVED*** 检查是否在不同位置出现（避免重复的短文本片段）
+            if freq >= 3:  # 降低阈值，至少出现3次
+                # 检查是否在不同位置出现（避免重复的短文本片段）
                 positions = [m.start() for m in re.finditer(name, sample_text)]
                 if len(positions) >= 3:
                     characters.append({
@@ -246,7 +246,7 @@ class NovelProcessor:
                         "frequency": freq,
                     })
         
-        return characters[:10]  ***REMOVED*** 返回前10个
+        return characters[:10]  # 返回前10个
     
     def extract_rhythm(self, structure: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -286,34 +286,34 @@ class NovelProcessor:
         try:
             logger.info(f"处理小说: {filepath}")
             
-            ***REMOVED*** 读取文件
+            # 读取文件
             with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                 text = f.read()
             
-            if len(text) < 1000:  ***REMOVED*** 跳过太短的文件
+            if len(text) < 1000:  # 跳过太短的文件
                 logger.warning(f"文件过短，跳过: {filepath}")
                 return None
             
-            ***REMOVED*** 提取元数据
+            # 提取元数据
             metadata = self.extract_metadata(filepath)
             
-            ***REMOVED*** 提取结构
+            # 提取结构
             structure = self.extract_structure(text)
             
-            ***REMOVED*** 提取情节节点
+            # 提取情节节点
             plot_points = self.extract_plot_points(text)
             
-            ***REMOVED*** 提取人物（简化版）
+            # 提取人物（简化版）
             characters = self.extract_characters(text)
             
-            ***REMOVED*** 提取节奏
+            # 提取节奏
             rhythm = self.extract_rhythm(structure)
             
-            ***REMOVED*** 构建处理结果
+            # 构建处理结果
             result = {
                 "metadata": metadata,
                 "structure": structure,
-                "plot_points": plot_points[:50],  ***REMOVED*** 只保存前50个情节节点
+                "plot_points": plot_points[:50],  # 只保存前50个情节节点
                 "characters": characters,
                 "rhythm": rhythm,
                 "processed_at": datetime.now().isoformat(),
@@ -343,9 +343,9 @@ class NovelProcessor:
         metadata = processed_novel.get("metadata", {})
         title = metadata.get("title", "未知")
         
-        ***REMOVED*** 存储情节模式
+        # 存储情节模式
         plot_points = processed_novel.get("plot_points", [])
-        for plot_point in plot_points[:10]:  ***REMOVED*** 只存储前10个关键情节节点
+        for plot_point in plot_points[:10]:  # 只存储前10个关键情节节点
             plot_types = ", ".join(plot_point.get("types", []))
             content = f"【情节模式】{title}\n类型: {plot_types}\n位置: {plot_point.get('position', 0):.2f}\n内容: {plot_point.get('paragraph', '')[:200]}"
             
@@ -369,7 +369,7 @@ class NovelProcessor:
                 layer=MemoryLayer.LTM,
             )
         
-        ***REMOVED*** 存储节奏模式
+        # 存储节奏模式
         rhythm = processed_novel.get("rhythm", {})
         if rhythm:
             rhythm_content = f"【节奏模式】{title}\n平均章节长度: {rhythm.get('avg_chapter_length', 0):.0f}字\n章节数: {rhythm.get('chapter_count', 0)}\n总长度: {rhythm.get('total_length', 0):.0f}字"
@@ -394,7 +394,7 @@ class NovelProcessor:
                 layer=MemoryLayer.LTM,
             )
         
-        ***REMOVED*** 存储人物模式
+        # 存储人物模式
         characters = processed_novel.get("characters", [])
         if characters:
             char_names = ", ".join([ch["name"] for ch in characters[:5]])
@@ -436,7 +436,7 @@ class NovelProcessor:
         """
         results = []
         
-        ***REMOVED*** 查找所有txt文件
+        # 查找所有txt文件
         novel_files = []
         for root, dirs, files in os.walk(novel_dir):
             for file in files:
@@ -456,14 +456,14 @@ class NovelProcessor:
             if processed:
                 results.append(processed)
                 
-                ***REMOVED*** 存储到记忆系统
+                # 存储到记忆系统
                 if store_to_memory and self.unimem:
                     try:
                         self.store_patterns_to_memory(processed)
                     except Exception as e:
                         logger.error(f"存储模式失败: {e}", exc_info=True)
             
-            ***REMOVED*** 每处理10本保存一次中间结果
+            # 每处理10本保存一次中间结果
             if i % 10 == 0:
                 logger.info(f"已处理 {i} 本，成功 {len(results)} 本")
         

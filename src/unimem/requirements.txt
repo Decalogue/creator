@@ -1,29 +1,29 @@
-***REMOVED*** UniMem 依赖
+# UniMem 依赖
 
-***REMOVED*** 核心依赖
+# 核心依赖
 numpy>=1.24.0
 pydantic>=2.0.0
 
-***REMOVED*** 存储后端
+# 存储后端
 redis>=5.0.0
-psycopg2-binary>=2.9.0  ***REMOVED*** PostgreSQL
+psycopg2-binary>=2.9.0  # PostgreSQL
 
-***REMOVED*** 向量数据库
+# 向量数据库
 qdrant-client==1.6.0
-***REMOVED*** faiss-cpu>=1.7.4  ***REMOVED*** 可选
-***REMOVED*** pymilvus>=2.3.0  ***REMOVED*** 可选
+# faiss-cpu>=1.7.4  # 可选
+# pymilvus>=2.3.0  # 可选
 
-***REMOVED*** 图数据库
+# 图数据库
 neo4j>=5.0.0
-***REMOVED*** networkx>=3.1  ***REMOVED*** 可选，用于开发/测试
+# networkx>=3.1  # 可选，用于开发/测试
 
-***REMOVED*** LLM 和嵌入
+# LLM 和嵌入
 openai>=1.0.0
 sentence-transformers>=2.2.0
 
-***REMOVED*** 工具库
+# 工具库
 python-dateutil>=2.8.0
-python-docx>=1.1.0  ***REMOVED*** Word 文档解析（用于 video_adapter）
+python-docx>=1.1.0  # Word 文档解析（用于 video_adapter）
 
-***REMOVED*** 日志
+# 日志
 structlog>=23.0.0

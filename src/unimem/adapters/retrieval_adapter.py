@@ -58,8 +58,8 @@ class RetrievalAdapter(BaseAdapter):
             logger.warning("RetrievalAdapter not available for temporal retrieval")
             return []
         
-        ***REMOVED*** TODO: 实际实现需要从 LTM 存储中检索
-        ***REMOVED*** 当前实现为占位符
+        # TODO: 实际实现需要从 LTM 存储中检索
+        # 当前实现为占位符
         logger.debug(f"Temporal retrieval for query: {query[:50]}... (placeholder)")
         return []
     
@@ -92,7 +92,7 @@ class RetrievalAdapter(BaseAdapter):
             fused_scores: defaultdict[str, float] = defaultdict(float)
             memory_map: dict[str, Memory] = {}
             
-            ***REMOVED*** RRF 算法：为每个结果列表中的每个记忆计算分数
+            # RRF 算法：为每个结果列表中的每个记忆计算分数
             for results in results_list:
                 if not results:
                     continue
@@ -108,14 +108,14 @@ class RetrievalAdapter(BaseAdapter):
                 logger.debug("RRF fusion: no valid memories to fuse")
                 return []
             
-            ***REMOVED*** 按融合分数排序（降序）
+            # 按融合分数排序（降序）
             sorted_ids = sorted(fused_scores.keys(), key=lambda x: fused_scores[x], reverse=True)
             
-            ***REMOVED*** 将分数存储到 memory.metadata 中
+            # 将分数存储到 memory.metadata 中
             fused_memories = []
             for memory_id in sorted_ids:
                 memory = memory_map[memory_id]
-                ***REMOVED*** 确保 metadata 存在
+                # 确保 metadata 存在
                 if memory.metadata is None:
                     memory.metadata = {}
                 memory.metadata["rrf_score"] = fused_scores[memory_id]
@@ -151,15 +151,15 @@ class RetrievalAdapter(BaseAdapter):
         
         if not self.is_available():
             logger.warning("RetrievalAdapter not available for rerank")
-            return results  ***REMOVED*** 返回原始结果
+            return results  # 返回原始结果
         
         try:
             def get_score(memory: Memory) -> float:
                 """获取记忆的排序分数"""
-                ***REMOVED*** 优先使用 RRF 分数
+                # 优先使用 RRF 分数
                 if memory.metadata and memory.metadata.get("rrf_score") is not None:
                     return float(memory.metadata["rrf_score"])
-                ***REMOVED*** 如果没有 RRF 分数，使用时间戳（越新越好）
+                # 如果没有 RRF 分数，使用时间戳（越新越好）
                 if memory.timestamp:
                     try:
                         return memory.timestamp.timestamp() if hasattr(memory.timestamp, 'timestamp') else 0.0
@@ -173,4 +173,4 @@ class RetrievalAdapter(BaseAdapter):
             
         except Exception as e:
             logger.error(f"Error in rerank: {e}", exc_info=True)
-            return results  ***REMOVED*** 出错时返回原始结果
+            return results  # 出错时返回原始结果

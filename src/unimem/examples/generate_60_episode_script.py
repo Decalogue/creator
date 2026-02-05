@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-***REMOVED*** 添加项目路径
+# 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from unimem.character import CharacterGrowthArcManager
@@ -34,7 +34,7 @@ def create_growth_arcs(growth_arc_manager: CharacterGrowthArcManager) -> Dict[st
     logger.info("步骤1: 创建人物成长线")
     logger.info("=" * 60)
     
-    ***REMOVED*** 男主角成长线
+    # 男主角成长线
     hero_arc = growth_arc_manager.create_growth_arc(
         character_id="hero_001",
         character_name="林辰",
@@ -54,7 +54,7 @@ def create_growth_arcs(growth_arc_manager: CharacterGrowthArcManager) -> Dict[st
     )
     logger.info(f"✓ 创建男主角成长线：{hero_arc.character_name}")
     
-    ***REMOVED*** 女主角成长线
+    # 女主角成长线
     heroine_arc = growth_arc_manager.create_growth_arc(
         character_id="heroine_001",
         character_name="苏雨",
@@ -74,7 +74,7 @@ def create_growth_arcs(growth_arc_manager: CharacterGrowthArcManager) -> Dict[st
     )
     logger.info(f"✓ 创建女主角成长线：{heroine_arc.character_name}")
     
-    ***REMOVED*** 反派成长线
+    # 反派成长线
     villain_arc = growth_arc_manager.create_growth_arc(
         character_id="villain_001",
         character_name="赵天",
@@ -135,7 +135,7 @@ def create_source_story(growth_arcs: Dict[str, Any]) -> Dict[str, Any]:
         ],
         "pace": "fast",
         "metadata": {
-            "genre": "urban",  ***REMOVED*** 默认都市题材
+            "genre": "urban",  # 默认都市题材
             "target_audience": "都市白领、年轻人",
             "main_characters": [
                 {
@@ -202,7 +202,7 @@ def add_seasonings(
         story=shelled_story,
         seasonings=default_seasonings,
         shell_type=shell_type,
-        intensity=1.2  ***REMOVED*** 短剧提高强度
+        intensity=1.2  # 短剧提高强度
     )
     
     logger.info(f"✓ 添加调味完成")
@@ -223,7 +223,7 @@ def generate_script_outline(
     logger.info("步骤5: 生成剧本大纲")
     logger.info("=" * 60)
     
-    ***REMOVED*** 构建提示词
+    # 构建提示词
     prompt = f"""请创作一个{shell_type}题材的60集短剧故事大纲。
 
 故事核心（"骨头"）：
@@ -279,13 +279,13 @@ def generate_script_outline(
         _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=4096)
         content = response_text
         
-        ***REMOVED*** 尝试提取 JSON
+        # 尝试提取 JSON
         import re
         json_match = re.search(r'\{.*\}', content, re.DOTALL)
         if json_match:
             outline = json.loads(json_match.group())
         else:
-            ***REMOVED*** 如果提取失败，创建默认大纲
+            # 如果提取失败，创建默认大纲
             outline = {
                 "title": source_story["title"],
                 "genre": shell_type,
@@ -315,7 +315,7 @@ def generate_script_outline(
         
     except Exception as e:
         logger.error(f"生成剧本大纲失败：{e}", exc_info=True)
-        ***REMOVED*** 返回默认大纲
+        # 返回默认大纲
         return {
             "title": source_story["title"],
             "genre": shell_type,
@@ -355,7 +355,7 @@ def generate_episode_outlines(
     
     import re
     
-    ***REMOVED*** 分批生成（每次生成batch_size集）
+    # 分批生成（每次生成batch_size集）
     all_outlines = []
     total_batches = (episode_count + batch_size - 1) // batch_size
     
@@ -378,7 +378,7 @@ def generate_episode_outlines(
         
         logger.info(f"生成第 {batch_start+1}-{batch_end} 集大纲（批次 {batch_num}/{total_batches}）...")
         
-        ***REMOVED*** 确定阶段描述
+        # 确定阶段描述
         if batch_start + 1 <= 10:
             stage_desc = "前期状态阶段：底层小人物，生活困顿"
         elif batch_start + 1 <= 50:
@@ -407,7 +407,7 @@ def generate_episode_outlines(
     "highlight": "本集亮点"
 }}"""
         
-        ***REMOVED*** 尝试生成，最多重试1次
+        # 尝试生成，最多重试1次
         max_retries = 1
         batch_outlines = []
         
@@ -420,7 +420,7 @@ def generate_episode_outlines(
                 _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=4096)
                 content = response_text
                 
-                ***REMOVED*** 方法1: 尝试直接提取完整的JSON对象
+                # 方法1: 尝试直接提取完整的JSON对象
                 json_match = re.search(r'\{.*\}', content, re.DOTALL)
                 if json_match:
                     try:
@@ -431,21 +431,21 @@ def generate_episode_outlines(
                     except json.JSONDecodeError:
                         pass
                 
-                ***REMOVED*** 方法2: 尝试提取episode_outlines数组
+                # 方法2: 尝试提取episode_outlines数组
                 array_match = re.search(r'"episode_outlines"\s*:\s*\[(.*?)\]', content, re.DOTALL)
                 if array_match:
                     try:
                         array_text = '[' + array_match.group(1) + ']'
-                        ***REMOVED*** 尝试修复常见的JSON问题
-                        array_text = re.sub(r',\s*}', '}', array_text)  ***REMOVED*** 移除对象末尾的逗号
-                        array_text = re.sub(r',\s*]', ']', array_text)  ***REMOVED*** 移除数组末尾的逗号
+                        # 尝试修复常见的JSON问题
+                        array_text = re.sub(r',\s*}', '}', array_text)  # 移除对象末尾的逗号
+                        array_text = re.sub(r',\s*]', ']', array_text)  # 移除数组末尾的逗号
                         batch_outlines = json.loads(array_text)
                         if batch_outlines:
                             break
                     except json.JSONDecodeError:
                         pass
                 
-                ***REMOVED*** 方法3: 尝试找到第一个[到最后一个]之间的内容
+                # 方法3: 尝试找到第一个[到最后一个]之间的内容
                 bracket_start = content.find('[')
                 if bracket_start != -1:
                     bracket_count = 0
@@ -469,7 +469,7 @@ def generate_episode_outlines(
                         except json.JSONDecodeError:
                             pass
                 
-                ***REMOVED*** 如果重试次数未用完，继续重试
+                # 如果重试次数未用完，继续重试
                 if retry < max_retries:
                     logger.warning(f"批次 {batch_num} JSON解析失败，正在重试...")
                     continue
@@ -481,14 +481,14 @@ def generate_episode_outlines(
                 else:
                     logger.error(f"批次 {batch_num} 生成失败（已重试{max_retries}次）：{e}", exc_info=True)
         
-        ***REMOVED*** 如果成功解析，过滤并添加
+        # 如果成功解析，过滤并添加
         if batch_outlines:
-            ***REMOVED*** 过滤出当前批次的集数
+            # 过滤出当前批次的集数
             batch_outlines = [ep for ep in batch_outlines if batch_start + 1 <= ep.get("episode", 0) <= batch_end]
             all_outlines.extend(batch_outlines)
             logger.info(f"✓ 批次 {batch_num} 完成：生成 {len(batch_outlines)} 集")
         else:
-            ***REMOVED*** 如果所有方法都失败，使用默认数据
+            # 如果所有方法都失败，使用默认数据
             logger.warning(f"批次 {batch_num} JSON解析失败，将使用默认数据")
             for i in range(batch_start + 1, batch_end + 1):
                 if i <= 10:
@@ -508,7 +508,7 @@ def generate_episode_outlines(
                     "highlight": f"本集亮点：{conflict}"
                 })
     
-    ***REMOVED*** 检查完整性并补充缺失的集
+    # 检查完整性并补充缺失的集
     existing_episodes = {ep.get("episode", 0) for ep in all_outlines}
     for i in range(1, episode_count + 1):
         if i not in existing_episodes:
@@ -531,7 +531,7 @@ def generate_episode_outlines(
                 "highlight": f"本集亮点：{conflict}"
             })
     
-    ***REMOVED*** 按集数排序
+    # 按集数排序
     all_outlines.sort(key=lambda x: x.get("episode", 0))
     
     logger.info(f"✓ 生成分集大纲完成：{len(all_outlines)}集")
@@ -554,7 +554,7 @@ def save_script(
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    ***REMOVED*** 保存完整剧本
+    # 保存完整剧本
     script_file = output_path / f"script_60_episodes_{timestamp}.json"
     script_data = {
         "title": outline.get("title", "逆袭之路"),
@@ -588,7 +588,7 @@ def save_script(
     
     logger.info(f"✓ 剧本已保存：{script_file}")
     
-    ***REMOVED*** 保存文本格式
+    # 保存文本格式
     text_file = output_path / f"script_60_episodes_{timestamp}.txt"
     with open(text_file, "w", encoding="utf-8") as f:
         f.write(f"《{outline.get('title', '逆袭之路')}》\n")
@@ -621,7 +621,7 @@ def main():
     )
     sys.exit(0)
 
-    ***REMOVED*** 1. 初始化组件（以下代码在 workflow 恢复前不会执行）
+    # 1. 初始化组件（以下代码在 workflow 恢复前不会执行）
     growth_arc_manager = CharacterGrowthArcManager(storage_manager=None)
     hierarchical_storage = HierarchicalStorage(storage_manager=None)
     orchestrator = ShellSwappingOrchestrator(
@@ -631,18 +631,18 @@ def main():
     seasoning_manager = SeasoningManager(llm_func=ark_deepseek_v3_2)
     adapter = ScriptAdapter()
     
-    ***REMOVED*** 2. 创建人物成长线
+    # 2. 创建人物成长线
     growth_arcs = create_growth_arcs(growth_arc_manager)
     character_ids = ["hero_001", "heroine_001", "villain_001"]
     
-    ***REMOVED*** 3. 创建源故事
+    # 3. 创建源故事
     source_story = create_source_story(growth_arcs)
     
-    ***REMOVED*** 4. 选择外壳类型（可以修改）
-    ***REMOVED*** 可选：urban（都市）, fantasy（玄幻）, sci-fi（科幻）, historical（历史）, mystery（悬疑）
-    shell_type = "urban"  ***REMOVED*** 默认都市题材，用户可修改
+    # 4. 选择外壳类型（可以修改）
+    # 可选：urban（都市）, fantasy（玄幻）, sci-fi（科幻）, historical（历史）, mystery（悬疑）
+    shell_type = "urban"  # 默认都市题材，用户可修改
     
-    ***REMOVED*** 5. 换壳
+    # 5. 换壳
     shelled_story = swap_shell(
         orchestrator,
         source_story,
@@ -650,7 +650,7 @@ def main():
         character_ids
     )
     
-    ***REMOVED*** 6. 添加调味
+    # 6. 添加调味
     seasoned_story = add_seasonings(
         seasoning_manager,
         shelled_story,
@@ -664,7 +664,7 @@ def main():
             'seasonings': []
         })()
     
-    ***REMOVED*** 7. 生成剧本大纲
+    # 7. 生成剧本大纲
     outline = generate_script_outline(
         adapter,
         seasoned_story,
@@ -672,14 +672,14 @@ def main():
         shell_type
     )
     
-    ***REMOVED*** 8. 生成分集大纲
+    # 8. 生成分集大纲
     episode_outlines = generate_episode_outlines(
         adapter,
         outline,
         episode_count=60
     )
     
-    ***REMOVED*** 9. 保存剧本
+    # 9. 保存剧本
     script_file, text_file = save_script(
         outline,
         episode_outlines,

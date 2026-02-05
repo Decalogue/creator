@@ -62,7 +62,7 @@ class ContextCompressor:
             return content
         
         try:
-            ***REMOVED*** 构建压缩提示词
+            # 构建压缩提示词
             prompt = f"""请将以下内容压缩到约{target_length}字，{"保留所有关键信息" if preserve_key_info else "可以适当精简"}：
 
 {content}
@@ -78,9 +78,9 @@ class ContextCompressor:
             messages = [{"role": "user", "content": prompt}]
             _, compressed = self.llm_func(messages)
             
-            ***REMOVED*** 确保不超过目标长度太多
+            # 确保不超过目标长度太多
             if len(compressed) > target_length * 1.2:
-                ***REMOVED*** 如果压缩后仍然过长，进行二次压缩
+                # 如果压缩后仍然过长，进行二次压缩
                 compressed = self._simple_truncate(compressed, target_length)
             
             logger.debug(f"Compressed content from {len(content)} to {len(compressed)} chars")
@@ -88,7 +88,7 @@ class ContextCompressor:
             
         except Exception as e:
             logger.error(f"Error compressing content: {e}", exc_info=True)
-            ***REMOVED*** 降级策略：简单截断
+            # 降级策略：简单截断
             return self._simple_truncate(content, target_length)
     
     def _simple_truncate(self, content: str, target_length: int) -> str:
@@ -96,7 +96,7 @@ class ContextCompressor:
         if len(content) <= target_length:
             return content
         
-        ***REMOVED*** 尝试在句号、问号、感叹号处截断
+        # 尝试在句号、问号、感叹号处截断
         truncated = content[:target_length]
         last_period = max(
             truncated.rfind('。'),
@@ -107,7 +107,7 @@ class ContextCompressor:
             truncated.rfind('?')
         )
         
-        if last_period > target_length * 0.8:  ***REMOVED*** 如果句号位置合理
+        if last_period > target_length * 0.8:  # 如果句号位置合理
             return truncated[:last_period + 1]
         else:
             return truncated + "..."

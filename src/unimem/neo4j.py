@@ -51,7 +51,7 @@ from .adapters.base import (
 
 logger = logging.getLogger(__name__)
 
-***REMOVED*** 全局变量（线程安全）
+# 全局变量（线程安全）
 _graph: Optional[Any] = None
 _node_matcher: Optional[Any] = None
 _relationship_matcher: Optional[Any] = None
@@ -75,22 +75,22 @@ def get_graph(
     if not NEO4J_AVAILABLE:
         raise AdapterNotAvailableError("Neo4j library (py2neo) not available", adapter_name="Neo4jClient")
     
-    ***REMOVED*** 读取配置：环境变量 NEO4J_URI/USER/PASSWORD/DATABASE（默认 bolt 端口 7680）
+    # 读取配置：环境变量 NEO4J_URI/USER/PASSWORD/DATABASE（默认 bolt 端口 7680）
     uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7680")
     user = user or os.getenv("NEO4J_USER", "neo4j")
     password = password or os.getenv("NEO4J_PASSWORD", "seeme_db")
     database = database or os.getenv("NEO4J_DATABASE", "neo4j")
-    ***REMOVED*** py2neo 的 Graph 不支持 max_connections 参数，移除它
+    # py2neo 的 Graph 不支持 max_connections 参数，移除它
     if not uri.startswith(("bolt://", "neo4j://")):
         raise AdapterConfigurationError(f"Invalid Neo4j URI: {uri}", adapter_name="Neo4jClient")
     
     with _graph_lock:
         if _graph is None:
             try:
-                ***REMOVED*** py2neo Graph 不支持 max_connections 参数
+                # py2neo Graph 不支持 max_connections 参数
                 _graph = Graph(uri, auth=(user, password), name=database)
                 
-                ***REMOVED*** 测试连接（带重试）
+                # 测试连接（带重试）
                 for attempt in range(3):
                     try:
                         _graph.run("RETURN 1").data()
@@ -102,7 +102,7 @@ def get_graph(
                 
                 _node_matcher = NodeMatcher(_graph)
                 _relationship_matcher = RelationshipMatcher(_graph)
-                ***REMOVED*** 同时更新模块级别变量
+                # 同时更新模块级别变量
                 graph = _graph
                 node_matcher = _node_matcher
                 relationship_matcher = _relationship_matcher
@@ -129,13 +129,13 @@ def _execute_with_retry(operation: callable, operation_name: str = "operation", 
         except (ServiceUnavailable, TransientError) as e:
             last_error = e
             if attempt < max_retries:
-                wait_time = _retry_delay * (2 ** attempt)  ***REMOVED*** 指数退避
+                wait_time = _retry_delay * (2 ** attempt)  # 指数退避
                 logger.warning(f"{operation_name} failed (attempt {attempt + 1}/{max_retries + 1}): {e}, retrying in {wait_time:.3f}s...")
                 time.sleep(wait_time)
             else:
                 logger.error(f"{operation_name} failed after {max_retries + 1} attempts: {e}")
         except ClientError as e:
-            ***REMOVED*** 客户端错误不重试
+            # 客户端错误不重试
             logger.error(f"{operation_name} failed with client error: {e}")
             raise AdapterError(
                 f"{operation_name} failed: {e}",
@@ -143,7 +143,7 @@ def _execute_with_retry(operation: callable, operation_name: str = "operation", 
                 cause=e
             ) from e
         except Exception as e:
-            ***REMOVED*** 未知错误不重试
+            # 未知错误不重试
             logger.error(f"{operation_name} failed with unexpected error: {e}", exc_info=True)
             raise AdapterError(
                 f"{operation_name} failed: {e}",
@@ -184,10 +184,10 @@ def health_check() -> Dict[str, Any]:
                 "timestamp": datetime.now().isoformat(),
             }
         
-        ***REMOVED*** 检查连接
+        # 检查连接
         is_alive = _ping_graph(graph, max_retries=1)
         
-        ***REMOVED*** 获取数据库信息
+        # 获取数据库信息
         try:
             db_info = graph.run("CALL db.info() YIELD name, version RETURN name, version").data()
         except Exception:
@@ -209,24 +209,24 @@ def health_check() -> Dict[str, Any]:
         }
 
 
-***REMOVED*** 模块级别的全局变量（延迟初始化）
+# 模块级别的全局变量（延迟初始化）
 def _ensure_initialized():
     """确保 Neo4j 连接已初始化"""
     global _graph, _node_matcher, _relationship_matcher, graph, node_matcher, relationship_matcher
     
-    ***REMOVED*** 如果模块级别变量未初始化，或者全局变量未初始化，则初始化
+    # 如果模块级别变量未初始化，或者全局变量未初始化，则初始化
     if _graph is None or _node_matcher is None or graph is None or node_matcher is None:
         try:
-            ***REMOVED*** get_graph() 会初始化 _graph, _node_matcher, _relationship_matcher
+            # get_graph() 会初始化 _graph, _node_matcher, _relationship_matcher
             _graph = get_graph()
             if _graph is None:
                 raise AdapterNotAvailableError("Failed to get Neo4j graph", adapter_name="Neo4jClient")
-            ***REMOVED*** 确保 node_matcher 也被初始化（get_graph 应该已经初始化了，但为了安全再检查一次）
+            # 确保 node_matcher 也被初始化（get_graph 应该已经初始化了，但为了安全再检查一次）
             if _node_matcher is None and _graph:
                 _node_matcher = NodeMatcher(_graph)
             if _relationship_matcher is None and _graph:
                 _relationship_matcher = RelationshipMatcher(_graph)
-            ***REMOVED*** 更新模块级别变量（必须执行，即使 _graph 已经存在）
+            # 更新模块级别变量（必须执行，即使 _graph 已经存在）
             graph = _graph
             node_matcher = _node_matcher
             relationship_matcher = _relationship_matcher
@@ -235,7 +235,7 @@ def _ensure_initialized():
             raise
 
 
-***REMOVED*** 直接定义全局变量（简单方式）
+# 直接定义全局变量（简单方式）
 graph: Optional[Any] = None
 node_matcher: Optional[Any] = None
 relationship_matcher: Optional[Any] = None
@@ -246,7 +246,7 @@ def get_current_time(format_string="%Y-%m-%d-%H-%M-%S"):
     return time.strftime(format_string, time.localtime())
 
 
-***REMOVED*** ==================== 实体操作 ====================
+# ==================== 实体操作 ====================
 
 def create_entity(entity: Entity) -> bool:
     """
@@ -261,13 +261,13 @@ def create_entity(entity: Entity) -> bool:
     _ensure_initialized()
     
     try:
-        ***REMOVED*** 检查是否已存在
+        # 检查是否已存在
         existing = node_matcher.match("Entity", id=entity.id).first()
         if existing:
             logger.warning(f"Entity {entity.id} already exists, updating instead")
             return update_entity(entity)
         
-        ***REMOVED*** 创建新节点
+        # 创建新节点
         node = Node(
             "Entity",
             id=entity.id,
@@ -303,7 +303,7 @@ def get_entity(entity_id: str) -> Optional[Entity]:
         if not node:
             return None
         
-        ***REMOVED*** 获取邻居节点
+        # 获取邻居节点
         neighbors = []
         for rel in graph.match((node, None)):
             neighbors.append(rel.end_node["id"])
@@ -341,7 +341,7 @@ def update_entity(entity: Entity) -> bool:
             logger.warning(f"Entity {entity.id} not found, creating instead")
             return create_entity(entity)
         
-        ***REMOVED*** 更新属性
+        # 更新属性
         node["name"] = entity.name
         node["entity_type"] = entity.entity_type
         node["description"] = entity.description
@@ -375,7 +375,7 @@ def delete_entity(entity_id: str) -> bool:
             logger.warning(f"Entity {entity_id} not found")
             return False
         
-        ***REMOVED*** 删除节点及其所有关系
+        # 删除节点及其所有关系
         graph.delete(node)
         logger.debug(f"Deleted entity: {entity_id}")
         return True
@@ -415,7 +415,7 @@ def find_entities_by_type(entity_type: str, limit: int = 100) -> List[Entity]:
         return []
 
 
-***REMOVED*** ==================== 关系操作 ====================
+# ==================== 关系操作 ====================
 
 def create_relation(relation: Relation) -> bool:
     """
@@ -430,7 +430,7 @@ def create_relation(relation: Relation) -> bool:
     _ensure_initialized()
     
     try:
-        ***REMOVED*** 获取源节点和目标节点
+        # 获取源节点和目标节点
         source_node = node_matcher.match("Entity", id=relation.source).first()
         target_node = node_matcher.match("Entity", id=relation.target).first()
         
@@ -438,13 +438,13 @@ def create_relation(relation: Relation) -> bool:
             logger.error(f"Source or target node not found for relation {relation.source} -> {relation.target}")
             return False
         
-        ***REMOVED*** 检查关系是否已存在
+        # 检查关系是否已存在
         existing = relationship_matcher.match((source_node, target_node)).first()
         if existing:
             logger.warning(f"Relation {relation.source} -> {relation.target} already exists, updating instead")
             return update_relation(relation)
         
-        ***REMOVED*** 创建关系
+        # 创建关系
         rel = Relationship(
             source_node,
             "RELATED_TO",
@@ -525,7 +525,7 @@ def update_relation(relation: Relation) -> bool:
             logger.warning(f"Relation {relation.source} -> {relation.target} not found, creating instead")
             return create_relation(relation)
         
-        ***REMOVED*** 更新属性
+        # 更新属性
         rel["description"] = relation.description
         rel["keywords"] = ",".join(relation.keywords) if relation.keywords else ""
         rel["retrieval_key"] = relation.retrieval_key
@@ -622,7 +622,7 @@ def get_entity_relations(entity_id: str, direction: str = "both") -> List[Relati
         return []
 
 
-***REMOVED*** ==================== 批量操作 ====================
+# ==================== 批量操作 ====================
 
 def create_entities_batch(entities: List[Entity]) -> int:
     """
@@ -660,7 +660,7 @@ def create_relations_batch(relations: List[Relation]) -> int:
     return success_count
 
 
-***REMOVED*** ==================== 图查询操作 ====================
+# ==================== 图查询操作 ====================
 
 def find_path_between_entities(source_id: str, target_id: str, max_depth: int = 3) -> List[List[str]]:
     """
@@ -709,7 +709,7 @@ def get_entity_neighbors(entity_id: str, depth: int = 1) -> List[Entity]:
         neighbors = []
         for record in result:
             node = record["neighbor"]
-            if node["id"] != entity_id:  ***REMOVED*** 排除自己
+            if node["id"] != entity_id:  # 排除自己
                 entity = Entity(
                     id=node["id"],
                     name=node.get("name", ""),
@@ -764,7 +764,7 @@ def search_entities_by_text(text: str, limit: int = 10) -> List[Entity]:
         return []
 
 
-***REMOVED*** ==================== Memory (LTM) 操作 ====================
+# ==================== Memory (LTM) 操作 ====================
 
 def create_memory(memory: Memory) -> bool:
     """
@@ -777,36 +777,36 @@ def create_memory(memory: Memory) -> bool:
         是否成功创建
     """
     try:
-        ***REMOVED*** 确保 Neo4j 连接已初始化
+        # 确保 Neo4j 连接已初始化
         _ensure_initialized()
         if not node_matcher:
             logger.error("Neo4j node_matcher not initialized")
             return False
         
-        ***REMOVED*** 检查是否已存在
+        # 检查是否已存在
         existing = node_matcher.match("Memory", id=memory.id).first()
         if existing:
             logger.warning(f"Memory {memory.id} already exists, updating instead")
             return update_memory(memory)
         
-        ***REMOVED*** 提取source字段（如果存在）
+        # 提取source字段（如果存在）
         source = ""
         if memory.metadata and isinstance(memory.metadata, dict):
             source = memory.metadata.get("source", "")
         
-        ***REMOVED*** 提取reasoning和decision_trace字段（Context Graph增强）
+        # 提取reasoning和decision_trace字段（Context Graph增强）
         reasoning = memory.reasoning or ""
         decision_trace_json = ""
         if memory.decision_trace:
             import json
             decision_trace_json = json.dumps(memory.decision_trace, ensure_ascii=False)
         
-        ***REMOVED*** 将metadata保存为JSON字符串（便于查询）
+        # 将metadata保存为JSON字符串（便于查询）
         import json
         metadata_json = json.dumps(memory.metadata, ensure_ascii=False) if memory.metadata else "{}"
         
-        ***REMOVED*** 创建记忆节点
-        ***REMOVED*** 记录memory_type的存储情况
+        # 创建记忆节点
+        # 记录memory_type的存储情况
         if memory.memory_type:
             memory_type_value = memory.memory_type.value
             logger.debug(f"Storing memory_type: {memory_type_value} for memory {memory.id}")
@@ -826,22 +826,22 @@ def create_memory(memory: Memory) -> bool:
             context=memory.context or "",
             retrieval_count=memory.retrieval_count,
             last_accessed=memory.last_accessed.isoformat() if memory.last_accessed else "",
-            metadata=metadata_json,  ***REMOVED*** 保存为JSON字符串
-            source=source,  ***REMOVED*** 提取source为独立属性
-            reasoning=reasoning,  ***REMOVED*** 新增：决策理由
-            decision_trace=decision_trace_json,  ***REMOVED*** 新增：决策痕迹
+            metadata=metadata_json,  # 保存为JSON字符串
+            source=source,  # 提取source为独立属性
+            reasoning=reasoning,  # 新增：决策理由
+            decision_trace=decision_trace_json,  # 新增：决策痕迹
             created_at=get_current_time()
         )
         graph.create(node)
         
-        ***REMOVED*** 创建类型标签
+        # 创建类型标签
         if memory.memory_type:
             type_value = memory.memory_type.value.upper()
-            ***REMOVED*** 添加类型标签
+            # 添加类型标签
             query = f"MATCH (m:Memory {{id: '{memory.id}'}}) SET m:{type_value} RETURN m"
             graph.run(query)
         
-        ***REMOVED*** 关联实体
+        # 关联实体
         if memory.entities:
             for entity_id in memory.entities:
                 entity_node = node_matcher.match("Entity", id=entity_id).first()
@@ -849,12 +849,12 @@ def create_memory(memory: Memory) -> bool:
                     rel = Relationship(node, "MENTIONS", entity_node)
                     graph.create(rel)
         
-        ***REMOVED*** 关联其他记忆（links）
+        # 关联其他记忆（links）
         if memory.links:
             for linked_memory_id in memory.links:
                 linked_node = node_matcher.match("Memory", id=linked_memory_id).first()
                 if linked_node:
-                    ***REMOVED*** 检查关系是否已存在，避免重复创建
+                    # 检查关系是否已存在，避免重复创建
                     existing_rel_query = f"""
                     MATCH (m1:Memory {{id: '{memory.id}'}})-[r:RELATED_TO]->(m2:Memory {{id: '{linked_memory_id}'}})
                     RETURN count(r) as count
@@ -868,7 +868,7 @@ def create_memory(memory: Memory) -> bool:
                         logger.debug(f"RELATED_TO relationship already exists: {memory.id} -> {linked_memory_id}")
                 else:
                     logger.warning(f"Linked memory {linked_memory_id} not found in Neo4j, cannot create RELATED_TO relationship from {memory.id}")
-                    ***REMOVED*** 可以记录到待处理队列，等待目标Memory创建后重试
+                    # 可以记录到待处理队列，等待目标Memory创建后重试
         
         logger.debug(f"Created memory: {memory.id}")
         return True
@@ -888,7 +888,7 @@ def get_memory(memory_id: str) -> Optional[Memory]:
         Memory 对象，如果不存在则返回 None
     """
     try:
-        ***REMOVED*** 确保 Neo4j 连接已初始化
+        # 确保 Neo4j 连接已初始化
         try:
             _ensure_initialized()
         except Exception as e:
@@ -903,38 +903,38 @@ def get_memory(memory_id: str) -> Optional[Memory]:
         if not node:
             return None
         
-        ***REMOVED*** 获取关联的实体
+        # 获取关联的实体
         entities = []
         for rel in graph.match((node, None), "MENTIONS"):
             entities.append(rel.end_node["id"])
         
-        ***REMOVED*** 获取关联的记忆（links）
+        # 获取关联的记忆（links）
         links = set()
         for rel in graph.match((node, None), "RELATED_TO"):
             links.add(rel.end_node["id"])
         
-        ***REMOVED*** 解析 keywords 和 tags
+        # 解析 keywords 和 tags
         keywords_str = node.get("keywords", "")
         keywords = keywords_str.split(",") if keywords_str else []
         
         tags_str = node.get("tags", "")
         tags = tags_str.split(",") if tags_str else []
         
-        ***REMOVED*** 解析 metadata
+        # 解析 metadata
         metadata_str = node.get("metadata", "{}")
         try:
             metadata = json.loads(metadata_str) if isinstance(metadata_str, str) else metadata_str
         except:
             metadata = {}
         
-        ***REMOVED*** 解析时间戳
+        # 解析时间戳
         timestamp_str = node.get("timestamp", "")
         timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.now()
         
         last_accessed_str = node.get("last_accessed", "")
         last_accessed = datetime.fromisoformat(last_accessed_str) if last_accessed_str else None
         
-        ***REMOVED*** 解析 memory_type
+        # 解析 memory_type
         memory_type_str = node.get("memory_type", "")
         memory_type = None
         if memory_type_str:
@@ -943,7 +943,7 @@ def get_memory(memory_id: str) -> Optional[Memory]:
             except:
                 pass
         
-        ***REMOVED*** 解析 layer
+        # 解析 layer
         layer_str = node.get("layer", "ltm")
         layer = None
         try:
@@ -951,31 +951,31 @@ def get_memory(memory_id: str) -> Optional[Memory]:
         except:
             pass
         
-        ***REMOVED*** 解析 reasoning 和 decision_trace（Context Graph增强）
+        # 解析 reasoning 和 decision_trace（Context Graph增强）
         reasoning = node.get("reasoning") or None
         decision_trace = None
         decision_trace_str = node.get("decision_trace", "")
         
-        ***REMOVED*** 增强decision_trace反序列化逻辑
+        # 增强decision_trace反序列化逻辑
         if decision_trace_str:
-            ***REMOVED*** 如果已经是dict，直接使用
+            # 如果已经是dict，直接使用
             if isinstance(decision_trace_str, dict):
                 decision_trace = decision_trace_str
-            ***REMOVED*** 如果是字符串，尝试解析JSON
+            # 如果是字符串，尝试解析JSON
             elif isinstance(decision_trace_str, str):
-                ***REMOVED*** 检查是否为空字符串或"None"/"null"
+                # 检查是否为空字符串或"None"/"null"
                 if decision_trace_str.strip() and decision_trace_str.strip().lower() not in ["none", "null", ""]:
                     try:
                         decision_trace = json.loads(decision_trace_str)
                     except json.JSONDecodeError as e:
-                        ***REMOVED*** 记录解析失败，但不影响其他字段的读取
+                        # 记录解析失败，但不影响其他字段的读取
                         logger.warning(f"Failed to parse decision_trace JSON for memory {node.get('id', 'unknown')}: {e}")
                         logger.debug(f"decision_trace_str (first 200 chars): {decision_trace_str[:200]}")
-                        ***REMOVED*** 尝试修复常见的JSON错误
+                        # 尝试修复常见的JSON错误
                         try:
-                            ***REMOVED*** 尝试修复单引号、尾随逗号等常见错误
+                            # 尝试修复单引号、尾随逗号等常见错误
                             fixed = decision_trace_str.replace("'", '"')
-                            ***REMOVED*** 移除尾随逗号
+                            # 移除尾随逗号
                             fixed = re.sub(r',(\s*[}\]])', r'\1', fixed)
                             decision_trace = json.loads(fixed)
                             logger.debug(f"Successfully parsed decision_trace after fixing")
@@ -985,7 +985,7 @@ def get_memory(memory_id: str) -> Optional[Memory]:
                         logger.warning(f"Unexpected error parsing decision_trace for memory {node.get('id', 'unknown')}: {e}")
                         decision_trace = None
         
-        ***REMOVED*** Fallback: 如果节点的decision_trace字段为空，尝试从metadata中读取
+        # Fallback: 如果节点的decision_trace字段为空，尝试从metadata中读取
         if not decision_trace and metadata:
             decision_trace_from_metadata = metadata.get("decision_trace")
             if decision_trace_from_metadata:
@@ -999,7 +999,7 @@ def get_memory(memory_id: str) -> Optional[Memory]:
                     except:
                         pass
         
-        ***REMOVED*** Fallback: 如果仍然没有decision_trace，从metadata中构建
+        # Fallback: 如果仍然没有decision_trace，从metadata中构建
         if not decision_trace and metadata:
             has_trace_fields = any([
                 metadata.get("inputs"),
@@ -1018,7 +1018,7 @@ def get_memory(memory_id: str) -> Optional[Memory]:
                 }
                 logger.debug(f"Constructed decision_trace from metadata fields for memory {node.get('id', 'unknown')}")
         
-        ***REMOVED*** Fallback: 如果reasoning为空，也从metadata中读取
+        # Fallback: 如果reasoning为空，也从metadata中读取
         if not reasoning and metadata:
             reasoning_from_metadata = metadata.get("reasoning")
             if reasoning_from_metadata:
@@ -1039,8 +1039,8 @@ def get_memory(memory_id: str) -> Optional[Memory]:
             retrieval_count=node.get("retrieval_count", 0),
             last_accessed=last_accessed,
             metadata=metadata,
-            reasoning=reasoning,  ***REMOVED*** 新增：决策理由
-            decision_trace=decision_trace,  ***REMOVED*** 新增：决策痕迹
+            reasoning=reasoning,  # 新增：决策理由
+            decision_trace=decision_trace,  # 新增：决策痕迹
         )
         return memory
     except Exception as e:
@@ -1059,7 +1059,7 @@ def update_memory(memory: Memory) -> bool:
         是否成功更新
     """
     try:
-        ***REMOVED*** 确保 Neo4j 连接已初始化
+        # 确保 Neo4j 连接已初始化
         try:
             _ensure_initialized()
         except Exception as e:
@@ -1075,21 +1075,21 @@ def update_memory(memory: Memory) -> bool:
             logger.warning(f"Memory {memory.id} not found, creating instead")
             return create_memory(memory)
         
-        ***REMOVED*** 提取source字段（如果存在）
+        # 提取source字段（如果存在）
         source = ""
         if memory.metadata and isinstance(memory.metadata, dict):
             source = memory.metadata.get("source", "")
         
-        ***REMOVED*** 提取reasoning和decision_trace字段（Context Graph增强）
+        # 提取reasoning和decision_trace字段（Context Graph增强）
         reasoning = memory.reasoning or ""
         decision_trace_json = ""
         if memory.decision_trace:
             decision_trace_json = json.dumps(memory.decision_trace, ensure_ascii=False)
         
-        ***REMOVED*** 将metadata保存为JSON字符串（便于查询）
+        # 将metadata保存为JSON字符串（便于查询）
         metadata_json = json.dumps(memory.metadata, ensure_ascii=False) if memory.metadata else "{}"
         
-        ***REMOVED*** 更新属性
+        # 更新属性
         node["content"] = memory.content
         node["timestamp"] = memory.timestamp.isoformat() if memory.timestamp else get_current_time()
         node["memory_type"] = memory.memory_type.value if memory.memory_type else ""
@@ -1098,19 +1098,19 @@ def update_memory(memory: Memory) -> bool:
         node["context"] = memory.context or ""
         node["retrieval_count"] = memory.retrieval_count
         node["last_accessed"] = memory.last_accessed.isoformat() if memory.last_accessed else ""
-        node["metadata"] = metadata_json  ***REMOVED*** 保存为JSON字符串
-        node["source"] = source  ***REMOVED*** 更新source字段
-        node["reasoning"] = reasoning  ***REMOVED*** 新增：更新决策理由
-        node["decision_trace"] = decision_trace_json  ***REMOVED*** 新增：更新决策痕迹
+        node["metadata"] = metadata_json  # 保存为JSON字符串
+        node["source"] = source  # 更新source字段
+        node["reasoning"] = reasoning  # 新增：更新决策理由
+        node["decision_trace"] = decision_trace_json  # 新增：更新决策痕迹
         
         graph.push(node)
         
-        ***REMOVED*** 更新关联关系（删除旧关系，创建新关系）
-        ***REMOVED*** 删除旧的实体关联
+        # 更新关联关系（删除旧关系，创建新关系）
+        # 删除旧的实体关联
         for rel in graph.match((node, None), "MENTIONS"):
             graph.delete(rel)
         
-        ***REMOVED*** 创建新的实体关联
+        # 创建新的实体关联
         if memory.entities:
             for entity_id in memory.entities:
                 entity_node = node_matcher.match("Entity", id=entity_id).first()
@@ -1118,11 +1118,11 @@ def update_memory(memory: Memory) -> bool:
                     rel = Relationship(node, "MENTIONS", entity_node)
                     graph.create(rel)
         
-        ***REMOVED*** 删除旧的记忆关联
+        # 删除旧的记忆关联
         for rel in graph.match((node, None), "RELATED_TO"):
             graph.delete(rel)
         
-        ***REMOVED*** 创建新的记忆关联
+        # 创建新的记忆关联
         if memory.links:
             for linked_memory_id in memory.links:
                 linked_node = node_matcher.match("Memory", id=linked_memory_id).first()
@@ -1148,7 +1148,7 @@ def delete_memory(memory_id: str) -> bool:
         是否成功删除
     """
     try:
-        ***REMOVED*** 确保 Neo4j 连接已初始化
+        # 确保 Neo4j 连接已初始化
         try:
             _ensure_initialized()
         except Exception as e:
@@ -1164,13 +1164,13 @@ def delete_memory(memory_id: str) -> bool:
             logger.warning(f"Memory {memory_id} not found")
             return False
         
-        ***REMOVED*** 删除所有关联关系
+        # 删除所有关联关系
         for rel in graph.match((node, None)):
             graph.delete(rel)
         for rel in graph.match((None, node)):
             graph.delete(rel)
         
-        ***REMOVED*** 删除节点
+        # 删除节点
         graph.delete(node)
         
         logger.debug(f"Deleted memory: {memory_id}")
@@ -1387,16 +1387,16 @@ def create_decision_event(
             logger.error("Neo4j node_matcher or graph not initialized")
             return False
         
-        ***REMOVED*** 查找记忆节点
+        # 查找记忆节点
         memory_node = node_matcher.match("Memory", id=memory_id).first()
         if not memory_node:
             logger.debug(f"Memory {memory_id} not found in Neo4j, cannot create decision event (LTM may be memory backend)")
             return False
         
-        ***REMOVED*** 创建决策事件节点
+        # 创建决策事件节点
         event_id = f"decision_{memory_id}"
         
-        ***REMOVED*** 检查是否已存在
+        # 检查是否已存在
         existing = node_matcher.match("DecisionEvent", id=event_id).first()
         if existing:
             logger.debug(f"Decision event {event_id} already exists, updating instead")
@@ -1424,10 +1424,10 @@ def create_decision_event(
         
         graph.create(event_node)
         
-        ***REMOVED*** 连接到Memory节点
+        # 连接到Memory节点
         graph.create(Relationship(event_node, "TRACES", memory_node))
         
-        ***REMOVED*** 连接到相关实体
+        # 连接到相关实体
         if related_entity_ids:
             for entity_id in related_entity_ids:
                 entity_node = node_matcher.match("Entity", id=entity_id).first()
@@ -1481,13 +1481,13 @@ def update_decision_event(
         
         graph.push(event_node)
         
-        ***REMOVED*** 更新实体关联
+        # 更新实体关联
         if related_entity_ids:
-            ***REMOVED*** 删除旧的实体关联
+            # 删除旧的实体关联
             for rel in graph.match((event_node, None), "INVOLVES"):
                 graph.delete(rel)
             
-            ***REMOVED*** 创建新的实体关联
+            # 创建新的实体关联
             for entity_id in related_entity_ids:
                 entity_node = node_matcher.match("Entity", id=entity_id).first()
                 if entity_node:

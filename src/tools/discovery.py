@@ -29,13 +29,13 @@ class ToolDiscovery:
         """
         self.registry = registry
         if docs_dir is None:
-            ***REMOVED*** 默认使用 tools/docs/ 目录
+            # 默认使用 tools/docs/ 目录
             current_dir = Path(__file__).parent
             docs_dir = current_dir / "docs"
         self.docs_dir = Path(docs_dir)
         self.docs_dir.mkdir(parents=True, exist_ok=True)
         
-        ***REMOVED*** 同步工具文档
+        # 同步工具文档
         self.sync_tool_docs()
     
     def sync_tool_docs(self) -> None:
@@ -51,10 +51,10 @@ class ToolDiscovery:
             if not tool_name:
                 continue
             
-            ***REMOVED*** 生成工具文档
+            # 生成工具文档
             doc_content = self._generate_tool_doc(func)
             
-            ***REMOVED*** 保存到文件
+            # 保存到文件
             doc_file = self.docs_dir / f"{tool_name}.md"
             doc_file.write_text(doc_content, encoding="utf-8")
     
@@ -74,11 +74,11 @@ class ToolDiscovery:
         required = func.get("parameters", {}).get("required", [])
         
         doc_lines = [
-            f"***REMOVED*** {name}",
+            f"# {name}",
             "",
             f"**描述**: {description}",
             "",
-            "***REMOVED******REMOVED*** 参数",
+            "## 参数",
             ""
         ]
         
@@ -95,11 +95,11 @@ class ToolDiscovery:
         
         doc_lines.extend([
             "",
-            "***REMOVED******REMOVED*** 使用示例",
+            "## 使用示例",
             ""
         ])
         
-        ***REMOVED*** 生成示例参数
+        # 生成示例参数
         example_args = {}
         for param_name, param_def in parameters.items():
             param_type = param_def.get("type", "string")
@@ -151,10 +151,10 @@ class ToolDiscovery:
         ]
         
         for name in tool_names:
-            ***REMOVED*** 获取工具的简短描述（从注册表中）
+            # 获取工具的简短描述（从注册表中）
             tool = self.registry.get_tool(name)
             if tool:
-                short_desc = tool.description[:50]  ***REMOVED*** 只取前50字符
+                short_desc = tool.description[:50]  # 只取前50字符
                 lines.append(f"- {name}: {short_desc}...")
             else:
                 lines.append(f"- {name}")
@@ -180,29 +180,29 @@ class ToolDiscovery:
         query_lower = query.lower()
         results = []
         
-        ***REMOVED*** 遍历所有工具文档
+        # 遍历所有工具文档
         for doc_file in self.docs_dir.glob("*.md"):
             tool_name = doc_file.stem
             content = doc_file.read_text(encoding="utf-8")
             content_lower = content.lower()
             
-            ***REMOVED*** 简单的关键词匹配
+            # 简单的关键词匹配
             score = 0
             matched_lines = []
             
-            ***REMOVED*** 检查工具名称
+            # 检查工具名称
             if query_lower in tool_name.lower():
                 score += 10
                 matched_lines.append(f"工具名称: {tool_name}")
             
-            ***REMOVED*** 检查描述
+            # 检查描述
             if query_lower in content_lower:
-                ***REMOVED*** 找到匹配的行
+                # 找到匹配的行
                 for line in content.split("\n"):
                     if query_lower in line.lower():
                         matched_lines.append(line.strip())
                         score += 1
-                        if len(matched_lines) >= 3:  ***REMOVED*** 最多3行
+                        if len(matched_lines) >= 3:  # 最多3行
                             break
             
             if score > 0:
@@ -213,21 +213,21 @@ class ToolDiscovery:
                     "file_path": str(doc_file)
                 })
         
-        ***REMOVED*** 按分数排序
+        # 按分数排序
         results.sort(key=lambda x: x["score"], reverse=True)
         results = results[:max_results]
         
         if not results:
             return f"未找到与 '{query}' 相关的工具文档。"
         
-        ***REMOVED*** 格式化结果
+        # 格式化结果
         output_lines = [
             f"找到 {len(results)} 个相关工具：",
             ""
         ]
         
         for i, result in enumerate(results, 1):
-            output_lines.append(f"***REMOVED******REMOVED******REMOVED*** {i}. {result['tool_name']}")
+            output_lines.append(f"### {i}. {result['tool_name']}")
             output_lines.append(f"文件路径: {result['file_path']}")
             output_lines.append("匹配内容:")
             for line in result['matched_lines']:
@@ -263,7 +263,7 @@ class ToolDiscovery:
         return [f.stem for f in self.docs_dir.glob("*.md")]
 
 
-***REMOVED*** 全局工具发现实例（延迟初始化）
+# 全局工具发现实例（延迟初始化）
 _discovery_instance: Optional[ToolDiscovery] = None
 
 

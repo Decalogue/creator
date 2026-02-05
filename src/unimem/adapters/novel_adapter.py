@@ -96,9 +96,9 @@ class NovelAdapter(AtomLinkAdapter):
             )
         
         try:
-            ***REMOVED*** 根据层级选择不同的 prompt
+            # 根据层级选择不同的 prompt
             if level == "summary":
-                ***REMOVED*** 章节 -> 摘要
+                # 章节 -> 摘要
                 max_chapters = min(10, len(chapters))
                 chapters_preview = [f"章节{i+1}: {ch[:500]}" for i, ch in enumerate(chapters[:max_chapters])]
                 
@@ -126,7 +126,7 @@ class NovelAdapter(AtomLinkAdapter):
     }}
 }}"""
             elif level == "outline":
-                ***REMOVED*** 摘要 -> 大纲
+                # 摘要 -> 大纲
                 max_chapters = min(20, len(chapters))
                 chapters_preview = [f"摘要{i+1}: {ch[:300]}" for i, ch in enumerate(chapters[:max_chapters])]
                 
@@ -155,7 +155,7 @@ class NovelAdapter(AtomLinkAdapter):
     }}
 }}"""
             elif level == "synopsis":
-                ***REMOVED*** 大纲 -> 简介
+                # 大纲 -> 简介
                 max_chapters = min(5, len(chapters))
                 chapters_preview = [ch[:400] for ch in chapters[:max_chapters]]
                 
@@ -182,7 +182,7 @@ class NovelAdapter(AtomLinkAdapter):
             else:
                 logger.warning(f"Unknown level '{level}', defaulting to 'summary'")
                 level = "summary"
-                ***REMOVED*** 使用 summary 的 prompt
+                # 使用 summary 的 prompt
                 max_chapters = min(10, len(chapters))
                 chapters_preview = [f"章节{i+1}: {ch[:500]}" for i, ch in enumerate(chapters[:max_chapters])]
                 prompt = f"""请对以下章节内容进行结构化摘要，提取关键信息。
@@ -274,19 +274,19 @@ class NovelAdapter(AtomLinkAdapter):
             raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="NovelAdapter")
         
         try:
-            ***REMOVED*** 1. 使用结构化查询检索相似记忆（检索更多以增加匹配机会）
+            # 1. 使用结构化查询检索相似记忆（检索更多以增加匹配机会）
             similar_memories = self._search_similar_memories(query, top_k=top_k * 2)
             
             if not similar_memories:
                 logger.debug("No similar memories found for query")
                 return []
             
-            ***REMOVED*** 2. 匹配到原始内容并计算奖励
+            # 2. 匹配到原始内容并计算奖励
             results = []
             N = len(original_contents)
             
             for idx, memory in enumerate(similar_memories[:top_k]):
-                ***REMOVED*** 尝试匹配到原始内容（使用前100字符进行匹配）
+                # 尝试匹配到原始内容（使用前100字符进行匹配）
                 matched_index = None
                 memory_preview = memory.content[:100] if memory.content else ""
                 
@@ -294,19 +294,19 @@ class NovelAdapter(AtomLinkAdapter):
                     if not orig_content:
                         continue
                     orig_preview = orig_content[:100]
-                    ***REMOVED*** 双向匹配检查
+                    # 双向匹配检查
                     if memory_preview in orig_content or orig_preview in memory.content:
                         matched_index = orig_idx
                         break
                 
-                ***REMOVED*** 计算奖励：reward = 1 - index/N（越靠前奖励越高）
+                # 计算奖励：reward = 1 - index/N（越靠前奖励越高）
                 if matched_index is not None:
                     reward = 1.0 - (matched_index / N) if N > 0 else 1.0
                 else:
-                    ***REMOVED*** 如果无法匹配，使用检索排名计算奖励
+                    # 如果无法匹配，使用检索排名计算奖励
                     reward = 1.0 - (idx / top_k) if top_k > 0 else 1.0
                 
-                ***REMOVED*** 获取相似度分数（如果存在）
+                # 获取相似度分数（如果存在）
                 similarity_score = memory.metadata.get("similarity_score", 1.0 - idx / top_k) if memory.metadata else 1.0 - idx / top_k
                 
                 results.append({
@@ -317,7 +317,7 @@ class NovelAdapter(AtomLinkAdapter):
                     "retrieval_rank": idx + 1
                 })
             
-            ***REMOVED*** 按奖励排序（奖励高的在前）
+            # 按奖励排序（奖励高的在前）
             results.sort(key=lambda x: x["reward"], reverse=True)
             
             logger.debug(f"Retrieved {len(results)} results with rewards")
@@ -371,11 +371,11 @@ class NovelAdapter(AtomLinkAdapter):
             )
         
         try:
-            ***REMOVED*** 构建上下文信息
+            # 构建上下文信息
             context_text = ""
             if context_memories:
                 context_text = "\n相关原子笔记：\n"
-                ***REMOVED*** 限制使用的记忆数量以提高效率
+                # 限制使用的记忆数量以提高效率
                 for mem in context_memories[:5]:
                     context_text += f"- {mem.content[:200]}\n"
                     if mem.metadata and mem.metadata.get("creative_dimensions"):
@@ -385,7 +385,7 @@ class NovelAdapter(AtomLinkAdapter):
                         if dims.get("scenes"):
                             context_text += f"  场景: {', '.join(dims['scenes'][:3])}\n"
             
-            ***REMOVED*** 根据目标层级选择不同的 prompt
+            # 根据目标层级选择不同的 prompt
             if target_level == "outline":
                 prompt = f"""请根据以下作品简介生成详细的故事大纲。
 
@@ -469,7 +469,7 @@ class NovelAdapter(AtomLinkAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=4096)
             
-            ***REMOVED*** 清理响应文本
+            # 清理响应文本
             if target_level in ["outline", "summary"]:
                 result = self._parse_json_response(response_text)
                 if result:
@@ -485,7 +485,7 @@ class NovelAdapter(AtomLinkAdapter):
                     logger.warning(f"Failed to parse JSON response for target_level '{target_level}'")
                     return ""
             
-            ***REMOVED*** 对于章节，直接返回文本
+            # 对于章节，直接返回文本
             chapter_text = response_text.strip()
             logger.debug(f"Generated chapter with {len(chapter_text)} characters")
             return chapter_text

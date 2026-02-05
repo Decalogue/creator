@@ -41,9 +41,9 @@ class Budget(str, Enum):
     
     用于控制 RECALL 和 REFLECT 操作的资源消耗
     """
-    LOW = "low"    ***REMOVED*** 低预算：快速、基础检索
-    MID = "mid"    ***REMOVED*** 中等预算：平衡质量和速度
-    HIGH = "high"  ***REMOVED*** 高预算：全面、深度检索
+    LOW = "low"    # 低预算：快速、基础检索
+    MID = "mid"    # 中等预算：平衡质量和速度
+    HIGH = "high"  # 高预算：全面、深度检索
 
 
 class OperationAdapter(BaseAdapter):
@@ -64,7 +64,7 @@ class OperationAdapter(BaseAdapter):
         Raises:
             AdapterConfigurationError: 如果配置无效
         """
-        ***REMOVED*** 验证 LLM 配置（如果使用）
+        # 验证 LLM 配置（如果使用）
         llm_provider = self.config.get("llm_provider", "openai")
         llm_model = self.config.get("llm_model", "gpt-4o-mini")
         
@@ -121,15 +121,15 @@ class OperationAdapter(BaseAdapter):
         logger.debug(f"RETAIN: Storing experience: {experience.content[:50]}...")
         
         try:
-            ***REMOVED*** 参考 Hindsight 的 retain 逻辑：
-            ***REMOVED*** 1. 事实提取（what, when, where, who, why）
-            ***REMOVED*** 2. 生成嵌入
-            ***REMOVED*** 3. 实体解析
-            ***REMOVED*** 4. 构建链接（时间、语义、实体、因果）
+            # 参考 Hindsight 的 retain 逻辑：
+            # 1. 事实提取（what, when, where, who, why）
+            # 2. 生成嵌入
+            # 3. 实体解析
+            # 4. 构建链接（时间、语义、实体、因果）
             
-            ***REMOVED*** 创建基础 Memory 对象
-            ***REMOVED*** 注意：实际的记忆类型分类和结构化处理会在 core.py 的 retain 方法中完成
-            ***REMOVED*** 这里只返回基础结构
+            # 创建基础 Memory 对象
+            # 注意：实际的记忆类型分类和结构化处理会在 core.py 的 retain 方法中完成
+            # 这里只返回基础结构
             memory_id = f"mem_{datetime.now().timestamp()}_{id(experience)}"
             memory = Memory(
                 id=memory_id,
@@ -139,7 +139,7 @@ class OperationAdapter(BaseAdapter):
                 metadata=experience.metadata.copy() if experience.metadata else {},
             )
             
-            ***REMOVED*** 添加 document_id 到 metadata（参考 Hindsight）
+            # 添加 document_id 到 metadata（参考 Hindsight）
             if document_id:
                 memory.metadata["document_id"] = str(document_id)
             
@@ -233,39 +233,39 @@ class OperationAdapter(BaseAdapter):
         Returns:
             检索结果字典（参考 Hindsight RecallResponse）：
             {
-                "results": List[Memory],  ***REMOVED*** 检索到的记忆列表
-                "trace": Optional[Dict],  ***REMOVED*** 调试追踪信息（如果启用）
-                "entities": Optional[Dict],  ***REMOVED*** 实体信息（如果 include_entities=True）
-                "chunks": Optional[Dict],  ***REMOVED*** 原始文本块（如果 include_chunks=True）
+                "results": List[Memory],  # 检索到的记忆列表
+                "trace": Optional[Dict],  # 调试追踪信息（如果启用）
+                "entities": Optional[Dict],  # 实体信息（如果 include_entities=True）
+                "chunks": Optional[Dict],  # 原始文本块（如果 include_chunks=True）
             }
         """
         logger.debug(f"RECALL: Query: {query[:50]}..., budget: {budget}, max_tokens: {max_tokens}, "
                     f"abstraction_level: {abstraction_level}")
         
-        ***REMOVED*** 参考 Hindsight 的 recall 逻辑：
-        ***REMOVED*** 1. 四路并行检索（语义、BM25、图、时间）
-        ***REMOVED*** 2. RRF 融合
-        ***REMOVED*** 3. 重排序
-        ***REMOVED*** 4. Token 预算过滤
+        # 参考 Hindsight 的 recall 逻辑：
+        # 1. 四路并行检索（语义、BM25、图、时间）
+        # 2. RRF 融合
+        # 3. 重排序
+        # 4. Token 预算过滤
         
-        ***REMOVED*** 注意：实际的检索逻辑在 retrieval_engine.py 中实现
-        ***REMOVED*** 这里只是接口定义，返回空结果表示需要由上层调用检索引擎
+        # 注意：实际的检索逻辑在 retrieval_engine.py 中实现
+        # 这里只是接口定义，返回空结果表示需要由上层调用检索引擎
         
-        ***REMOVED*** 转换 memory_types 为字符串列表（如果提供）
+        # 转换 memory_types 为字符串列表（如果提供）
         type_filters = None
         if memory_types:
             type_filters = [mt.value for mt in memory_types]
         
-        ***REMOVED*** 转换 budget 为字符串
+        # 转换 budget 为字符串
         budget_str = budget.value if isinstance(budget, Budget) else str(budget)
         
-        ***REMOVED*** 验证 abstraction_level 参数
+        # 验证 abstraction_level 参数
         if abstraction_level and abstraction_level not in ("episodic", "semantic", "user_profile"):
             logger.warning(f"Invalid abstraction_level '{abstraction_level}', ignoring filter")
             abstraction_level = None
         
-        ***REMOVED*** 临时实现：返回空结果，实际检索由 core.py 调用 retrieval_engine
-        ***REMOVED*** 注意：abstraction_level 过滤应该在检索引擎中实现
+        # 临时实现：返回空结果，实际检索由 core.py 调用 retrieval_engine
+        # 注意：abstraction_level 过滤应该在检索引擎中实现
         return {
             "results": [],
             "trace": None,
@@ -303,31 +303,31 @@ class OperationAdapter(BaseAdapter):
         Returns:
             包含答案和更新后记忆的字典（参考 Hindsight ReflectResponse）：
             {
-                "answer": str,  ***REMOVED*** 生成的答案文本
-                "based_on": List[Dict],  ***REMOVED*** 基于的事实列表（参考 Hindsight ReflectFact）
-                "updated_memories": List[Memory],  ***REMOVED*** 更新后的记忆
-                "new_opinions": List[Memory],  ***REMOVED*** 新形成的观点
+                "answer": str,  # 生成的答案文本
+                "based_on": List[Dict],  # 基于的事实列表（参考 Hindsight ReflectFact）
+                "updated_memories": List[Memory],  # 更新后的记忆
+                "new_opinions": List[Memory],  # 新形成的观点
             }
         """
         logger.debug(f"REFLECT: Reflecting on {len(memories)} memories for task: {task.description[:50]}..., budget: {budget}")
         
-        ***REMOVED*** 转换 budget 为字符串
+        # 转换 budget 为字符串
         budget_str = budget.value if isinstance(budget, Budget) else str(budget)
         
-        ***REMOVED*** 参考 Hindsight 的 reflect 逻辑（CARA）：
-        ***REMOVED*** 1. 按类型分组记忆（world, experience, opinion, observation）
-        ***REMOVED*** 2. 构建上下文（包含事实和 Agent Profile）
-        ***REMOVED*** 3. 使用 LLM 生成答案（带 Disposition Conditioning）
-        ***REMOVED*** 4. 提取新观点并更新置信度
-        ***REMOVED*** 5. 记录基于的事实（based_on）
+        # 参考 Hindsight 的 reflect 逻辑（CARA）：
+        # 1. 按类型分组记忆（world, experience, opinion, observation）
+        # 2. 构建上下文（包含事实和 Agent Profile）
+        # 3. 使用 LLM 生成答案（带 Disposition Conditioning）
+        # 4. 提取新观点并更新置信度
+        # 5. 记录基于的事实（based_on）
         
-        ***REMOVED*** 按 Hindsight 类型分组记忆（认知属性维度）
+        # 按 Hindsight 类型分组记忆（认知属性维度）
         world_facts = [m for m in memories if m.memory_type == MemoryType.WORLD]
         experience_facts = [m for m in memories if m.memory_type == MemoryType.EXPERIENCE]
         opinion_facts = [m for m in memories if m.memory_type == MemoryType.OPINION]
         observation_facts = [m for m in memories if m.memory_type == MemoryType.OBSERVATION]
         
-        ***REMOVED*** 按抽象层级分组记忆（MemMachine 维度）- 用于优化推理策略
+        # 按抽象层级分组记忆（MemMachine 维度）- 用于优化推理策略
         episodic_memories = self._filter_by_abstraction_level(memories, "episodic")
         semantic_memories = self._filter_by_abstraction_level(memories, "semantic")
         user_profile_memories = self._filter_by_abstraction_level(memories, "user_profile")
@@ -337,14 +337,14 @@ class OperationAdapter(BaseAdapter):
         logger.debug(f"Memory breakdown (abstraction): Episodic={len(episodic_memories)}, "
                     f"Semantic={len(semantic_memories)}, UserProfile={len(user_profile_memories)}")
         
-        ***REMOVED*** 根据预算调整使用的记忆数量（参考 Hindsight）
+        # 根据预算调整使用的记忆数量（参考 Hindsight）
         max_facts_per_type = self._get_max_facts_by_budget(budget_str)
         world_facts = world_facts[:max_facts_per_type]
         experience_facts = experience_facts[:max_facts_per_type]
         opinion_facts = opinion_facts[:max_facts_per_type]
         observation_facts = observation_facts[:max_facts_per_type]
         
-        ***REMOVED*** 构建反思提示词（考虑抽象层级优化）
+        # 构建反思提示词（考虑抽象层级优化）
         prompt = self._build_reflect_prompt(
             query=task.description,
             world_facts=world_facts,
@@ -359,11 +359,11 @@ class OperationAdapter(BaseAdapter):
             context=task.context,
         )
         
-        ***REMOVED*** 调用 LLM 生成答案
+        # 调用 LLM 生成答案
         try:
             system_message = self._build_reflect_system_message(agent_disposition)
             
-            ***REMOVED*** 根据预算调整 max_new_tokens（参考 Hindsight）
+            # 根据预算调整 max_new_tokens（参考 Hindsight）
             max_tokens = self._get_max_tokens_by_budget(budget_str)
             
             messages = [
@@ -373,26 +373,26 @@ class OperationAdapter(BaseAdapter):
             
             _, answer_text = ark_deepseek_v3_2(messages, max_new_tokens=max_tokens)
             
-            ***REMOVED*** 提取新观点和经验（如果有）
+            # 提取新观点和经验（如果有）
             new_opinions = self._extract_new_opinions(answer_text, memories)
             new_experiences = self._extract_experiences(answer_text, memories, task)
             
-            ***REMOVED*** 增强：从答案中主动提取reasoning，并更新到新观点和经验中
+            # 增强：从答案中主动提取reasoning，并更新到新观点和经验中
             extracted_reasoning = self._extract_reasoning_from_text(answer_text, memories)
             if extracted_reasoning:
-                ***REMOVED*** 如果新观点没有reasoning，则添加
+                # 如果新观点没有reasoning，则添加
                 for opinion in new_opinions:
                     if not opinion.reasoning:
                         opinion.reasoning = extracted_reasoning
-                ***REMOVED*** 如果新经验没有reasoning，则添加
+                # 如果新经验没有reasoning，则添加
                 for experience in new_experiences:
                     if not experience.reasoning:
                         experience.reasoning = extracted_reasoning
             
-            ***REMOVED*** 更新记忆的置信度（如果有观点记忆）
+            # 更新记忆的置信度（如果有观点记忆）
             updated_memories = self._update_confidence(memories, answer_text)
             
-            ***REMOVED*** 构建 based_on 事实列表（参考 Hindsight ReflectFact）
+            # 构建 based_on 事实列表（参考 Hindsight ReflectFact）
             based_on = self._build_based_on_facts(
                 world_facts + experience_facts + opinion_facts + observation_facts
             )
@@ -434,12 +434,12 @@ class OperationAdapter(BaseAdapter):
         综合考虑认知属性（Hindsight 类型）和抽象层级（MemMachine 维度）
         """
         
-        ***REMOVED*** 格式化事实
+        # 格式化事实
         def format_facts(facts: List[Memory], fact_type: str) -> str:
             if not facts:
                 return f"无{fact_type}相关记忆"
             text = f"\n【{fact_type}事实】\n"
-            for i, fact in enumerate(facts[:10], 1):  ***REMOVED*** 限制数量
+            for i, fact in enumerate(facts[:10], 1):  # 限制数量
                 text += f"{i}. {fact.content}\n"
                 if fact.context:
                     text += f"   上下文: {fact.context}\n"
@@ -450,7 +450,7 @@ class OperationAdapter(BaseAdapter):
         opinion_text = format_facts(opinion_facts, "观点")
         observation_text = format_facts(observation_facts, "观察")
         
-        ***REMOVED*** 添加抽象层级信息（如果相关记忆较多，提供优化建议）
+        # 添加抽象层级信息（如果相关记忆较多，提供优化建议）
         abstraction_hint = ""
         if len(episodic_memories) > len(semantic_memories) * 2:
             abstraction_hint = "\n提示：本次查询主要涉及具体事件记忆（episodic），建议优先考虑时间序列和因果关系。"
@@ -460,7 +460,7 @@ class OperationAdapter(BaseAdapter):
         if user_profile_memories:
             abstraction_hint += f"\n提示：包含 {len(user_profile_memories)} 条用户画像记忆，请考虑个性化因素。"
         
-        ***REMOVED*** Agent 配置
+        # Agent 配置
         disposition_text = ""
         if agent_disposition:
             skepticism = agent_disposition.get("skepticism", 3)
@@ -521,7 +521,7 @@ Agent 性格配置：
             literalism = agent_disposition.get("literalism", 3)
             empathy = agent_disposition.get("empathy", 3)
             
-            ***REMOVED*** 根据性格调整系统消息
+            # 根据性格调整系统消息
             if skepticism >= 4:
                 base_message += "你对信息持怀疑态度，会仔细验证事实。"
             if literalism >= 4:
@@ -535,30 +535,30 @@ Agent 性格配置：
         """从答案中提取新观点"""
         new_opinions = []
         
-        ***REMOVED*** 检查是否包含【新观点】标记
+        # 检查是否包含【新观点】标记
         if "【新观点】" in answer_text or "[新观点]" in answer_text:
             try:
-                ***REMOVED*** 提取新观点部分
+                # 提取新观点部分
                 if "【新观点】" in answer_text:
                     opinion_text = answer_text.split("【新观点】")[-1].strip()
                 else:
                     opinion_text = answer_text.split("[新观点]")[-1].strip()
                 
                 if opinion_text:
-                    ***REMOVED*** 从观点文本中提取reasoning（"为什么"）
+                    # 从观点文本中提取reasoning（"为什么"）
                     reasoning = self._extract_reasoning_from_text(opinion_text, original_memories)
-                    ***REMOVED*** 如果观点文本中没有，尝试从整个答案中提取
+                    # 如果观点文本中没有，尝试从整个答案中提取
                     if not reasoning:
                         reasoning = self._extract_reasoning_from_text(answer_text, original_memories)
                     
-                    ***REMOVED*** 创建新观点记忆（包含reasoning字段）
+                    # 创建新观点记忆（包含reasoning字段）
                     opinion_memory = Memory(
                         id=f"opinion_{datetime.now().timestamp()}",
                         content=opinion_text,
                         timestamp=datetime.now(),
                         memory_type=MemoryType.OPINION,
                         context="通过反思形成的新观点",
-                        reasoning=reasoning,  ***REMOVED*** 新增：存储"为什么"
+                        reasoning=reasoning,  # 新增：存储"为什么"
                         metadata={"confidence": 0.7, "source": "reflect"},
                     )
                     new_opinions.append(opinion_memory)
@@ -583,25 +583,25 @@ Agent 性格配置：
         """
         new_experiences = []
         
-        ***REMOVED*** 检查是否包含【新经验】标记
+        # 检查是否包含【新经验】标记
         if "【新经验】" in answer_text or "[新经验]" in answer_text:
             try:
-                ***REMOVED*** 提取经验部分
+                # 提取经验部分
                 if "【新经验】" in answer_text:
                     experience_text = answer_text.split("【新经验】")[-1].strip()
                 else:
                     experience_text = answer_text.split("[新经验]")[-1].strip()
                 
                 if experience_text:
-                    ***REMOVED*** 使用LLM进一步提炼经验，确保是可复用的模式
+                    # 使用LLM进一步提炼经验，确保是可复用的模式
                     refined_experience = self._refine_experience(experience_text, original_memories, task)
                     
                     if refined_experience:
-                        ***REMOVED*** 提取"为什么"（决策理由）
+                        # 提取"为什么"（决策理由）
                         reasoning = self._extract_reasoning_from_text(experience_text, answer_text)
                         
-                        ***REMOVED*** 创建经验记忆（包含reasoning字段）
-                        ***REMOVED*** 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
+                        # 创建经验记忆（包含reasoning字段）
+                        # 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
                         import uuid
                         experience_memory = Memory(
                             id=str(uuid.uuid4()),
@@ -609,7 +609,7 @@ Agent 性格配置：
                             timestamp=datetime.now(),
                             memory_type=MemoryType.EXPERIENCE,
                             context="通过反思提取的可复用经验模式",
-                            reasoning=reasoning,  ***REMOVED*** 新增：存储"为什么"
+                            reasoning=reasoning,  # 新增：存储"为什么"
                             metadata={
                                 "confidence": 0.8,
                                 "source": "reflect",
@@ -621,24 +621,24 @@ Agent 性格配置：
             except Exception as e:
                 logger.warning(f"Failed to extract experiences: {e}")
         
-        ***REMOVED*** 即使没有明确标记，也尝试从答案中识别经验模式
-        ***REMOVED*** 特别是当任务明确要求总结经验时，或者有多轮对话记忆时
+        # 即使没有明确标记，也尝试从答案中识别经验模式
+        # 特别是当任务明确要求总结经验时，或者有多轮对话记忆时
         should_extract_implicit = (
             not new_experiences and (
                 any(keyword in task.description.lower() for keyword in ["经验", "模式", "策略", "最佳实践", "总结", "优化", "改进"]) or
-                len(original_memories) >= 3  ***REMOVED*** 多轮对话，更可能有可提取的经验
+                len(original_memories) >= 3  # 多轮对话，更可能有可提取的经验
             )
         )
         
         if should_extract_implicit:
             try:
-                ***REMOVED*** 尝试从答案中提取通用经验
+                # 尝试从答案中提取通用经验
                 extracted = self._extract_implicit_experience(answer_text, original_memories)
                 if extracted:
-                    ***REMOVED*** 提取"为什么"
+                    # 提取"为什么"
                     reasoning = self._extract_reasoning_from_text(answer_text, original_memories)
                     
-                    ***REMOVED*** 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
+                    # 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
                     import uuid
                     experience_memory = Memory(
                         id=str(uuid.uuid4()),
@@ -646,7 +646,7 @@ Agent 性格配置：
                         timestamp=datetime.now(),
                         memory_type=MemoryType.EXPERIENCE,
                         context="通过反思识别出的经验模式",
-                        reasoning=reasoning,  ***REMOVED*** 新增：存储"为什么"
+                        reasoning=reasoning,  # 新增：存储"为什么"
                         metadata={
                             "confidence": 0.7,
                             "source": "reflect_implicit",
@@ -658,17 +658,17 @@ Agent 性格配置：
             except Exception as e:
                 logger.debug(f"Failed to extract implicit experience: {e}")
         
-        ***REMOVED*** 如果还是没有提取到经验，但有多轮反馈记忆，主动尝试总结模式
+        # 如果还是没有提取到经验，但有多轮反馈记忆，主动尝试总结模式
         if not new_experiences and len(original_memories) >= 2:
             try:
-                ***REMOVED*** 检查是否有反馈记忆
+                # 检查是否有反馈记忆
                 feedback_memories = [m for m in original_memories if m.metadata.get("source") == "user_feedback"]
                 if len(feedback_memories) >= 2:
-                    ***REMOVED*** 主动总结反馈模式
+                    # 主动总结反馈模式
                     pattern_summary = self._summarize_feedback_patterns(feedback_memories, task)
                     if pattern_summary:
                         reasoning = f"基于{len(feedback_memories)}轮用户反馈，总结出的优化模式"
-                        ***REMOVED*** 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
+                        # 使用UUID而不是时间戳字符串作为ID（Qdrant要求）
                         import uuid
                         experience_memory = Memory(
                             id=str(uuid.uuid4()),
@@ -721,7 +721,7 @@ Agent 性格配置：
             
             _, refined_text = ark_deepseek_v3_2(messages, max_new_tokens=512)
             
-            ***REMOVED*** 清理输出
+            # 清理输出
             refined_text = refined_text.strip()
             if len(refined_text) > 500:
                 refined_text = refined_text[:500] + "..."
@@ -729,7 +729,7 @@ Agent 性格配置：
             return refined_text if refined_text else None
         except Exception as e:
             logger.warning(f"Failed to refine experience: {e}")
-            ***REMOVED*** 如果提炼失败，返回原始文本（经过清理）
+            # 如果提炼失败，返回原始文本（经过清理）
             return raw_experience[:500] if raw_experience else None
     
     def _extract_implicit_experience(
@@ -739,7 +739,7 @@ Agent 性格配置：
     ) -> Optional[str]:
         """从答案中隐式提取经验模式（没有明确标记时）"""
         try:
-            ***REMOVED*** 查找可能包含经验模式的句子（通常包含"应该"、"建议"、"通常"、"最好"等词）
+            # 查找可能包含经验模式的句子（通常包含"应该"、"建议"、"通常"、"最好"等词）
             import re
             experience_keywords = ["应该", "建议", "通常", "最好", "最佳实践", "经验表明", "实践证明"]
             
@@ -748,12 +748,12 @@ Agent 性格配置：
             
             for sentence in sentences:
                 if any(keyword in sentence for keyword in experience_keywords):
-                    if len(sentence.strip()) > 20:  ***REMOVED*** 过滤太短的句子
+                    if len(sentence.strip()) > 20:  # 过滤太短的句子
                         experience_sentences.append(sentence.strip())
             
             if experience_sentences:
-                ***REMOVED*** 返回第一个或合并多个经验句子
-                return " ".join(experience_sentences[:3])  ***REMOVED*** 最多取3个句子
+                # 返回第一个或合并多个经验句子
+                return " ".join(experience_sentences[:3])  # 最多取3个句子
             
             return None
         except Exception as e:
@@ -770,8 +770,8 @@ Agent 性格配置：
             if len(feedback_memories) < 2:
                 return None
             
-            ***REMOVED*** 提取反馈内容
-            feedback_contents = [m.content for m in feedback_memories[:5]]  ***REMOVED*** 最多取5个反馈
+            # 提取反馈内容
+            feedback_contents = [m.content for m in feedback_memories[:5]]  # 最多取5个反馈
             
             prompt = f"""请分析以下多轮用户反馈，总结出一个通用的优化模式或最佳实践。
 
@@ -795,7 +795,7 @@ Agent 性格配置：
             
             _, pattern_text = ark_deepseek_v3_2(messages, max_new_tokens=512)
             
-            ***REMOVED*** 清理输出
+            # 清理输出
             pattern_text = pattern_text.strip()
             if len(pattern_text) > 500:
                 pattern_text = pattern_text[:500] + "..."
@@ -818,30 +818,30 @@ Agent 性格配置：
         try:
             import re
             
-            ***REMOVED*** 决策理由的关键词
+            # 决策理由的关键词
             reasoning_keywords = [
                 "为什么", "因为", "由于", "基于", "依据", "根据", 
                 "原因是", "理由是", "考虑到", "鉴于", "通过分析"
             ]
             
-            ***REMOVED*** 如果context是List[Memory]，提取相关记忆的内容作为上下文
+            # 如果context是List[Memory]，提取相关记忆的内容作为上下文
             context_text = ""
             if isinstance(context, list):
                 context_text = " ".join([m.content[:200] for m in context[:3]])
             elif isinstance(context, str):
                 context_text = context
             
-            ***REMOVED*** 在文本中查找包含理由的句子
+            # 在文本中查找包含理由的句子
             sentences = re.split(r'[。！？\n]', text)
             reasoning_sentences = []
             
             for sentence in sentences:
                 sentence = sentence.strip()
                 if any(keyword in sentence for keyword in reasoning_keywords):
-                    if len(sentence) > 15:  ***REMOVED*** 过滤太短的句子
+                    if len(sentence) > 15:  # 过滤太短的句子
                         reasoning_sentences.append(sentence)
             
-            ***REMOVED*** 如果在原文本中找不到，尝试从上下文提取
+            # 如果在原文本中找不到，尝试从上下文提取
             if not reasoning_sentences and context_text:
                 context_sentences = re.split(r'[。！？\n]', context_text)
                 for sentence in context_sentences:
@@ -850,10 +850,10 @@ Agent 性格配置：
                         if len(sentence) > 15:
                             reasoning_sentences.append(sentence)
             
-            ***REMOVED*** 使用LLM进一步提炼"为什么"
+            # 使用LLM进一步提炼"为什么"
             if reasoning_sentences:
                 reasoning_text = " ".join(reasoning_sentences[:3])
-                ***REMOVED*** 如果理由不够清晰，尝试使用LLM提炼
+                # 如果理由不够清晰，尝试使用LLM提炼
                 if len(reasoning_text) < 50:
                     try:
                         prompt = f"""请从以下文本中提取决策理由（"为什么"），要求：
@@ -876,8 +876,8 @@ Agent 性格配置：
                 else:
                     return reasoning_text[:300]
             
-            ***REMOVED*** 增强：即使没有明确的关键词，也尝试从整个文本中提取推理链条
-            ***REMOVED*** 查找"推理依据"、"决策理由"、"经验来源"等标记
+            # 增强：即使没有明确的关键词，也尝试从整个文本中提取推理链条
+            # 查找"推理依据"、"决策理由"、"经验来源"等标记
             import re
             reasoning_patterns = [
                 r'推理依据[：:]\s*(.+?)(?:\n|$)',
@@ -893,7 +893,7 @@ Agent 性格配置：
                     if len(reasoning_text) > 20:
                         return reasoning_text[:300]
             
-            ***REMOVED*** 如果没有找到明确的理由，返回None
+            # 如果没有找到明确的理由，返回None
             return None
         except Exception as e:
             logger.debug(f"Failed to extract reasoning: {e}")
@@ -901,12 +901,12 @@ Agent 性格配置：
     
     def _update_confidence(self, memories: List[Memory], answer_text: str) -> List[Memory]:
         """更新记忆的置信度"""
-        ***REMOVED*** 简单实现：如果有新证据支持，可以更新置信度
-        ***REMOVED*** 实际应该使用更复杂的逻辑
+        # 简单实现：如果有新证据支持，可以更新置信度
+        # 实际应该使用更复杂的逻辑
         updated = []
         for memory in memories:
             if memory.memory_type == MemoryType.OPINION:
-                ***REMOVED*** 如果答案中提到了这个观点，可以稍微提高置信度
+                # 如果答案中提到了这个观点，可以稍微提高置信度
                 if memory.content[:50] in answer_text:
                     if "confidence" not in memory.metadata:
                         memory.metadata["confidence"] = 0.7
@@ -929,9 +929,9 @@ Agent 性格配置：
             每个类型最多使用的事实数量
         """
         budget_map = {
-            "low": 5,   ***REMOVED*** 低预算：每个类型最多5个事实
-            "mid": 10,  ***REMOVED*** 中等预算：每个类型最多10个事实
-            "high": 20, ***REMOVED*** 高预算：每个类型最多20个事实
+            "low": 5,   # 低预算：每个类型最多5个事实
+            "mid": 10,  # 中等预算：每个类型最多10个事实
+            "high": 20, # 高预算：每个类型最多20个事实
         }
         return budget_map.get(budget.lower(), 10)
     
@@ -946,9 +946,9 @@ Agent 性格配置：
             最大 token 数
         """
         budget_map = {
-            "low": 512,   ***REMOVED*** 低预算：512 tokens
-            "mid": 1024,  ***REMOVED*** 中等预算：1024 tokens
-            "high": 2048, ***REMOVED*** 高预算：2048 tokens
+            "low": 512,   # 低预算：512 tokens
+            "mid": 1024,  # 中等预算：1024 tokens
+            "high": 2048, # 高预算：2048 tokens
         }
         return budget_map.get(budget.lower(), 1024)
     
@@ -971,11 +971,11 @@ Agent 性格配置：
             if not memory.metadata:
                 continue
             
-            ***REMOVED*** 检查 abstraction_level
+            # 检查 abstraction_level
             memory_level = memory.metadata.get("abstraction_level")
             if memory_level == level:
                 filtered.append(memory)
-            ***REMOVED*** 特殊处理：user_profile 标记
+            # 特殊处理：user_profile 标记
             elif level == "user_profile" and memory.metadata.get("is_user_profile", False):
                 filtered.append(memory)
         
@@ -1006,7 +1006,7 @@ Agent 性格配置：
                 "context": fact.context,
             }
             
-            ***REMOVED*** 从 metadata 中提取时间信息（如果有）
+            # 从 metadata 中提取时间信息（如果有）
             if fact.metadata:
                 if "occurred_start" in fact.metadata:
                     fact_dict["occurred_start"] = fact.metadata["occurred_start"]

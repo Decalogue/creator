@@ -101,7 +101,7 @@ class HealthMonitor:
             
             check_func = self._checks[name]
         
-        ***REMOVED*** 在锁外执行检查（避免阻塞）
+        # 在锁外执行检查（避免阻塞）
         start_time = time.time()
         try:
             result = check_func()
@@ -154,8 +154,8 @@ class HealthMonitor:
         if not results:
             overall_status = HealthStatus.UNKNOWN
         else:
-            ***REMOVED*** 判断整体状态：如果有任何 UNHEALTHY 则为 UNHEALTHY
-            ***REMOVED*** 如果有任何 DEGRADED 则为 DEGRADED，否则为 HEALTHY
+            # 判断整体状态：如果有任何 UNHEALTHY 则为 UNHEALTHY
+            # 如果有任何 DEGRADED 则为 DEGRADED，否则为 HEALTHY
             statuses = [r.status for r in results]
             if HealthStatus.UNHEALTHY in statuses:
                 overall_status = HealthStatus.UNHEALTHY

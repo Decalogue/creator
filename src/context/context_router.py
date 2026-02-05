@@ -20,20 +20,20 @@ logger = logging.getLogger(__name__)
 
 class FocusType(Enum):
     """注意力焦点类型"""
-    CHARACTER_DIALOGUE = "character_dialogue"  ***REMOVED*** 角色对话
-    DESCRIPTION = "description"  ***REMOVED*** 描写
-    PLOT_DEVELOPMENT = "plot_development"  ***REMOVED*** 情节发展
-    SETTING = "setting"  ***REMOVED*** 设定
-    UNKNOWN = "unknown"  ***REMOVED*** 未知
+    CHARACTER_DIALOGUE = "character_dialogue"  # 角色对话
+    DESCRIPTION = "description"  # 描写
+    PLOT_DEVELOPMENT = "plot_development"  # 情节发展
+    SETTING = "setting"  # 设定
+    UNKNOWN = "unknown"  # 未知
 
 
 @dataclass
 class UserBehavior:
     """用户行为数据"""
     cursor_position: int = 0
-    input_rate: float = 0.0  ***REMOVED*** 字符/秒
-    modification_frequency: float = 0.0  ***REMOVED*** 修改次数/分钟
-    pause_duration: float = 0.0  ***REMOVED*** 停顿时长（秒）
+    input_rate: float = 0.0  # 字符/秒
+    modification_frequency: float = 0.0  # 修改次数/分钟
+    pause_duration: float = 0.0  # 停顿时长（秒）
     recent_changes: List[str] = field(default_factory=list)
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -59,7 +59,7 @@ class ContextRouter:
         self,
         semantic_mesh: SemanticMeshMemory,
         cache_size: int = 100,
-        preload_threshold: float = 0.5  ***REMOVED*** 预加载阈值
+        preload_threshold: float = 0.5  # 预加载阈值
     ):
         """
         初始化上下文路由器
@@ -73,16 +73,16 @@ class ContextRouter:
         self.cache_size = cache_size
         self.preload_threshold = preload_threshold
         
-        ***REMOVED*** 上下文缓存
+        # 上下文缓存
         self.context_cache: Dict[str, ContextCache] = {}
         
-        ***REMOVED*** 用户行为历史
+        # 用户行为历史
         self.behavior_history: List[UserBehavior] = []
         
-        ***REMOVED*** 预加载任务队列
-        self.preload_queue: List[str] = []  ***REMOVED*** 实体 ID 列表
+        # 预加载任务队列
+        self.preload_queue: List[str] = []  # 实体 ID 列表
         
-        ***REMOVED*** 回调函数（当上下文准备好时调用）
+        # 回调函数（当上下文准备好时调用）
         self.on_context_ready: Optional[Callable[[str, Dict[str, Any]], None]] = None
     
     def update_user_behavior(self, behavior: UserBehavior) -> None:
@@ -100,14 +100,14 @@ class ContextRouter:
         
         self.behavior_history.append(behavior)
         
-        ***REMOVED*** 只保留最近的行为历史（如最近1小时）
+        # 只保留最近的行为历史（如最近1小时）
         cutoff_time = datetime.now() - timedelta(hours=1)
         self.behavior_history = [
             b for b in self.behavior_history
             if datetime.fromisoformat(b.timestamp) > cutoff_time
         ]
         
-        ***REMOVED*** 分析行为并预测焦点
+        # 分析行为并预测焦点
         self._analyze_and_predict()
     
     def _analyze_and_predict(self) -> None:
@@ -115,19 +115,19 @@ class ContextRouter:
         if not self.behavior_history:
             return
         
-        recent_behavior = self.behavior_history[-10:]  ***REMOVED*** 最近10次行为
+        recent_behavior = self.behavior_history[-10:]  # 最近10次行为
         
-        ***REMOVED*** 计算平均输入速率
+        # 计算平均输入速率
         avg_input_rate = sum(b.input_rate for b in recent_behavior) / len(recent_behavior)
         
-        ***REMOVED*** 检测停顿
+        # 检测停顿
         if recent_behavior:
             last_behavior = recent_behavior[-1]
-            if last_behavior.pause_duration > 0.5:  ***REMOVED*** 停顿超过500ms
-                ***REMOVED*** 触发预加载
+            if last_behavior.pause_duration > 0.5:  # 停顿超过500ms
+                # 触发预加载
                 self._trigger_preload(last_behavior)
         
-        ***REMOVED*** 预测焦点类型
+        # 预测焦点类型
         focus_type = self._predict_focus_type(recent_behavior)
         
         logger.debug(f"Predicted focus type: {focus_type.value}")
@@ -142,16 +142,16 @@ class ContextRouter:
         Returns:
             预测的焦点类型
         """
-        ***REMOVED*** 简化实现：基于最近修改的内容
+        # 简化实现：基于最近修改的内容
         if not behaviors:
             return FocusType.UNKNOWN
         
-        ***REMOVED*** 分析最近修改的内容关键词
+        # 分析最近修改的内容关键词
         recent_changes = []
-        for b in behaviors[-5:]:  ***REMOVED*** 最近5次行为
+        for b in behaviors[-5:]:  # 最近5次行为
             recent_changes.extend(b.recent_changes)
         
-        ***REMOVED*** 简单的关键词匹配（实际应使用更智能的方法）
+        # 简单的关键词匹配（实际应使用更智能的方法）
         change_text = " ".join(recent_changes).lower()
         
         if any(keyword in change_text for keyword in ["说", "道", "问", "答"]):
@@ -177,8 +177,8 @@ class ContextRouter:
         Args:
             behavior: 用户行为数据
         """
-        ***REMOVED*** TODO: 实现预加载逻辑
-        ***REMOVED*** 当前为占位实现，待后续完善
+        # TODO: 实现预加载逻辑
+        # 当前为占位实现，待后续完善
         pass
     
     def preload_context(self, entity_id: str, agent_type: str = "general") -> Dict[str, Any]:
@@ -198,7 +198,7 @@ class ContextRouter:
         if not entity_id or not isinstance(entity_id, str):
             raise ValueError("entity_id must be a non-empty string")
         
-        ***REMOVED*** 检查缓存
+        # 检查缓存
         cache_key = f"{entity_id}:{agent_type}"
         if cache_key in self.context_cache:
             cache = self.context_cache[cache_key]
@@ -207,12 +207,12 @@ class ContextRouter:
             logger.debug(f"Context cache hit: {cache_key}")
             return cache.context
         
-        ***REMOVED*** 从语义网格获取上下文
+        # 从语义网格获取上下文
         context = self.semantic_mesh.get_context_for_agent(entity_id, agent_type)
         
-        ***REMOVED*** 存入缓存
+        # 存入缓存
         if len(self.context_cache) >= self.cache_size:
-            ***REMOVED*** 移除最久未访问的缓存
+            # 移除最久未访问的缓存
             oldest_key = min(
                 self.context_cache.keys(),
                 key=lambda k: self.context_cache[k].last_accessed

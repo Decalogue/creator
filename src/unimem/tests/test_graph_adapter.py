@@ -28,8 +28,8 @@ class TestRequestMetrics(unittest.TestCase):
         """测试平均延迟计算"""
         metrics = RequestMetrics()
         metrics.total_requests = 2
-        metrics.total_latency = 0.2  ***REMOVED*** 0.2秒
-        self.assertAlmostEqual(metrics.average_latency, 100.0, places=1)  ***REMOVED*** 100毫秒
+        metrics.total_latency = 0.2  # 0.2秒
+        self.assertAlmostEqual(metrics.average_latency, 100.0, places=1)  # 100毫秒
     
     def test_success_rate(self):
         """测试成功率计算"""
@@ -72,7 +72,7 @@ class TestGraphAdapter(unittest.TestCase):
     @patch('unimem.adapters.graph_adapter.requests')
     def test_entity_search_success(self, mock_requests):
         """测试成功实体搜索"""
-        ***REMOVED*** Mock 响应
+        # Mock 响应
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -93,7 +93,7 @@ class TestGraphAdapter(unittest.TestCase):
         mock_response.raise_for_status.side_effect = Exception("API Error")
         mock_requests.Session.return_value.__enter__.return_value.get.return_value = mock_response
         
-        ***REMOVED*** 应该不抛出异常，而是返回空列表或处理错误
+        # 应该不抛出异常，而是返回空列表或处理错误
         results = self.adapter.entity_search("query", top_k=10)
         self.assertIsNotNone(results)
     
@@ -140,7 +140,7 @@ class TestGraphAdapter(unittest.TestCase):
     
     def test_health_check(self):
         """测试健康检查"""
-        ***REMOVED*** Mock 健康检查响应
+        # Mock 健康检查响应
         with patch.object(self.adapter, '_make_api_request') as mock_request:
             mock_request.return_value = {"status": "healthy"}
             

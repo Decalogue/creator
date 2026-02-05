@@ -98,7 +98,7 @@ class RetrievalEngine:
         self.atom_link_adapter = atom_link_adapter
         self.retrieval_adapter = retrieval_adapter
         self.storage_manager = storage_manager
-        self.max_workers = max(max_workers, 1)  ***REMOVED*** 确保至少为 1
+        self.max_workers = max(max_workers, 1)  # 确保至少为 1
         
         logger.info(f"RetrievalEngine initialized (max_workers={self.max_workers})")
     
@@ -233,9 +233,9 @@ class RetrievalEngine:
         
         all_results: List[List[Memory]] = []
         
-        ***REMOVED*** 1. 并行执行多种检索方法（图结构、语义、子图、时间）
+        # 1. 并行执行多种检索方法（图结构、语义、子图、时间）
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            ***REMOVED*** 提交检索任务
+            # 提交检索任务
             futures: Dict[concurrent.futures.Future, str] = {
                 executor.submit(self.entity_retrieval, query, top_k): "entity",
                 executor.submit(self.abstract_retrieval, query, top_k): "abstract",
@@ -244,7 +244,7 @@ class RetrievalEngine:
                 executor.submit(self.temporal_retrieval, query, top_k): "temporal",
             }
             
-            ***REMOVED*** 收集结果
+            # 收集结果
             for future in concurrent.futures.as_completed(futures):
                 method_name = futures[future]
                 try:
@@ -253,9 +253,9 @@ class RetrievalEngine:
                     logger.debug(f"{method_name} retrieval: {len(results)} results")
                 except Exception as e:
                     logger.warning(f"{method_name} retrieval failed: {e}", exc_info=True)
-                    all_results.append([])  ***REMOVED*** 失败时添加空列表
+                    all_results.append([])  # 失败时添加空列表
         
-        ***REMOVED*** 2. 存储层检索（如果 storage_manager 可用，串行执行以避免线程安全问题）
+        # 2. 存储层检索（如果 storage_manager 可用，串行执行以避免线程安全问题）
         if self.storage_manager:
             for layer_name, search_func in [
                 ("FoA", lambda: self.storage_manager.search_foa(query, top_k, context)),
@@ -270,13 +270,13 @@ class RetrievalEngine:
                     logger.warning(f"{layer_name} retrieval failed: {e}", exc_info=True)
                     all_results.append([])
         
-        ***REMOVED*** 3. RRF 融合
+        # 3. RRF 融合
         try:
             fused_memories = self.retrieval_adapter.rrf_fusion(all_results) or []
             logger.debug(f"RRF fusion: {len(fused_memories)} memories")
         except Exception as e:
             logger.error(f"RRF fusion failed: {e}", exc_info=True)
-            ***REMOVED*** 降级：直接合并所有结果（去重）
+            # 降级：直接合并所有结果（去重）
             fused_memories = []
             seen_ids = set()
             for results in all_results:
@@ -286,19 +286,19 @@ class RetrievalEngine:
                         seen_ids.add(memory.id)
             logger.warning(f"Fallback to simple merge: {len(fused_memories)} memories")
         
-        ***REMOVED*** 4. 重排序
+        # 4. 重排序
         try:
             ranked_memories = self.retrieval_adapter.rerank(query, fused_memories)
             logger.debug(f"Rerank: {len(ranked_memories)} memories")
         except Exception as e:
             logger.warning(f"Rerank failed: {e}", exc_info=True)
-            ***REMOVED*** 降级：使用原始顺序
+            # 降级：使用原始顺序
             ranked_memories = fused_memories
         
-        ***REMOVED*** 5. 转换为 RetrievalResult
+        # 5. 转换为 RetrievalResult
         results = []
         for i, memory in enumerate(ranked_memories):
-            ***REMOVED*** 尝试从 memory 的 metadata 中获取分数
+            # 尝试从 memory 的 metadata 中获取分数
             if hasattr(memory, 'metadata') and isinstance(memory.metadata, dict):
                 score = memory.metadata.get("rrf_score", 1.0 / (i + 1))
             else:
@@ -336,7 +336,7 @@ class RetrievalEngine:
             return self.retrieval_adapter.rrf_fusion(results_list, k=k)
         except Exception as e:
             logger.error(f"RRF fusion failed: {e}", exc_info=True)
-            ***REMOVED*** 降级：简单合并
+            # 降级：简单合并
             merged = []
             seen_ids = set()
             for results in results_list:
@@ -371,5 +371,5 @@ class RetrievalEngine:
             return self.retrieval_adapter.rerank(query, results)
         except Exception as e:
             logger.warning(f"Rerank failed: {e}", exc_info=True)
-            ***REMOVED*** 降级：返回原始顺序
+            # 降级：返回原始顺序
             return results

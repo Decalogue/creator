@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/unimem", tags=["unimem"])
 
-***REMOVED*** 全局 UniMem 实例（启动时初始化）
+# 全局 UniMem 实例（启动时初始化）
 unimem_instance: Optional[UniMem] = None
 
 
@@ -58,18 +58,18 @@ async def retain(request: RetainRequest):
     try:
         unimem = get_unimem_instance()
         
-        ***REMOVED*** 参数验证
+        # 参数验证
         if not request.experience:
             raise HTTPException(status_code=400, detail="experience is required")
         
-        ***REMOVED*** 转换请求数据为 UniMem 类型
+        # 转换请求数据为 UniMem 类型
         experience = dict_to_experience(request.experience)
         context = dict_to_context(request.context)
         
-        ***REMOVED*** 调用 UniMem retain
+        # 调用 UniMem retain
         memory = unimem.retain(experience, context, request.operation_id)
         
-        ***REMOVED*** 转换为响应格式
+        # 转换为响应格式
         memory_dict = dataclass_to_dict(memory)
         return RetainResponse(success=True, memory=memory_dict)
         
@@ -90,13 +90,13 @@ async def recall(request: RecallRequest):
     try:
         unimem = get_unimem_instance()
         
-        ***REMOVED*** 参数验证
+        # 参数验证
         if not request.query or not request.query.strip():
             raise HTTPException(status_code=400, detail="query cannot be empty")
         if request.top_k and request.top_k <= 0:
             raise HTTPException(status_code=400, detail="top_k must be positive")
         
-        ***REMOVED*** 转换请求数据
+        # 转换请求数据
         context = dict_to_context(request.context)
         memory_type = None
         if request.memory_type:
@@ -105,7 +105,7 @@ async def recall(request: RecallRequest):
             except ValueError:
                 logger.warning(f"Invalid memory_type: {request.memory_type}, ignoring filter")
         
-        ***REMOVED*** 调用 UniMem recall
+        # 调用 UniMem recall
         results = unimem.recall(
             query=request.query,
             context=context,
@@ -113,7 +113,7 @@ async def recall(request: RecallRequest):
             top_k=request.top_k or 10,
         )
         
-        ***REMOVED*** 转换为响应格式
+        # 转换为响应格式
         results_list = [serialize_retrieval_result(r) for r in results]
         return RecallResponse(success=True, results=results_list)
         
@@ -134,21 +134,21 @@ async def reflect(request: ReflectRequest):
     try:
         unimem = get_unimem_instance()
         
-        ***REMOVED*** 参数验证
+        # 参数验证
         if not request.memories:
             raise HTTPException(status_code=400, detail="memories cannot be empty")
         if not request.task:
             raise HTTPException(status_code=400, detail="task is required")
         
-        ***REMOVED*** 转换请求数据
+        # 转换请求数据
         memories = [dict_to_memory(m) for m in request.memories]
         task = dict_to_task(request.task)
         context = dict_to_context(request.context)
         
-        ***REMOVED*** 调用 UniMem reflect
+        # 调用 UniMem reflect
         updated_memories = unimem.reflect(memories, task, context)
         
-        ***REMOVED*** 转换为响应格式
+        # 转换为响应格式
         updated_list = [dataclass_to_dict(m) for m in updated_memories]
         return ReflectResponse(success=True, updated_memories=updated_list)
         
@@ -168,7 +168,7 @@ async def health():
     """
     try:
         unimem = get_unimem_instance()
-        ***REMOVED*** 如果能够获取实例，说明已初始化
+        # 如果能够获取实例，说明已初始化
         return HealthResponse(
             status="ok",
             unimem_initialized=True,

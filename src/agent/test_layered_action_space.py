@@ -1,11 +1,11 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 测试分层行动空间
 """
 import sys
 from pathlib import Path
 
-***REMOVED*** 添加项目根目录到路径
+# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -20,7 +20,7 @@ def test_l1_functions():
     
     las = get_layered_action_space()
     
-    ***REMOVED*** 测试 read_file
+    # 测试 read_file
     print("【测试 read_file】")
     test_file = Path("agent/sandbox/test_file.txt")
     test_file.write_text("这是测试文件内容\n第二行", encoding="utf-8")
@@ -29,7 +29,7 @@ def test_l1_functions():
     print(result)
     print()
     
-    ***REMOVED*** 测试 write_file
+    # 测试 write_file
     print("【测试 write_file】")
     result = las.execute_l1_function(
         "write_file",
@@ -38,13 +38,13 @@ def test_l1_functions():
     print(result)
     print()
     
-    ***REMOVED*** 测试 execute_shell
+    # 测试 execute_shell
     print("【测试 execute_shell】")
     result = las.execute_l1_function("execute_shell", {"command": "echo 'Hello, World!'"})
     print(result)
     print()
     
-    ***REMOVED*** 测试 search_files
+    # 测试 search_files
     print("【测试 search_files】")
     result = las.execute_l1_function("search_files", {"pattern": "*.txt", "directory": "agent/sandbox"})
     print(result)
@@ -59,7 +59,7 @@ def test_l2_tools():
     
     las = get_layered_action_space()
     
-    ***REMOVED*** 测试工具发现
+    # 测试工具发现
     print("【测试工具发现】")
     for tool_name in ["grep", "curl", "python"]:
         description = las.discover_l2_tool(tool_name)
@@ -69,7 +69,7 @@ def test_l2_tools():
             print(f"✗ {tool_name}: 未找到")
     print()
     
-    ***REMOVED*** 测试通过 L1 使用 L2 工具
+    # 测试通过 L1 使用 L2 工具
     print("【测试通过 L1 使用 L2 工具（grep）】")
     test_file = Path("agent/sandbox/test_grep.txt")
     test_file.write_text("line1\nline2\nline3\n", encoding="utf-8")
@@ -90,7 +90,7 @@ def test_l3_scripts():
     
     las = get_layered_action_space()
     
-    ***REMOVED*** 测试执行 Python 脚本
+    # 测试执行 Python 脚本
     print("【测试执行 Python 脚本】")
     script_content = """
 import json

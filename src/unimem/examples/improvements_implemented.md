@@ -1,11 +1,11 @@
-***REMOVED*** 记忆存储改进实施总结
+# 记忆存储改进实施总结
 
-***REMOVED******REMOVED*** 实施时间
+## 实施时间
 2026-01-13
 
-***REMOVED******REMOVED*** 已实施的改进
+## 已实施的改进
 
-***REMOVED******REMOVED******REMOVED*** ✅ 1. 修复memory_type分类失败处理
+### ✅ 1. 修复memory_type分类失败处理
 
 **文件**: `creator/src/unimem/core.py` (第536-570行)
 
@@ -17,16 +17,16 @@
 
 **代码变更**:
 ```python
-***REMOVED*** 如果分类失败，使用默认类型或从metadata推断
+# 如果分类失败，使用默认类型或从metadata推断
 if not memory_type:
-    ***REMOVED*** 尝试从metadata中获取类型
+    # 尝试从metadata中获取类型
     if context.metadata and context.metadata.get("memory_type"):
         try:
             memory_type = MemoryType(context.metadata["memory_type"])
         except (ValueError, KeyError):
             pass
     
-    ***REMOVED*** 如果还是None，根据内容推断类型
+    # 如果还是None，根据内容推断类型
     if not memory_type:
         content_lower = experience.content.lower() if experience.content else ""
         if "反馈" in experience.content or "feedback" in content_lower:
@@ -36,10 +36,10 @@ if not memory_type:
         elif "经验" in experience.content or "experience" in content_lower or "优化" in experience.content:
             memory_type = MemoryType.EXPERIENCE
         else:
-            memory_type = MemoryType.EXPERIENCE  ***REMOVED*** 默认类型
+            memory_type = MemoryType.EXPERIENCE  # 默认类型
 ```
 
-***REMOVED******REMOVED******REMOVED*** ✅ 2. 修复DecisionEvent创建前的Memory存在性检查
+### ✅ 2. 修复DecisionEvent创建前的Memory存在性检查
 
 **文件**: `creator/src/unimem/core.py` (第831-851行)
 
@@ -51,21 +51,21 @@ if not memory_type:
 
 **代码变更**:
 ```python
-***REMOVED*** 确保Memory节点已存在于Neo4j（仅在非skip_storage情况下需要检查）
+# 确保Memory节点已存在于Neo4j（仅在非skip_storage情况下需要检查）
 if not skip_storage:
-    ***REMOVED*** Memory应该刚刚存储，直接创建DecisionEvent
+    # Memory应该刚刚存储，直接创建DecisionEvent
     neo4j_memory = get_memory(memory.id)
     if not neo4j_memory:
         logger.warning(f"Memory {memory.id} not in Neo4j yet, will retry DecisionEvent creation later")
     else:
-        ***REMOVED*** Memory存在，创建DecisionEvent
-        ***REMOVED*** ... 创建逻辑 ...
+        # Memory存在，创建DecisionEvent
+        # ... 创建逻辑 ...
 else:
-    ***REMOVED*** skip_storage情况下，Memory是更新已有记忆，应该已经在Neo4j中
-    ***REMOVED*** ... 创建逻辑 ...
+    # skip_storage情况下，Memory是更新已有记忆，应该已经在Neo4j中
+    # ... 创建逻辑 ...
 ```
 
-***REMOVED******REMOVED******REMOVED*** ✅ 3. 增强关系创建的日志和错误处理
+### ✅ 3. 增强关系创建的日志和错误处理
 
 **文件**: `creator/src/unimem/neo4j.py` (第844-860行)
 
@@ -77,12 +77,12 @@ else:
 
 **代码变更**:
 ```python
-***REMOVED*** 关联其他记忆（links）
+# 关联其他记忆（links）
 if memory.links:
     for linked_memory_id in memory.links:
         linked_node = node_matcher.match("Memory", id=linked_memory_id).first()
         if linked_node:
-            ***REMOVED*** 检查关系是否已存在，避免重复创建
+            # 检查关系是否已存在，避免重复创建
             existing_rel_query = f"""
             MATCH (m1:Memory {{id: '{memory.id}'}})-[r:RELATED_TO]->(m2:Memory {{id: '{linked_memory_id}'}})
             RETURN count(r) as count
@@ -98,7 +98,7 @@ if memory.links:
             logger.warning(f"Linked memory {linked_memory_id} not found in Neo4j, cannot create RELATED_TO relationship from {memory.id}")
 ```
 
-***REMOVED******REMOVED******REMOVED*** ✅ 4. 修复反馈记忆与脚本记忆的关系设置
+### ✅ 4. 修复反馈记忆与脚本记忆的关系设置
 
 **文件**: 
 - `creator/src/unimem/examples/generate_video_script.py` (第602-615行)
@@ -114,7 +114,7 @@ if memory.links:
 
 `generate_video_script.py`:
 ```python
-***REMOVED*** 在retain之前设置links，确保关系被正确建立
+# 在retain之前设置links，确保关系被正确建立
 if script_memory_id:
     if not context.metadata:
         context.metadata = {}
@@ -125,7 +125,7 @@ if script_memory_id:
 
 `core.py`:
 ```python
-***REMOVED*** 从metadata中读取预设的links（用于建立明确的关系，如反馈->脚本）
+# 从metadata中读取预设的links（用于建立明确的关系，如反馈->脚本）
 if memory_metadata and "links" in memory_metadata:
     preset_links = memory_metadata.get("links", [])
     if isinstance(preset_links, list):
@@ -133,20 +133,20 @@ if memory_metadata and "links" in memory_metadata:
     elif isinstance(preset_links, str):
         links = list(set(links) | {preset_links})
 
-***REMOVED*** 如果metadata中有related_script_id，也添加到links
+# 如果metadata中有related_script_id，也添加到links
 if memory_metadata and "related_script_id" in memory_metadata:
     related_id = memory_metadata.get("related_script_id")
     if related_id:
         links = list(set(links) | {related_id})
 ```
 
-***REMOVED******REMOVED*** 预期效果
+## 预期效果
 
 1. **memory_type覆盖率**: 从0%提升到接近100%
 2. **DecisionEvent关联率**: 从11% (1/9) 提升到接近100%
 3. **反馈记忆->脚本记忆关系**: 从0个提升到每个反馈都有对应关系
 
-***REMOVED******REMOVED*** 验证方法
+## 验证方法
 
 运行分析脚本验证改进效果：
 ```bash
@@ -159,7 +159,7 @@ conda run -n seeme python -m unimem.examples.analyze_memory_storage
 - DecisionEvent关联率应 > 90%
 - 反馈记忆->脚本记忆关系数应 > 0
 
-***REMOVED******REMOVED*** 后续优化建议
+## 后续优化建议
 
 1. **实现Memory同步机制**: 当Memory在Qdrant但不在Neo4j时，自动同步
 2. **实现关系创建重试机制**: 当目标Memory不存在时，记录到队列，等待创建后重试

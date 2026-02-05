@@ -1,4 +1,4 @@
-***REMOVED*** 小说任务可选脚本
+# 小说任务可选脚本
 
 本目录为**非主路径**脚本，主路径为：`api_flask` → `api/creator_handlers` → `task.novel.ReactNovelCreator`（大纲/续写由前端 + `/api/creator/stream` 触发）。
 
@@ -15,14 +15,14 @@
 
 ```bash
 cd src
-***REMOVED*** 100 章创作
+# 100 章创作
 python scripts/novel/create_100_chapters_novel.py
-bash scripts/novel/run_create_100_chapters.sh   ***REMOVED*** 后台运行
+bash scripts/novel/run_create_100_chapters.sh   # 后台运行
 
-***REMOVED*** 全本质量检查、质量优化测试（模块在 task/novel）
+# 全本质量检查、质量优化测试（模块在 task/novel）
 python -m task.novel.full_novel_quality_agent --novel_dir task/novel/outputs/完美之墙
 python -m task.novel.test_quality_optimizations --chapters 5
 
-***REMOVED*** 测试监控（可选）
+# 测试监控（可选）
 bash scripts/novel/monitor_optimization_test.sh
 ```

@@ -1,4 +1,4 @@
-***REMOVED***!/bin/bash
+#!/bin/bash
 
 LATEST_LOG=$(ls -t context_graph_test_rerun_*.log 2>/dev/null | head -1)
 
@@ -13,7 +13,7 @@ echo "=========================================="
 echo "日志文件: $LATEST_LOG"
 echo
 
-***REMOVED*** 检查进程
+# 检查进程
 if pgrep -f "comprehensive_context_graph_test.py" > /dev/null; then
     PID=$(pgrep -f "comprehensive_context_graph_test.py" | head -1)
     echo "✅ 测试正在运行 (PID: $PID)"

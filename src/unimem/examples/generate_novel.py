@@ -56,7 +56,7 @@ def generate_summaries_from_outline(outline: str, adapter: NovelAdapter, num_cha
         context_memories=[]
     )
     
-    ***REMOVED*** 解析摘要（可能是 JSON 或文本）
+    # 解析摘要（可能是 JSON 或文本）
     try:
         summaries_json = json.loads(summaries)
         if isinstance(summaries_json, dict) and 'summaries' in summaries_json:
@@ -64,7 +64,7 @@ def generate_summaries_from_outline(outline: str, adapter: NovelAdapter, num_cha
         elif isinstance(summaries_json, list):
             return summaries_json
     except:
-        ***REMOVED*** 如果不是 JSON，按行分割
+        # 如果不是 JSON，按行分割
         if isinstance(summaries, str):
             summary_list = [s.strip() for s in summaries.split('\n') if s.strip()]
             return summary_list[:num_chapters]
@@ -92,21 +92,21 @@ def build_enhanced_prompt_with_feedback(original_prompt: str, validation_result:
     
     feedback_section = "\n\n【重要：根据上一版生成结果的反馈，请特别注意以下要求】\n"
     
-    ***REMOVED*** 1. 明确指出需要避免的问题
+    # 1. 明确指出需要避免的问题
     if issues:
         feedback_section += "\n【需要避免的问题】\n"
-        for i, issue in enumerate(issues[:5], 1):  ***REMOVED*** 最多5个问题
+        for i, issue in enumerate(issues[:5], 1):  # 最多5个问题
             feedback_section += f"{i}. {issue}\n"
         feedback_section += "\n请确保生成的内容避免上述问题。\n"
     
-    ***REMOVED*** 2. 提供具体的改进建议
+    # 2. 提供具体的改进建议
     if suggestions:
         feedback_section += "\n【改进方向】\n"
-        for i, suggestion in enumerate(suggestions[:5], 1):  ***REMOVED*** 最多5条建议
+        for i, suggestion in enumerate(suggestions[:5], 1):  # 最多5条建议
             feedback_section += f"{i}. {suggestion}\n"
         feedback_section += "\n请在生成时充分考虑并体现上述改进建议。\n"
     
-    ***REMOVED*** 3. 根据各维度评分提供针对性指导
+    # 3. 根据各维度评分提供针对性指导
     if coverage:
         feedback_section += "\n【各维度要求】\n"
         if coverage.get('plot_coverage', 1.0) < 0.8:
@@ -129,30 +129,30 @@ def validate_generated_chapter(chapter_content: str, expected_summary: str, idea
     
     Returns:
         {
-            'accuracy_score': float,  ***REMOVED*** 准确度评分 0-1
-            'validation_result': dict,  ***REMOVED*** 详细校验结果
-            'issues': list,  ***REMOVED*** 发现的问题
-            'suggestions': list  ***REMOVED*** 优化建议
+            'accuracy_score': float,  # 准确度评分 0-1
+            'validation_result': dict,  # 详细校验结果
+            'issues': list,  # 发现的问题
+            'suggestions': list  # 优化建议
         }
     """
     if not adapter.is_available():
         return {'accuracy_score': 0.5, 'validation_result': {}, 'issues': [], 'suggestions': []}
     
     try:
-        ***REMOVED*** 1. 对生成内容进行反向结构化分析
+        # 1. 对生成内容进行反向结构化分析
         logger.info("  进行反向结构化分析...")
         generated_analysis = adapter._analyze_content(
-            chapter_content[:2000],  ***REMOVED*** 限制长度
+            chapter_content[:2000],  # 限制长度
             is_creative_content=True
         )
         
-        ***REMOVED*** 2. 对预期摘要进行结构化分析
+        # 2. 对预期摘要进行结构化分析
         expected_analysis = adapter._analyze_content(
             expected_summary,
             is_creative_content=True
         )
         
-        ***REMOVED*** 3. 对比分析
+        # 3. 对比分析
         logger.info("  进行对比校验...")
         from unimem.chat import ark_deepseek_v3_2
         
@@ -240,10 +240,10 @@ def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, ad
     """
     logger.info(f"\n生成第 {chapter_num} 章...")
     
-    ***REMOVED*** 如果有前章节的校验反馈，加入指导
+    # 如果有前章节的校验反馈，加入指导
     previous_feedback = ""
     if 'validation_feedback' in idea and idea['validation_feedback']:
-        ***REMOVED*** 获取前章节的反馈（特别是最近一章）
+        # 获取前章节的反馈（特别是最近一章）
         recent_feedback = idea['validation_feedback'][-1]
         if recent_feedback.get('chapter') < chapter_num:
             previous_feedback = "\n\n【参考：前章节的改进建议】\n"
@@ -252,7 +252,7 @@ def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, ad
                 for i, sug in enumerate(recent_feedback['suggestions'], 1):
                     previous_feedback += f"{i}. {sug}\n"
     
-    ***REMOVED*** 构建章节生成 prompt（包含创作 idea 的上下文）
+    # 构建章节生成 prompt（包含创作 idea 的上下文）
     chapter_prompt = f"""请根据以下摘要和创作设定，生成完整的第{chapter_num}章内容。
 
 创作设定：
@@ -284,14 +284,14 @@ def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, ad
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=4096)
             
-            ***REMOVED*** 清理响应文本
+            # 清理响应文本
             chapter_content = response_text.strip()
             if chapter_content.startswith("```"):
-                ***REMOVED*** 移除 markdown 代码块标记
+                # 移除 markdown 代码块标记
                 lines = chapter_content.split('\n')
                 chapter_content = '\n'.join([line for line in lines if not line.strip().startswith('```')])
             
-            ***REMOVED*** 反向结构化校验
+            # 反向结构化校验
             validation_result = None
             if enable_validation:
                 validation_result = validate_generated_chapter(
@@ -303,7 +303,7 @@ def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, ad
                 if accuracy_score < validation_threshold and attempt < max_retries:
                     logger.warning(f"  ⚠️ 准确度评分 {accuracy_score:.2f} 低于阈值 {validation_threshold}，尝试重新生成...")
                     
-                    ***REMOVED*** 使用 issues 和 suggestions 指导重新生成
+                    # 使用 issues 和 suggestions 指导重新生成
                     enhanced_prompt = build_enhanced_prompt_with_feedback(
                         original_prompt=chapter_prompt,
                         validation_result=validation_result,
@@ -316,16 +316,16 @@ def generate_chapter_from_summary(summary: str, idea: dict, chapter_num: int, ad
                     logger.info(f"  ✅ 校验通过，准确度评分: {accuracy_score:.2f}")
                     if validation_result.get('issues'):
                         logger.info(f"  ⚠️ 发现 {len(validation_result['issues'])} 个问题（但不影响使用）")
-                        ***REMOVED*** 即使通过，也记录 issues 和 suggestions 供后续章节参考
+                        # 即使通过，也记录 issues 和 suggestions 供后续章节参考
                         if validation_result.get('suggestions'):
                             logger.info(f"  💡 生成 {len(validation_result['suggestions'])} 条优化建议（已记录）")
-                            ***REMOVED*** 将重要的问题和建议存储到 idea 的 metadata 中，供后续章节参考
+                            # 将重要的问题和建议存储到 idea 的 metadata 中，供后续章节参考
                             if 'validation_feedback' not in idea:
                                 idea['validation_feedback'] = []
                             idea['validation_feedback'].append({
                                 'chapter': chapter_num,
-                                'issues': validation_result.get('issues', [])[:3],  ***REMOVED*** 只保留最重要的3个
-                                'suggestions': validation_result.get('suggestions', [])[:3]  ***REMOVED*** 只保留最重要的3条
+                                'issues': validation_result.get('issues', [])[:3],  # 只保留最重要的3个
+                                'suggestions': validation_result.get('suggestions', [])[:3]  # 只保留最重要的3条
                             })
             
             logger.info(f"✅ 第 {chapter_num} 章生成完成 ({len(chapter_content)} 字)")
@@ -359,41 +359,41 @@ def generate_chapters(idea: dict, adapter: NovelAdapter, num_chapters: int = 5, 
         logger.info(f"校验模式: 前 {validate_first_n} 章强制校验，阈值 {validation_threshold}")
     logger.info("="*60)
     
-    ***REMOVED*** 1. 生成大纲
+    # 1. 生成大纲
     outline = generate_outline_from_synopsis(idea, adapter)
     
-    ***REMOVED*** 保存大纲
+    # 保存大纲
     outline_file = Path(__file__).parent.parent.parent / 'data' / 'xuemolu_outline.json'
     with open(outline_file, 'w', encoding='utf-8') as f:
         json.dump({"outline": outline}, f, ensure_ascii=False, indent=2)
     logger.info(f"大纲已保存到: {outline_file}")
     
-    ***REMOVED*** 2. 生成章节摘要
+    # 2. 生成章节摘要
     summaries = generate_summaries_from_outline(outline, adapter, num_chapters)
     
     if not summaries:
         logger.warning("未能生成章节摘要，使用默认摘要")
         summaries = [f"第{i}章摘要" for i in range(1, num_chapters + 1)]
     
-    ***REMOVED*** 保存摘要
+    # 保存摘要
     summaries_file = Path(__file__).parent.parent.parent / 'data' / 'xuemolu_summaries.json'
     with open(summaries_file, 'w', encoding='utf-8') as f:
         json.dump({"summaries": summaries}, f, ensure_ascii=False, indent=2)
     logger.info(f"章节摘要已保存到: {summaries_file}")
     
-    ***REMOVED*** 3. 生成各章节内容（逐章生成，每章单独保存）
+    # 3. 生成各章节内容（逐章生成，每章单独保存）
     data_dir = Path(__file__).parent.parent.parent / 'data'
     
-    ***REMOVED*** 创建保存目录
+    # 创建保存目录
     novel_dir = data_dir / 'novel'
     novel_dir.mkdir(exist_ok=True)
     logger.info(f"章节保存目录: {novel_dir}")
     
     chapters = []
-    context_memories = []  ***REMOVED*** 用于累积上下文
+    context_memories = []  # 用于累积上下文
     
     for i, summary in enumerate(summaries[:num_chapters], 1):
-        ***REMOVED*** 决定是否启用校验：前N章强制校验，其余章节可选
+        # 决定是否启用校验：前N章强制校验，其余章节可选
         should_validate = enable_validation and (i <= validate_first_n)
         
         chapter_content, validation_result = generate_chapter_from_summary(
@@ -415,7 +415,7 @@ def generate_chapters(idea: dict, adapter: NovelAdapter, num_chapters: int = 5, 
                 'word_count': len(chapter_content)
             }
             
-            ***REMOVED*** 添加校验结果
+            # 添加校验结果
             if validation_result:
                 chapter_data['validation'] = {
                     'accuracy_score': validation_result.get('accuracy_score', 0),
@@ -426,12 +426,12 @@ def generate_chapters(idea: dict, adapter: NovelAdapter, num_chapters: int = 5, 
             
             chapters.append(chapter_data)
             
-            ***REMOVED*** 立即保存单章到文件
+            # 立即保存单章到文件
             chapter_file = novel_dir / f"chapter_{i:02d}.json"
             with open(chapter_file, 'w', encoding='utf-8') as f:
                 json.dump(chapter_data, f, ensure_ascii=False, indent=2)
             
-            ***REMOVED*** 同时保存纯文本版本
+            # 同时保存纯文本版本
             chapter_txt_file = novel_dir / f"chapter_{i:02d}.txt"
             with open(chapter_txt_file, 'w', encoding='utf-8') as f:
                 f.write(f"第{i}章：{chapter_data['title']}\n")
@@ -440,20 +440,20 @@ def generate_chapters(idea: dict, adapter: NovelAdapter, num_chapters: int = 5, 
             
             logger.info(f"  ✅ 第 {i} 章完成 ({len(chapter_content)} 字) - 已保存到 {chapter_file.name}")
             
-            ***REMOVED*** 将生成的章节内容存储为记忆，用于后续章节的上下文
+            # 将生成的章节内容存储为记忆，用于后续章节的上下文
             if adapter.is_available():
                 memory = adapter.construct_atomic_note(
-                    content=chapter_content[:1000],  ***REMOVED*** 只存储部分内容作为上下文
+                    content=chapter_content[:1000],  # 只存储部分内容作为上下文
                     timestamp=datetime.now(),
                     entities=[],
                     generate_summary=False,
                     is_creative_content=True
                 )
                 context_memories.append(memory)
-                if len(context_memories) > 3:  ***REMOVED*** 只保留最近3章作为上下文
+                if len(context_memories) > 3:  # 只保留最近3章作为上下文
                     context_memories = context_memories[-3:]
         
-        ***REMOVED*** 添加延迟避免 API 限流
+        # 添加延迟避免 API 限流
         import time
         time.sleep(1)
     
@@ -484,7 +484,7 @@ def save_chapters(chapters: list, idea: dict, output_file: Path):
     
     logger.info(f"\n✅ 章节汇总已保存到: {output_file}")
     
-    ***REMOVED*** 同时生成纯文本版本
+    # 同时生成纯文本版本
     txt_file = output_file.with_suffix('.txt')
     with open(txt_file, 'w', encoding='utf-8') as f:
         f.write(f"{idea.get('title', '')}\n")
@@ -499,7 +499,7 @@ def save_chapters(chapters: list, idea: dict, output_file: Path):
 
 
 def main():
-    ***REMOVED*** 初始化适配器
+    # 初始化适配器
     config = {
         'local_model_path': '/root/data/AI/pretrain/multilingual-e5-small',
         'qdrant_host': 'localhost',
@@ -510,7 +510,7 @@ def main():
     adapter = NovelAdapter(config)
     adapter.initialize()
     
-    ***REMOVED*** 加载创作 idea
+    # 加载创作 idea
     idea_file = Path(__file__).parent.parent.parent / 'data' / 'new_idea.json'
     logger.info(f"加载创作 idea: {idea_file}")
     idea = load_creative_idea(idea_file)
@@ -518,22 +518,22 @@ def main():
     logger.info(f"作品标题: {idea.get('title', '')}")
     logger.info(f"作品类型: {idea.get('genre', '')}")
     
-    ***REMOVED*** 生成前5章（启用校验，前3章强制校验，阈值0.7）
+    # 生成前5章（启用校验，前3章强制校验，阈值0.7）
     chapters = generate_chapters(
         idea, 
         adapter, 
         num_chapters=5,
-        enable_validation=True,  ***REMOVED*** 启用校验
-        validation_threshold=0.7,  ***REMOVED*** 准确度阈值
-        validate_first_n=3  ***REMOVED*** 前3章强制校验
+        enable_validation=True,  # 启用校验
+        validation_threshold=0.7,  # 准确度阈值
+        validate_first_n=3  # 前3章强制校验
     )
     
-    ***REMOVED*** 保存章节汇总（所有章节已单独保存，这里保存汇总）
+    # 保存章节汇总（所有章节已单独保存，这里保存汇总）
     data_dir = Path(__file__).parent.parent.parent / 'data'
     output_file = data_dir / 'xuemolu_chapters.json'
     save_chapters(chapters, idea, output_file)
     
-    ***REMOVED*** 打印统计信息
+    # 打印统计信息
     logger.info("\n" + "="*60)
     logger.info("生成统计")
     logger.info("="*60)
@@ -543,7 +543,7 @@ def main():
     logger.info(f"平均每章: {total_words // len(chapters) if chapters else 0} 字")
     logger.info(f"单章文件已保存到: {data_dir / 'novel'}/")
     
-    ***REMOVED*** 打印校验统计
+    # 打印校验统计
     validated_chapters = [ch for ch in chapters if 'validation' in ch]
     if validated_chapters:
         logger.info(f"\n校验统计:")

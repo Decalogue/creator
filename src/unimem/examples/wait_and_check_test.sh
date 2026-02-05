@@ -1,4 +1,4 @@
-***REMOVED***!/bin/bash
+#!/bin/bash
 
 LOG_FILE=$(ls -t context_graph_test_full_*.log 2>/dev/null | head -1)
 
@@ -11,8 +11,8 @@ echo "等待测试完成..."
 echo "日志文件: $LOG_FILE"
 echo
 
-MAX_WAIT=600  ***REMOVED*** 最多等待10分钟
-WAIT_INTERVAL=30  ***REMOVED*** 每30秒检查一次
+MAX_WAIT=600  # 最多等待10分钟
+WAIT_INTERVAL=30  # 每30秒检查一次
 ELAPSED=0
 
 while [ $ELAPSED -lt $MAX_WAIT ]; do
@@ -29,7 +29,7 @@ while [ $ELAPSED -lt $MAX_WAIT ]; do
     SCENARIOS=$(grep -c "Parsing Word document" "$LOG_FILE" 2>/dev/null || echo "0")
     if [ "$SCENARIOS" -ge 5 ]; then
         echo "✅ 所有场景已处理完成"
-        ***REMOVED*** 再等待一下确保测试完全结束
+        # 再等待一下确保测试完全结束
         sleep 10
         break
     fi

@@ -18,11 +18,11 @@ import { INTRO_THEME } from './creatorTheme';
 const T = INTRO_THEME;
 
 const DEFAULT_AGENTS = [
-  { id: 'research', name: '研究Agent', icon: <SearchOutlined />, color: '***REMOVED***3b82f6' },
-  { id: 'writing', name: '写作Agent', icon: <EditOutlined />, color: '***REMOVED***10b981' },
-  { id: 'image', name: '图像Agent', icon: <PictureOutlined />, color: '***REMOVED***f59e0b' },
-  { id: 'code', name: '代码Agent', icon: <CodeOutlined />, color: '***REMOVED***06b6d4' },
-  { id: 'review', name: '审核Agent', icon: <CheckCircleOutlined />, color: '***REMOVED***ec4899' },
+  { id: 'research', name: '研究Agent', icon: <SearchOutlined />, color: '#3b82f6' },
+  { id: 'writing', name: '写作Agent', icon: <EditOutlined />, color: '#10b981' },
+  { id: 'image', name: '图像Agent', icon: <PictureOutlined />, color: '#f59e0b' },
+  { id: 'code', name: '代码Agent', icon: <CodeOutlined />, color: '#06b6d4' },
+  { id: 'review', name: '审核Agent', icon: <CheckCircleOutlined />, color: '#ec4899' },
 ] as const;
 
 const DEFAULT_POSITIONS: Record<string, { x: number; y: number }> = {
@@ -242,7 +242,7 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
         width: w,
         height: h,
         flexShrink: 0,
-        background: 'linear-gradient(135deg, ***REMOVED***f8f8f8 0%, ***REMOVED***ffffff 100%)',
+        background: 'linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%)',
         borderRadius: 16,
         border: `1px solid ${T.border}`,
         overflow: 'hidden',
@@ -256,8 +256,8 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
           inset: 0,
           opacity: 0.4,
           backgroundImage: `
-            linear-gradient(to right, ***REMOVED***e5e5e5 1px, transparent 1px),
-            linear-gradient(to bottom, ***REMOVED***e5e5e5 1px, transparent 1px)
+            linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+            linear-gradient(to bottom, #e5e5e5 1px, transparent 1px)
           `,
           backgroundSize: `${fs(40)}px ${fs(40)}px`,
         }}
@@ -310,7 +310,7 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
                 stroke="rgba(255,75,47,0.25)"
                 strokeWidth={2}
                 strokeDasharray="6 10"
-                markerEnd="url(***REMOVED***workflow-arrow)"
+                markerEnd="url(#workflow-arrow)"
               />
               {isActive && (
                 <path
@@ -318,7 +318,7 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
                   fill="none"
                   stroke={T.accent}
                   strokeWidth={2.5}
-                  markerEnd="url(***REMOVED***workflow-arrow-active)"
+                  markerEnd="url(#workflow-arrow-active)"
                 />
               )}
             </g>
@@ -350,8 +350,8 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
               justifyContent: 'center',
               padding: `${fs(8)}px ${fs(6)}px`,
               borderRadius: fs(12),
-              background: '***REMOVED***fff',
-              border: `2px solid ${isRunning ? T.accent : isDone ? '***REMOVED***22c55e' : '***REMOVED***e5e5e5'}`,
+              background: '#fff',
+              border: `2px solid ${isRunning ? T.accent : isDone ? '#22c55e' : '#e5e5e5'}`,
               boxShadow: isRunning
                 ? `0 0 0 3px ${T.accent}20`
                 : '0 2px 8px rgba(0,0,0,0.06)',
@@ -402,8 +402,8 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
                   width: fs(8),
                   height: fs(8),
                   borderRadius: '50%',
-                  background: isRunning ? T.accent : '***REMOVED***22c55e',
-                  border: '2px solid ***REMOVED***fff',
+                  background: isRunning ? T.accent : '#22c55e',
+                  border: '2px solid #fff',
                 }}
               />
             )}
@@ -440,8 +440,8 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
               padding: `${fs(8)}px ${fs(16)}px`,
               borderRadius: fs(10),
               border: 'none',
-              background: isRunning || demo ? '***REMOVED***f0f0f0' : T.primaryBg,
-              color: isRunning || demo ? T.textDim : '***REMOVED***fff',
+              background: isRunning || demo ? '#f0f0f0' : T.primaryBg,
+              color: isRunning || demo ? T.textDim : '#fff',
               fontSize: fs(13),
               fontWeight: T.fontWeightSemibold,
               cursor: isRunning || demo ? 'not-allowed' : 'pointer',
@@ -525,7 +525,7 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, ***REMOVED***f8f8f8 0%, ***REMOVED***ffffff 100%)',
+        background: 'linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%)',
         border: `1px solid ${T.border}`,
         borderRadius: 16,
         overflow: 'hidden',
@@ -554,10 +554,10 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: '***REMOVED***22c55e',
+              background: '#22c55e',
             }}
           />
-          <span style={{ fontSize: 10, color: '***REMOVED***22c55e', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: 10, color: '#22c55e', fontFamily: 'monospace' }}>
             系统正常
           </span>
         </div>
@@ -604,7 +604,7 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
                       width: 8,
                       height: 8,
                       borderRadius: '50%',
-                      background: st === 'running' ? T.accent : '***REMOVED***22c55e',
+                      background: st === 'running' ? T.accent : '#22c55e',
                     }}
                   />
                 )}

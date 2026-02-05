@@ -19,7 +19,7 @@ def test_reme_extraction():
     print("测试 ReMe 启发的多面蒸馏提取")
     print("=" * 70)
     
-    ***REMOVED*** 1. 加载小说数据
+    # 1. 加载小说数据
     filepath = "/root/data/AI/creator/src/data/小说/小说_1/电子书合集_10万+小说合集_12000本小说_TOP100-言情篇_No.11 仙侠奇缘之花千骨.txt"
     
     print("\n【步骤 1】加载和解析小说...")
@@ -27,7 +27,7 @@ def test_reme_extraction():
     analyzer.load_and_parse()
     print(f"✓ 解析完成: {len(analyzer.volumes)} 卷, {len(analyzer.chapters)} 章")
     
-    ***REMOVED*** 2. 使用 ReMe 启发的提取
+    # 2. 使用 ReMe 启发的提取
     print("\n【步骤 2】ReMe 启发的多面蒸馏提取...")
     reme_experiences = analyzer.extract_with_reme_inspiration()
     
@@ -36,7 +36,7 @@ def test_reme_extraction():
     print(f"  失败模式: {len(reme_experiences['failure'])} 个")
     print(f"  比较性洞察: {len(reme_experiences['comparison'])} 个")
     
-    ***REMOVED*** 3. 显示示例
+    # 3. 显示示例
     if reme_experiences['success']:
         print(f"\n【成功模式示例】")
         example = reme_experiences['success'][0]

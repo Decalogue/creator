@@ -1,5 +1,5 @@
-***REMOVED***!/bin/bash
-***REMOVED*** 监控优化测试进度（需在 src 下执行，或从项目根执行时路径已自动切到 src）
+#!/bin/bash
+# 监控优化测试进度（需在 src 下执行，或从项目根执行时路径已自动切到 src）
 
 TEST_LOG="/tmp/test_optimization_verification.log"
 OUTPUT_DIR="task/novel/outputs/优化效果验证测试"

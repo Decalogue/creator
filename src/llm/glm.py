@@ -32,7 +32,7 @@ def glm_stream(messages, thinking='disabled', max_new_tokens=8192, buffer_size=1
         temperature=1.0
     )
 
-    buffer = ''  ***REMOVED*** 缓冲累积的文本
+    buffer = ''  # 缓冲累积的文本
     for chunk in response:
         if not chunk.choices:
             continue
@@ -45,12 +45,12 @@ def glm_stream(messages, thinking='disabled', max_new_tokens=8192, buffer_size=1
         
         if text:
             buffer += text
-            ***REMOVED*** 当缓冲达到指定大小或遇到换行符时，发送缓冲内容
+            # 当缓冲达到指定大小或遇到换行符时，发送缓冲内容
             if len(buffer) >= buffer_size or '\n' in text:
                 yield buffer
                 buffer = ''
     
-    ***REMOVED*** 发送剩余的缓冲内容
+    # 发送剩余的缓冲内容
     if buffer:
         yield buffer
 

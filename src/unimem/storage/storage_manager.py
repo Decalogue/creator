@@ -128,7 +128,7 @@ class StorageManager:
                 adapter_name="StorageManager"
             )
         
-        ***REMOVED*** 检查适配器可用性
+        # 检查适配器可用性
         if not storage_adapter.is_available():
             raise AdapterNotAvailableError(
                 "storage_adapter is not available",
@@ -145,14 +145,14 @@ class StorageManager:
         self.max_retries = max(max_retries, 0)
         self.retry_delay = max(retry_delay, 0.0)
         
-        ***REMOVED*** 线程安全锁
+        # 线程安全锁
         self._lock = threading.RLock()
         self._cache_lock = threading.Lock()
         
-        ***REMOVED*** 缓存：记录记忆所在的层级（用于优化 update_memory）
+        # 缓存：记录记忆所在的层级（用于优化 update_memory）
         self._memory_layers: Dict[str, Set[str]] = {}
         
-        ***REMOVED*** 性能统计（线程安全）
+        # 性能统计（线程安全）
         self._stats = {
             "add_memory": OperationStats(),
             "update_memory": OperationStats(),
@@ -191,10 +191,10 @@ class StorageManager:
         
         start_time = time.time()
         
-        ***REMOVED*** 使用事务上下文确保原子性
+        # 使用事务上下文确保原子性
         with self._lock:
             try:
-                ***REMOVED*** 1. 分类记忆类型（带重试）
+                # 1. 分类记忆类型（带重试）
                 if not memory.memory_type:
                     memory.memory_type = self._retry_operation(
                         lambda: self.memory_type_adapter.classify(memory),
@@ -204,7 +204,7 @@ class StorageManager:
                 layers_added: Set[str] = set()
                 rollback_actions: List[callable] = []
                 
-                ***REMOVED*** 2. 添加到 FoA（工作记忆）- 带重试
+                # 2. 添加到 FoA（工作记忆）- 带重试
                 def add_to_foa():
                     if not self.storage_adapter.add_to_foa(memory):
                         raise AdapterError(
@@ -216,7 +216,7 @@ class StorageManager:
                 
                 self._retry_operation(add_to_foa, operation_name="add_to_foa")
                 
-                ***REMOVED*** 3. 如果关键，添加到 DA（快速访问）- DA 失败不影响整体流程
+                # 3. 如果关键，添加到 DA（快速访问）- DA 失败不影响整体流程
                 if context and hasattr(self.storage_adapter, 'is_session_critical'):
                     try:
                         if self.storage_adapter.is_session_critical(memory, context):
@@ -233,7 +233,7 @@ class StorageManager:
                     except Exception as e:
                         logger.warning(f"Failed to add memory {memory.id} to DA (non-critical): {e}")
                 
-                ***REMOVED*** 4. 添加到 LTM（长期存储）- 必需操作
+                # 4. 添加到 LTM（长期存储）- 必需操作
                 def add_to_ltm():
                     if not self.storage_adapter.add_to_ltm(memory, memory.memory_type):
                         raise AdapterError(
@@ -245,7 +245,7 @@ class StorageManager:
                 try:
                     self._retry_operation(add_to_ltm, operation_name="add_to_ltm", required=True)
                 except AdapterError:
-                    ***REMOVED*** LTM 失败，执行回滚
+                    # LTM 失败，执行回滚
                     logger.error(f"Failed to add memory {memory.id} to LTM, rolling back...")
                     for action in reversed(rollback_actions):
                         try:
@@ -254,7 +254,7 @@ class StorageManager:
                             logger.error(f"Rollback action failed: {rollback_error}")
                     raise
                 
-                ***REMOVED*** 5. 更新缓存（线程安全）
+                # 5. 更新缓存（线程安全）
                 with self._cache_lock:
                     self._memory_layers[memory.id] = layers_added
                 
@@ -265,7 +265,7 @@ class StorageManager:
                 return True
                 
             except (AdapterError, AdapterNotAvailableError):
-                ***REMOVED*** 重新抛出适配器异常
+                # 重新抛出适配器异常
                 duration = time.time() - start_time
                 self._record_stats("add_memory", duration, success=False)
                 raise
@@ -308,7 +308,7 @@ class StorageManager:
             results = [
                 RetrievalResult(
                     memory=m,
-                    score=1.0,  ***REMOVED*** FoA 优先级最高
+                    score=1.0,  # FoA 优先级最高
                     retrieval_method="foa",
                 )
                 for m in memories
@@ -354,7 +354,7 @@ class StorageManager:
             results = [
                 RetrievalResult(
                     memory=m,
-                    score=0.9,  ***REMOVED*** DA 优先级较高
+                    score=0.9,  # DA 优先级较高
                     retrieval_method="da",
                 )
                 for m in memories
@@ -399,7 +399,7 @@ class StorageManager:
             results = [
                 RetrievalResult(
                     memory=m,
-                    score=0.8,  ***REMOVED*** LTM 优先级较低
+                    score=0.8,  # LTM 优先级较低
                     retrieval_method="ltm",
                 )
                 for m in memories
@@ -441,18 +441,18 @@ class StorageManager:
         
         with self._lock:
             try:
-                ***REMOVED*** 获取记忆所在的层级（优先使用缓存，线程安全）
+                # 获取记忆所在的层级（优先使用缓存，线程安全）
                 with self._cache_lock:
                     layers = self._memory_layers.get(memory.id, set())
                     
-                    ***REMOVED*** 如果缓存中没有，使用保守策略：更新所有层
+                    # 如果缓存中没有，使用保守策略：更新所有层
                     if not layers:
                         logger.debug(f"Memory {memory.id} not in cache, updating all layers...")
                         layers = {"foa", "da", "ltm"}
                 
                 updated_layers: Set[str] = set()
                 
-                ***REMOVED*** 1. 更新 FoA（如果存在）
+                # 1. 更新 FoA（如果存在）
                 if "foa" in layers:
                     def update_foa():
                         if hasattr(self.storage_adapter, 'update_in_foa'):
@@ -462,7 +462,7 @@ class StorageManager:
                                     adapter_name="StorageManager"
                                 )
                         else:
-                            ***REMOVED*** 回退方案：删除后重新添加
+                            # 回退方案：删除后重新添加
                             if hasattr(self.storage_adapter, 'remove_from_foa'):
                                 self.storage_adapter.remove_from_foa(memory.id)
                             if not self.storage_adapter.add_to_foa(memory):
@@ -477,7 +477,7 @@ class StorageManager:
                     except Exception as e:
                         logger.warning(f"Failed to update memory {memory.id} in FoA: {e}")
                 
-                ***REMOVED*** 2. 更新 DA（如果存在）
+                # 2. 更新 DA（如果存在）
                 if "da" in layers:
                     def update_da():
                         if hasattr(self.storage_adapter, 'update_in_da'):
@@ -487,7 +487,7 @@ class StorageManager:
                                     adapter_name="StorageManager"
                                 )
                         else:
-                            ***REMOVED*** 回退方案：删除后重新添加
+                            # 回退方案：删除后重新添加
                             if hasattr(self.storage_adapter, 'remove_from_da'):
                                 self.storage_adapter.remove_from_da(memory.id)
                             if not self.storage_adapter.add_to_da(memory):
@@ -502,7 +502,7 @@ class StorageManager:
                     except Exception as e:
                         logger.warning(f"Failed to update memory {memory.id} in DA: {e}")
                 
-                ***REMOVED*** 3. 更新 LTM（总是需要更新）
+                # 3. 更新 LTM（总是需要更新）
                 def update_ltm():
                     if hasattr(self.storage_adapter, 'update_in_ltm'):
                         if not self.storage_adapter.update_in_ltm(memory, memory.memory_type):
@@ -511,7 +511,7 @@ class StorageManager:
                                 adapter_name="StorageManager"
                             )
                     else:
-                        ***REMOVED*** 回退方案：删除后重新添加
+                        # 回退方案：删除后重新添加
                         if hasattr(self.storage_adapter, 'remove_from_ltm'):
                             self.storage_adapter.remove_from_ltm(memory.id)
                         if not self.storage_adapter.add_to_ltm(memory, memory.memory_type):
@@ -523,7 +523,7 @@ class StorageManager:
                 
                 self._retry_operation(update_ltm, operation_name="update_ltm", required=True)
                 
-                ***REMOVED*** 更新缓存（线程安全）
+                # 更新缓存（线程安全）
                 with self._cache_lock:
                     self._memory_layers[memory.id] = updated_layers
                 
@@ -575,8 +575,8 @@ class StorageManager:
                     
                     logger.info(f"Cleaned up {cleaned_count} old memories (max_age: {max_age_hours}h)")
                     
-                    ***REMOVED*** 注意：这里无法精确知道哪些记忆被删除，所以不清除缓存
-                    ***REMOVED*** 缓存会在下次访问时自动更新（如果记忆不存在会自然清理）
+                    # 注意：这里无法精确知道哪些记忆被删除，所以不清除缓存
+                    # 缓存会在下次访问时自动更新（如果记忆不存在会自然清理）
                     
                     return cleaned_count
                 else:
@@ -637,7 +637,7 @@ class StorageManager:
             except (AdapterError, AdapterNotAvailableError) as e:
                 last_error = e
                 if attempt < self.max_retries:
-                    wait_time = self.retry_delay * (2 ** attempt)  ***REMOVED*** 指数退避
+                    wait_time = self.retry_delay * (2 ** attempt)  # 指数退避
                     logger.warning(
                         f"{operation_name} failed (attempt {attempt + 1}/{self.max_retries + 1}): {e}, "
                         f"retrying in {wait_time:.3f}s..."
@@ -649,7 +649,7 @@ class StorageManager:
                         raise
                     return None
             except Exception as e:
-                ***REMOVED*** 非适配器异常，不重试
+                # 非适配器异常，不重试
                 logger.error(f"{operation_name} failed with unexpected error: {e}", exc_info=True)
                 if required:
                     raise AdapterError(
@@ -719,20 +719,20 @@ class StorageManager:
         """
         with self._lock:
             try:
-                ***REMOVED*** 检查适配器健康状态
+                # 检查适配器健康状态
                 storage_health = self.storage_adapter.health_check()
                 type_health = self.memory_type_adapter.health_check()
                 
-                ***REMOVED*** 获取统计信息
+                # 获取统计信息
                 stats = self.get_statistics()
                 
-                ***REMOVED*** 计算整体状态
+                # 计算整体状态
                 all_available = (
                     storage_health.get("available", False) and
                     type_health.get("available", False)
                 )
                 
-                ***REMOVED*** 检查操作成功率
+                # 检查操作成功率
                 total_ops = sum(s["count"] for s in stats.values())
                 total_success = sum(s["success_count"] for s in stats.values())
                 success_rate = total_success / total_ops if total_ops > 0 else 1.0

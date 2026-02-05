@@ -27,29 +27,29 @@ class MemoryType(Enum):
     - MemMachine 类型：EPISODIC, SEMANTIC, USER_PROFILE
     - Hindsight 类型：WORLD, EXPERIENCE, OBSERVATION, OPINION
     """
-    ***REMOVED*** MemMachine 类型
-    EPISODIC = "episodic"  ***REMOVED*** 情景记忆（事件级）
-    SEMANTIC = "semantic"  ***REMOVED*** 语义记忆（概念级）
-    USER_PROFILE = "user_profile"  ***REMOVED*** 用户画像记忆
+    # MemMachine 类型
+    EPISODIC = "episodic"  # 情景记忆（事件级）
+    SEMANTIC = "semantic"  # 语义记忆（概念级）
+    USER_PROFILE = "user_profile"  # 用户画像记忆
     
-    ***REMOVED*** Hindsight 类型（四大逻辑网络）
-    WORLD = "world"  ***REMOVED*** 世界知识：客观事实（World Facts）
-    EXPERIENCE = "experience"  ***REMOVED*** 个人经历：Agent 自己的经历和行为（Agent Experiences）
-    OBSERVATION = "observation"  ***REMOVED*** 实体观察：对人物、事件、事物的客观总结（Synthesized Entity Summaries）
-    OPINION = "opinion"  ***REMOVED*** 演变信念：Agent 的主观观点和信念，包含置信度（Evolving Beliefs）
+    # Hindsight 类型（四大逻辑网络）
+    WORLD = "world"  # 世界知识：客观事实（World Facts）
+    EXPERIENCE = "experience"  # 个人经历：Agent 自己的经历和行为（Agent Experiences）
+    OBSERVATION = "observation"  # 实体观察：对人物、事件、事物的客观总结（Synthesized Entity Summaries）
+    OPINION = "opinion"  # 演变信念：Agent 的主观观点和信念，包含置信度（Evolving Beliefs）
 
 
 class MemoryLayer(Enum):
     """记忆层级枚举"""
-    FOA = "foa"  ***REMOVED*** Focus of Attention（工作记忆）
-    DA = "da"  ***REMOVED*** Direct Access（快速访问）
-    LTM = "ltm"  ***REMOVED*** Long-Term Memory（长期存储）
+    FOA = "foa"  # Focus of Attention（工作记忆）
+    DA = "da"  # Direct Access（快速访问）
+    LTM = "ltm"  # Long-Term Memory（长期存储）
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 过程记忆与角色感知（Procedural & Role-Aware Memory，参考 LEGOMem）
-***REMOVED*** 用于区分「编排器」与「任务 Agent」的记忆，支持按角色检索
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 过程记忆与角色感知（Procedural & Role-Aware Memory，参考 LEGOMem）
+# 用于区分「编排器」与「任务 Agent」的记忆，支持按角色检索
+# ---------------------------------------------------------------------------
 PROCEDURAL_TAG = "procedural"
 ROLE_ORCHESTRATOR = "role:orchestrator"
 ROLE_TASK_AGENT = "role:task_agent"
@@ -124,25 +124,25 @@ class Memory:
     memory_type: Optional[MemoryType] = None
     layer: MemoryLayer = MemoryLayer.LTM
     
-    ***REMOVED*** 语义元数据
+    # 语义元数据
     keywords: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
     context: Optional[str] = None
     
-    ***REMOVED*** 链接和关系
-    links: Set[str] = field(default_factory=set)  ***REMOVED*** 链接的记忆ID
-    entities: List[str] = field(default_factory=list)  ***REMOVED*** 关联的实体ID
+    # 链接和关系
+    links: Set[str] = field(default_factory=set)  # 链接的记忆ID
+    entities: List[str] = field(default_factory=list)  # 关联的实体ID
     
-    ***REMOVED*** 统计信息
+    # 统计信息
     retrieval_count: int = 0
     last_accessed: Optional[datetime] = None
     
-    ***REMOVED*** 元数据
+    # 元数据
     metadata: Dict[str, Any] = field(default_factory=dict)
     
-    ***REMOVED*** 决策痕迹和推理（Context Graph 增强）
-    reasoning: Optional[str] = None  ***REMOVED*** 决策理由（"为什么这么做"）
-    decision_trace: Optional[Dict[str, Any]] = None  ***REMOVED*** 决策痕迹（输入-规则-异常-审批-输出）
+    # 决策痕迹和推理（Context Graph 增强）
+    reasoning: Optional[str] = None  # 决策理由（"为什么这么做"）
+    decision_trace: Optional[Dict[str, Any]] = None  # 决策痕迹（输入-规则-异常-审批-输出）
     
     def __post_init__(self):
         """数据验证"""
@@ -162,7 +162,7 @@ class Memory:
             raise TypeError(f"tags must be list, got {type(self.tags)}")
         if not isinstance(self.links, (set, list)):
             raise TypeError(f"links must be set, got {type(self.links)}")
-        ***REMOVED*** 转换 links 为 set（如果传入的是 list）
+        # 转换 links 为 set（如果传入的是 list）
         if isinstance(self.links, list):
             self.links = set(self.links)
         if not isinstance(self.entities, list):
@@ -325,7 +325,7 @@ class RetrievalResult:
     """
     memory: Memory
     score: float
-    retrieval_method: str  ***REMOVED*** 检索方法标识
+    retrieval_method: str  # 检索方法标识
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
@@ -378,8 +378,8 @@ class Relation:
     
     用于图结构中的关系边（参考 LightRAG）
     """
-    source: str  ***REMOVED*** 源实体ID
-    target: str  ***REMOVED*** 目标实体ID
+    source: str  # 源实体ID
+    target: str  # 目标实体ID
     keywords: List[str] = field(default_factory=list)
     description: str = ""
     retrieval_key: str = ""

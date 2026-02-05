@@ -1,11 +1,11 @@
-***REMOVED***!/bin/bash
+#!/bin/bash
 
 echo "=========================================="
 echo "UniMem 测试进度监控"
 echo "=========================================="
 echo
 
-***REMOVED*** 查找最新日志
+# 查找最新日志
 LATEST_LOG=$(ls -t context_graph_test_*.log 2>/dev/null | head -1)
 
 if [ -z "$LATEST_LOG" ]; then
@@ -17,7 +17,7 @@ echo "📋 最新日志文件: $LATEST_LOG"
 echo "📅 最后修改时间: $(stat -c %y "$LATEST_LOG" | cut -d'.' -f1)"
 echo
 
-***REMOVED*** 检查进程
+# 检查进程
 if pgrep -f "comprehensive_context_graph_test.py" > /dev/null; then
     PID=$(pgrep -f "comprehensive_context_graph_test.py" | head -1)
     echo "✅ 测试正在运行中..."
@@ -31,23 +31,23 @@ fi
 echo
 echo "--- 测试进度统计 ---"
 
-***REMOVED*** 统计已完成场景
+# 统计已完成场景
 COMPLETED=$(grep -c "【步骤8】获取最终剧本\|测试完成" "$LATEST_LOG" 2>/dev/null || echo "0")
 echo "已完成场景数: $COMPLETED/5"
 
-***REMOVED*** 统计已存储脚本
+# 统计已存储脚本
 SCRIPT_COUNT=$(grep -c "Stored script to UniMem\|剧本生成成功" "$LATEST_LOG" 2>/dev/null || echo "0")
 echo "已生成剧本数: $SCRIPT_COUNT/5"
 
-***REMOVED*** 统计DecisionEvent
+# 统计DecisionEvent
 EVENT_COUNT=$(grep -c "Created decision event\|Created DecisionEvent" "$LATEST_LOG" 2>/dev/null || echo "0")
 echo "DecisionEvent创建数: $EVENT_COUNT ⭐"
 
-***REMOVED*** 统计最终剧本保存
+# 统计最终剧本保存
 FINAL_SCRIPT_COUNT=$(grep -c "最终剧本已获取\|最终剧本已保存" "$LATEST_LOG" 2>/dev/null || echo "0")
 echo "最终剧本保存数: $FINAL_SCRIPT_COUNT/5 ⭐"
 
-***REMOVED*** 统计错误
+# 统计错误
 ERRORS=$(grep -ci "error\|exception\|failed" "$LATEST_LOG" 2>/dev/null | head -1 || echo "0")
 echo "错误/异常数: $ERRORS"
 
@@ -78,7 +78,7 @@ if grep -q "测试完成\|测试完成！" "$LATEST_LOG" 2>/dev/null; then
         echo "进化报告: $EVOLUTION_FILE"
     fi
     
-    ***REMOVED*** 检查最终剧本文件
+    # 检查最终剧本文件
     if [ -d "final_scripts" ]; then
         SCRIPT_FILES=$(ls final_scripts/*_final_script.txt 2>/dev/null | wc -l)
         if [ "$SCRIPT_FILES" -gt 0 ]; then

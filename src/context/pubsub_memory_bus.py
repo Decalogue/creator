@@ -18,13 +18,13 @@ logger = logging.getLogger(__name__)
 
 class Topic(Enum):
     """订阅主题"""
-    CHARACTER_DIALOGUE = "character_dialogue"  ***REMOVED*** 角色对话
-    SETTING_DESCRIPTION = "setting_description"  ***REMOVED*** 设定描述
-    PLOT_DEVELOPMENT = "plot_development"  ***REMOVED*** 情节发展
-    WORLDVIEW = "worldview"  ***REMOVED*** 世界观
-    STYLE = "style"  ***REMOVED*** 风格
-    CONSISTENCY = "consistency"  ***REMOVED*** 一致性
-    ALL = "all"  ***REMOVED*** 所有主题
+    CHARACTER_DIALOGUE = "character_dialogue"  # 角色对话
+    SETTING_DESCRIPTION = "setting_description"  # 设定描述
+    PLOT_DEVELOPMENT = "plot_development"  # 情节发展
+    WORLDVIEW = "worldview"  # 世界观
+    STYLE = "style"  # 风格
+    CONSISTENCY = "consistency"  # 一致性
+    ALL = "all"  # 所有主题
 
 
 @dataclass
@@ -32,7 +32,7 @@ class Subscription:
     """订阅信息"""
     agent_id: str
     topics: Set[Topic]
-    callback: Callable[[str, Dict[str, Any]], None]  ***REMOVED*** (topic, data)
+    callback: Callable[[str, Dict[str, Any]], None]  # (topic, data)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
@@ -140,12 +140,12 @@ class PubSubMemoryBus:
             data=data
         )
         
-        ***REMOVED*** 保存到历史
+        # 保存到历史
         self.message_history.append(message)
         if len(self.message_history) > self.max_history:
             self.message_history = self.message_history[-self.max_history:]
         
-        ***REMOVED*** 通知订阅者
+        # 通知订阅者
         notified_count = 0
         for agent_id, subscription in self.subscriptions.items():
             if Topic.ALL in subscription.topics or topic in subscription.topics:
@@ -220,13 +220,13 @@ class PubSubMemoryBus:
         
         conflicts = []
         
-        ***REMOVED*** 获取相关历史消息
+        # 获取相关历史消息
         related_messages = self.get_message_history(topic=topic, limit=50)
         
-        ***REMOVED*** 简化的冲突检测（实际应使用更智能的方法）
-        ***REMOVED*** 例如：检测世界观冲突
+        # 简化的冲突检测（实际应使用更智能的方法）
+        # 例如：检测世界观冲突
         if topic == Topic.WORLDVIEW:
-            ***REMOVED*** 检查是否有矛盾的世界观描述
+            # 检查是否有矛盾的世界观描述
             for msg in related_messages:
                 if "contradicts" in msg.data.get("metadata", {}):
                     conflicts.append({

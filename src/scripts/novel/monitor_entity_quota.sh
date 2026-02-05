@@ -1,5 +1,5 @@
-***REMOVED***!/bin/bash
-***REMOVED*** 监控实体类型配额分配效果（需在 src 目录下执行，或从项目根执行时路径已自动切到 src）
+#!/bin/bash
+# 监控实体类型配额分配效果（需在 src 目录下执行，或从项目根执行时路径已自动切到 src）
 
 LOG_FILE="/tmp/test_50chapters_entity_quota_optimization.log"
 OUTPUT_DIR="task/novel/outputs/50章实体配额优化测试"

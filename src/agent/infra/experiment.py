@@ -39,7 +39,7 @@ class Experiment:
     name: str
     description: str
     variants: List[ExperimentVariant]
-    metrics: List[str]  ***REMOVED*** 要收集的指标名称
+    metrics: List[str]  # 要收集的指标名称
     results: List[ExperimentResult] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.now)
 
@@ -139,14 +139,14 @@ class ExperimentManager:
             start_time = time.time()
             
             try:
-                ***REMOVED*** 运行测试函数
+                # 运行测试函数
                 test_result = test_fn(**variant.params)
                 
-                ***REMOVED*** 提取指标
+                # 提取指标
                 if extract_metrics:
                     metrics = extract_metrics(test_result)
                 else:
-                    ***REMOVED*** 默认：如果 test_result 是字典，直接使用
+                    # 默认：如果 test_result 是字典，直接使用
                     metrics = test_result if isinstance(test_result, dict) else {}
                 
                 duration = time.time() - start_time
@@ -177,7 +177,7 @@ class ExperimentManager:
             results[variant.name] = result
             experiment.results.append(result)
         
-        ***REMOVED*** 保存实验结果
+        # 保存实验结果
         self._save_experiment(experiment)
         
         return results
@@ -203,7 +203,7 @@ class ExperimentManager:
         if not experiment.results:
             return {"error": "实验尚未运行"}
         
-        ***REMOVED*** 按指标对比
+        # 按指标对比
         comparison = {
             "experiment_name": experiment_name,
             "variants": {},
@@ -211,7 +211,7 @@ class ExperimentManager:
             "comparison_by_metric": {}
         }
         
-        ***REMOVED*** 收集每个变体的指标
+        # 收集每个变体的指标
         for result in experiment.results:
             if result.success:
                 comparison["variants"][result.variant_name] = {
@@ -219,7 +219,7 @@ class ExperimentManager:
                     "duration": result.duration,
                 }
         
-        ***REMOVED*** 按每个指标找出最佳变体
+        # 按每个指标找出最佳变体
         for metric_name in experiment.metrics:
             best_variant = None
             best_value = None
@@ -237,7 +237,7 @@ class ExperimentManager:
                     "best_value": best_value,
                 }
         
-        ***REMOVED*** 找出总体最佳变体（基于第一个指标）
+        # 找出总体最佳变体（基于第一个指标）
         if experiment.metrics and comparison["comparison_by_metric"]:
             first_metric = experiment.metrics[0]
             if first_metric in comparison["comparison_by_metric"]:
@@ -300,7 +300,7 @@ class ExperimentManager:
             created_at=datetime.fromisoformat(data["created_at"])
         )
         
-        ***REMOVED*** 加载结果
+        # 加载结果
         for r in data.get("results", []):
             experiment.results.append(ExperimentResult(
                 variant_name=r["variant_name"],

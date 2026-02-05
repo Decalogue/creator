@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 基于新模板创建5份差异化的短视频需求文档
 
@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 
-***REMOVED*** 添加项目路径
+# 添加项目路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -31,16 +31,16 @@ def create_diverse_doc(output_path: str, scenario: dict) -> str:
     """
     doc = Document()
     
-    ***REMOVED*** 标题
+    # 标题
     title = doc.add_heading('短视频创作需求模板', 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    ***REMOVED*** 说明（新模板格式）
+    # 说明（新模板格式）
     doc.add_paragraph('请根据以下说明填写相应内容，所有内容都是可选的，根据需要填写即可。')
     doc.add_paragraph('💡 提示：建议填写尽可能详细的信息，以便生成更符合您需求的视频剧本。')
     doc.add_paragraph()
     
-    ***REMOVED*** 1. 视频基本信息
+    # 1. 视频基本信息
     doc.add_heading('一、视频基本信息', level=1)
     doc.add_paragraph('视频类型（必填，从以下选项选择其一）：')
     doc.add_paragraph('  - ecommerce（电商推广）', style='List Bullet')
@@ -62,14 +62,14 @@ def create_diverse_doc(output_path: str, scenario: dict) -> str:
     doc.add_paragraph(f'目标时长（秒，可选，默认60秒）: {scenario.get("duration", 60)}')
     doc.add_paragraph()
     
-    ***REMOVED*** 2. 当前任务需求
+    # 2. 当前任务需求
     doc.add_heading('二、当前任务需求', level=1)
     doc.add_paragraph('请详细描述本次视频创作的具体需求，每行一条：')
     for req in scenario.get("task_memories", []):
         doc.add_paragraph(req)
     doc.add_paragraph()
     
-    ***REMOVED*** 3. 修改需求（可选）
+    # 3. 修改需求（可选）
     doc.add_heading('三、修改需求（可选）', level=1)
     doc.add_paragraph('如果在已有脚本基础上进行修改，请填写修改要求：')
     for mod in scenario.get("modification_memories", []):
@@ -78,21 +78,21 @@ def create_diverse_doc(output_path: str, scenario: dict) -> str:
         doc.add_paragraph('（首次生成，无需填写）')
     doc.add_paragraph()
     
-    ***REMOVED*** 4. 通用记忆总结（可选）
+    # 4. 通用记忆总结（可选）
     doc.add_heading('四、通用记忆总结（可选）', level=1)
     doc.add_paragraph('跨任务的用户偏好和通用风格偏好，这些会应用到所有视频创作：')
     for mem in scenario.get("general_memories", []):
         doc.add_paragraph(mem)
     doc.add_paragraph()
     
-    ***REMOVED*** 5. 用户偏好设置
+    # 5. 用户偏好设置
     doc.add_heading('五、用户偏好设置（可选）', level=1)
     doc.add_paragraph('请使用"键: 值"的格式填写，例如：')
     for key, value in scenario.get("user_preferences", {}).items():
         doc.add_paragraph(f'{key}: {value}')
     doc.add_paragraph()
     
-    ***REMOVED*** 6. 商品信息（仅电商题材需要）
+    # 6. 商品信息（仅电商题材需要）
     if scenario.get("product_info"):
         doc.add_heading('六、商品信息（仅电商题材需要）', level=1)
         doc.add_paragraph('请使用"键: 值"的格式填写，例如：')
@@ -100,7 +100,7 @@ def create_diverse_doc(output_path: str, scenario: dict) -> str:
             doc.add_paragraph(f'{key}: {value}')
         doc.add_paragraph()
     
-    ***REMOVED*** 7. 镜头素材（新格式，动态生成）
+    # 7. 镜头素材（新格式，动态生成）
     doc.add_heading('七、镜头素材', level=1)
     doc.add_paragraph('请描述可用的镜头素材，每行一个镜头，使用"键: 值"格式或直接描述：')
     doc.add_paragraph('💡 提示：镜头素材越详细，生成的剧本越精准。建议包括：产品展示、使用场景、细节特写、对比效果等。')
@@ -110,7 +110,7 @@ def create_diverse_doc(output_path: str, scenario: dict) -> str:
         for shot in shot_materials:
             doc.add_paragraph(shot)
     else:
-        ***REMOVED*** 根据视频类型生成默认镜头建议
+        # 根据视频类型生成默认镜头建议
         if scenario["video_type"] == "ecommerce":
             default_shots = [
                 "镜头1: 产品整体展示（全景，展示产品全貌）",
@@ -141,7 +141,7 @@ def create_diverse_doc(output_path: str, scenario: dict) -> str:
     
     doc.add_paragraph()
     
-    ***REMOVED*** 保存文档
+    # 保存文档
     doc.save(output_path)
     return output_path
 
@@ -149,14 +149,14 @@ def create_diverse_doc(output_path: str, scenario: dict) -> str:
 def main():
     """主函数：创建5份差异化的需求文档"""
     
-    ***REMOVED*** 定义5个差异化场景（每个至少30秒，剧本至少300字）
+    # 定义5个差异化场景（每个至少30秒，剧本至少300字）
     scenarios = [
         {
             "id": "scenario_1",
             "name": "电商-美妆-小红书-简单",
             "video_type": "ecommerce",
             "platform": "xiaohongshu",
-            "duration": 45,  ***REMOVED*** 至少30秒
+            "duration": 45,  # 至少30秒
             "task_memories": [
                 "推广新品春季限定口红，这是一款专为年轻女性设计的彩妆产品，适合日常通勤、约会聚会等多种场合使用",
                 "核心卖点：12小时超长持久不脱色，色彩饱满显色度高，柔雾质地高级感十足，质地舒适不拔干，包装精致适合送礼",
@@ -203,7 +203,7 @@ def main():
             "name": "教育-编程-抖音-中等",
             "video_type": "knowledge",
             "platform": "douyin",
-            "duration": 60,  ***REMOVED*** 至少30秒
+            "duration": 60,  # 至少30秒
             "task_memories": [
                 "Python编程入门教学，面向零基础初学者，帮助用户从零开始学习Python编程语言",
                 "核心内容：详细讲解变量和数据类型，包括整数、浮点数、字符串、布尔值等基础概念，以及变量命名规则、数据类型转换、变量赋值等实际操作",
@@ -246,7 +246,7 @@ def main():
             "name": "娱乐-搞笑-抖音-简单",
             "video_type": "media",
             "platform": "douyin",
-            "duration": 45,  ***REMOVED*** 至少30秒
+            "duration": 45,  # 至少30秒
             "task_memories": [
                 "创作搞笑日常段子，展示生活中的小趣事，让观众在轻松愉快的氛围中产生共鸣和笑声",
                 "目标受众：18-35岁年轻人，喜欢轻松幽默的内容，追求真实有趣的生活分享，喜欢互动和评论",
@@ -285,7 +285,7 @@ def main():
             "name": "电商-服装-淘宝-复杂",
             "video_type": "ecommerce",
             "platform": "douyin",
-            "duration": 60,  ***REMOVED*** 至少30秒
+            "duration": 60,  # 至少30秒
             "task_memories": [
                 "推广春季气质连衣裙，面向25-35岁职场女性，这是一款适合春夏季节穿着的优雅知性连衣裙",
                 "核心卖点：面料舒适透气适合春夏穿着，版型修身显瘦显高，多场景适用（职场通勤、约会聚会、休闲出游），性价比高适合日常穿着",
@@ -334,7 +334,7 @@ def main():
             "name": "知识-科技-抖音-复杂",
             "video_type": "knowledge",
             "platform": "douyin",
-            "duration": 90,  ***REMOVED*** 至少30秒
+            "duration": 90,  # 至少30秒
             "task_memories": [
                 "AI技术科普，讲解GPT模型原理，面向对AI感兴趣的用户，帮助非专业技术人员理解AI技术",
                 "核心内容：详细讲解GPT模型的工作原理（如何理解和生成文本）、训练过程（如何学习数据）、应用场景（聊天机器人、代码生成、文案创作等）、未来发展趋势（AI的未来发展方向）",
@@ -374,8 +374,8 @@ def main():
         }
     ]
     
-    ***REMOVED*** 创建输出目录
-    ***REMOVED*** 使用相对于脚本的路径，放在examples目录下
+    # 创建输出目录
+    # 使用相对于脚本的路径，放在examples目录下
     script_dir = Path(__file__).parent
     output_dir = script_dir / "test_docs_new_template"
     output_dir.mkdir(exist_ok=True)

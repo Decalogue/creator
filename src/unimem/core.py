@@ -53,7 +53,7 @@ from .config import UniMemConfig
 logger = logging.getLogger(__name__)
 
 
-***REMOVED*** 操作特定异常（继承自适配器异常体系）
+# 操作特定异常（继承自适配器异常体系）
 class OperationError(AdapterError):
     """操作错误基类"""
     pass
@@ -149,7 +149,7 @@ class UniMem:
             vector_backend: 向量数据库后端（qdrant/faiss/milvus）
             max_concurrent_operations: 最大并发操作数（限流）
         """
-        ***REMOVED*** 加载配置
+        # 加载配置
         if isinstance(config, UniMemConfig):
             self.config = config.to_dict()
         elif isinstance(config, dict):
@@ -157,12 +157,12 @@ class UniMem:
         else:
             self.config = UniMemConfig().to_dict()
         
-        ***REMOVED*** 先设置基本属性（验证配置时需要用到）
+        # 先设置基本属性（验证配置时需要用到）
         self.storage_backend = storage_backend
         self.max_concurrent_operations = max_concurrent_operations
         self.operation_timeout = float(self.config.get("operation_timeout", 300.0))
         
-        ***REMOVED*** 如果配置中指定了后端，使用配置中的值
+        # 如果配置中指定了后端，使用配置中的值
         if "graph" in self.config and "backend" in self.config["graph"]:
             self.graph_backend = self.config["graph"]["backend"]
         else:
@@ -173,27 +173,27 @@ class UniMem:
         else:
             self.vector_backend = vector_backend
         
-        ***REMOVED*** 验证配置（会自动补充缺失的配置）
+        # 验证配置（会自动补充缺失的配置）
         self._validate_config()
         
-        ***REMOVED*** 线程安全锁
+        # 线程安全锁
         self._lock = threading.RLock()
         
-        ***REMOVED*** 操作历史记录（用于幂等性检查）
+        # 操作历史记录（用于幂等性检查）
         self._operation_history: Dict[str, Dict[str, Any]] = {}
         self._history_lock = threading.Lock()
         
-        ***REMOVED*** 限流：信号量控制并发操作数
+        # 限流：信号量控制并发操作数
         self._operation_semaphore = threading.Semaphore(max_concurrent_operations)
         
-        ***REMOVED*** 操作超时配置（秒）
+        # 操作超时配置（秒）
         self.operation_timeout = float(self.config.get("operation_timeout", 300.0))
         
-        ***REMOVED*** 初始化适配器层（各架构解耦，通过适配器交互）
+        # 初始化适配器层（各架构解耦，通过适配器交互）
         logger.info("Initializing UniMem adapters...")
         self._init_adapters()
         
-        ***REMOVED*** 初始化核心组件（通过功能适配器进行信息交互、操作、叠加）
+        # 初始化核心组件（通过功能适配器进行信息交互、操作、叠加）
         logger.info("Initializing UniMem core components...")
         self.storage = StorageManager(
             storage_adapter=self.storage_adapter,
@@ -211,16 +211,16 @@ class UniMem:
             update_adapter=self.update_adapter,
         )
         
-        ***REMOVED*** 性能指标（使用数据类，线程安全）
+        # 性能指标（使用数据类，线程安全）
         self.metrics = {
             "retain": OperationMetrics(),
             "recall": OperationMetrics(),
             "reflect": OperationMetrics(),
-            "adapter_calls": {},  ***REMOVED*** 适配器调用统计
+            "adapter_calls": {},  # 适配器调用统计
         }
         self._metrics_lock = threading.Lock()
         
-        ***REMOVED*** 系统启动时间
+        # 系统启动时间
         self._start_time = datetime.now()
         
         logger.info("UniMem initialized successfully")
@@ -232,8 +232,8 @@ class UniMem:
         Raises:
             AdapterConfigurationError: 如果配置无效
         """
-        ***REMOVED*** 验证必需配置（允许最小配置，即使后端不可用）
-        ***REMOVED*** 如果缺少 graph 或 vector，使用最小配置
+        # 验证必需配置（允许最小配置，即使后端不可用）
+        # 如果缺少 graph 或 vector，使用最小配置
         if "graph" not in self.config:
             logger.warning("Missing 'graph' config, using minimal configuration (memory-only mode)")
             self.config["graph"] = {
@@ -249,7 +249,7 @@ class UniMem:
                 "backend": "memory"
             }
         
-        ***REMOVED*** 验证后端配置
+        # 验证后端配置
         valid_storage_backends = ["redis", "mongodb", "postgresql"]
         if self.storage_backend not in valid_storage_backends:
             logger.warning(f"Unknown storage backend: {self.storage_backend}")
@@ -262,7 +262,7 @@ class UniMem:
         if self.vector_backend not in valid_vector_backends:
             logger.warning(f"Unknown vector backend: {self.vector_backend}, will use degraded mode")
         
-        ***REMOVED*** 验证超时配置
+        # 验证超时配置
         if self.operation_timeout <= 0:
             raise AdapterConfigurationError(
                 f"operation_timeout must be positive, got {self.operation_timeout}",
@@ -288,7 +288,7 @@ class UniMem:
             **self.config.get("layered_storage", {}),
             **self.config.get("storage", {}),
         }
-        ***REMOVED*** 若 config 未指定 foa/da/ltm backend，用构造函数参数兜底，确保 LTM 可写 Neo4j
+        # 若 config 未指定 foa/da/ltm backend，用构造函数参数兜底，确保 LTM 可写 Neo4j
         if "foa_backend" not in storage_cfg:
             storage_cfg["foa_backend"] = self.storage_backend
         if "da_backend" not in storage_cfg:
@@ -296,13 +296,13 @@ class UniMem:
         if "ltm_backend" not in storage_cfg:
             storage_cfg["ltm_backend"] = self.graph_backend
         adapters_config = [
-            ("operation", OperationAdapter, self.config.get("operation", {}), True),  ***REMOVED*** 必需
-            ("layered_storage", LayeredStorageAdapter, storage_cfg, True),  ***REMOVED*** 必需
-            ("memory_type", MemoryTypeAdapter, self.config.get("memory_type", {}), False),  ***REMOVED*** 可选
-            ("graph", GraphAdapter, {**self.config.get("graph", {}), "backend": self.graph_backend}, False),  ***REMOVED*** 可选
-            ("network", AtomLinkAdapter, self.config.get("network", {}), False),  ***REMOVED*** 可选
-            ("retrieval", RetrievalAdapter, self.config.get("retrieval", {}), False),  ***REMOVED*** 可选
-            ("update", UpdateAdapter, self.config.get("update", {}), False),  ***REMOVED*** 可选
+            ("operation", OperationAdapter, self.config.get("operation", {}), True),  # 必需
+            ("layered_storage", LayeredStorageAdapter, storage_cfg, True),  # 必需
+            ("memory_type", MemoryTypeAdapter, self.config.get("memory_type", {}), False),  # 可选
+            ("graph", GraphAdapter, {**self.config.get("graph", {}), "backend": self.graph_backend}, False),  # 可选
+            ("network", AtomLinkAdapter, self.config.get("network", {}), False),  # 可选
+            ("retrieval", RetrievalAdapter, self.config.get("retrieval", {}), False),  # 可选
+            ("update", UpdateAdapter, self.config.get("update", {}), False),  # 可选
         ]
         
         failed_adapters = []
@@ -312,7 +312,7 @@ class UniMem:
                 adapter = adapter_class(config=config)
                 adapter.initialize()
                 
-                ***REMOVED*** 设置属性
+                # 设置属性
                 if name == "operation":
                     self.operation_adapter = adapter
                 elif name == "layered_storage":
@@ -338,15 +338,15 @@ class UniMem:
             except AdapterConfigurationError as e:
                 logger.error(f"Adapter '{name}' configuration error: {e}", exc_info=True)
                 if required:
-                    raise  ***REMOVED*** 必需适配器的配置错误需要重新抛出
+                    raise  # 必需适配器的配置错误需要重新抛出
                 failed_adapters.append(name)
             except Exception as e:
                 logger.error(f"Failed to initialize adapter '{name}': {e}", exc_info=True)
                 if required:
-                    raise  ***REMOVED*** 必需适配器的初始化失败需要重新抛出
+                    raise  # 必需适配器的初始化失败需要重新抛出
                 failed_adapters.append(name)
         
-        ***REMOVED*** 记录适配器状态
+        # 记录适配器状态
         self._log_adapter_status()
         
         if failed_adapters:
@@ -419,25 +419,25 @@ class UniMem:
         - 错误统计
         - 超时控制（可选）
         """
-        ***REMOVED*** 限流：获取信号量
+        # 限流：获取信号量
         self._operation_semaphore.acquire()
         start_time = time.time()
         try:
             try:
                 yield
                 duration = time.time() - start_time
-                ***REMOVED*** 记录成功指标
+                # 记录成功指标
                 with self._metrics_lock:
                     if operation_name in self.metrics and isinstance(self.metrics[operation_name], OperationMetrics):
                         self.metrics[operation_name].record(duration, success=True)
                     else:
-                        ***REMOVED*** 向后兼容：如果指标不存在，初始化它
+                        # 向后兼容：如果指标不存在，初始化它
                         self.metrics[operation_name] = OperationMetrics()
                         self.metrics[operation_name].record(duration, success=True)
                 logger.debug(f"{operation_name} completed in {duration:.3f}s")
             except Exception as e:
                 duration = time.time() - start_time
-                ***REMOVED*** 记录错误指标
+                # 记录错误指标
                 with self._metrics_lock:
                     if operation_name in self.metrics and isinstance(self.metrics[operation_name], OperationMetrics):
                         self.metrics[operation_name].record(duration, success=False)
@@ -461,7 +461,7 @@ class UniMem:
         try:
             yield rollback_actions
         except Exception as e:
-            ***REMOVED*** 执行回滚
+            # 执行回滚
             logger.warning(f"RETAIN transaction failed for {memory_id}, rolling back...")
             for action in reversed(rollback_actions):
                 try:
@@ -506,31 +506,31 @@ class UniMem:
         with self._operation_context("retain"):
             logger.info(f"RETAIN: Processing experience: {experience.content[:50]}...")
             
-            ***REMOVED*** 生成或使用提供的操作ID
+            # 生成或使用提供的操作ID
             if operation_id is None:
                 operation_id = self._generate_operation_id(experience)
             
-            ***REMOVED*** 幂等性检查
+            # 幂等性检查
             cached_result = self._check_operation_idempotency(operation_id)
             if cached_result:
                 logger.info(f"RETAIN: Operation {operation_id} already executed, returning cached result")
                 return cached_result
             
-            ***REMOVED*** 使用事务上下文确保一致性
+            # 使用事务上下文确保一致性
             try:
-                ***REMOVED*** 步骤1-3并行执行（提取实体、构建笔记、分类类型）
+                # 步骤1-3并行执行（提取实体、构建笔记、分类类型）
                 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-                    ***REMOVED*** 提交并行任务
+                    # 提交并行任务
                     future_entities = executor.submit(self.graph_adapter.extract_entities_relations, experience.content)
                     future_note = executor.submit(
                         lambda: self._construct_atomic_note_with_storage(
                             content=experience.content,
                             timestamp=experience.timestamp,
-                            entities=[],  ***REMOVED*** 先不传实体，后续更新
+                            entities=[],  # 先不传实体，后续更新
                         )
                     )
                     
-                    ***REMOVED*** 等待实体提取完成（失败时用空实体继续，保证仍写入 Qdrant/Neo4j）
+                    # 等待实体提取完成（失败时用空实体继续，保证仍写入 Qdrant/Neo4j）
                     try:
                         entities, relations = future_entities.result()
                         logger.debug(f"Extracted {len(entities)} entities and {len(relations)} relations")
@@ -541,15 +541,15 @@ class UniMem:
                         )
                         entities, relations = [], []
                     
-                    ***REMOVED*** 获取原子笔记
+                    # 获取原子笔记
                     atomic_note = future_note.result()
                     logger.debug(f"Constructed atomic note: {atomic_note.id}")
                     
-                    ***REMOVED*** 更新原子笔记的实体信息
+                    # 更新原子笔记的实体信息
                     atomic_note.entities = entities
                 
-                ***REMOVED*** 3. 记忆分类适配器：分类记忆类型
-                ***REMOVED*** 优先从metadata中获取明确的类型（如FEEDBACK、SCRIPT等）
+                # 3. 记忆分类适配器：分类记忆类型
+                # 优先从metadata中获取明确的类型（如FEEDBACK、SCRIPT等）
                 memory_type = None
                 if context.metadata and context.metadata.get("memory_type"):
                     try:
@@ -558,37 +558,37 @@ class UniMem:
                     except (ValueError, KeyError):
                         pass
                 
-                ***REMOVED*** 如果metadata中没有，根据内容关键词推断类型（优先于LLM分类）
+                # 如果metadata中没有，根据内容关键词推断类型（优先于LLM分类）
                 if not memory_type:
                     content_lower = experience.content.lower() if experience.content else ""
                     if "反馈" in experience.content or "feedback" in content_lower or "用户反馈" in experience.content:
-                        memory_type = MemoryType.OBSERVATION  ***REMOVED*** 反馈是观察类型
+                        memory_type = MemoryType.OBSERVATION  # 反馈是观察类型
                         logger.debug(f"Inferred memory_type as OBSERVATION from content keywords (feedback)")
                     elif "脚本" in experience.content or "script" in content_lower or "剧本" in experience.content or "视频剧本" in experience.content:
-                        memory_type = MemoryType.EXPERIENCE  ***REMOVED*** 脚本是系统生成的经历
+                        memory_type = MemoryType.EXPERIENCE  # 脚本是系统生成的经历
                         logger.debug(f"Inferred memory_type as EXPERIENCE from content keywords (script)")
                     elif "经验" in experience.content or "experience" in content_lower or "优化" in experience.content or "总结" in experience.content:
                         memory_type = MemoryType.EXPERIENCE
                         logger.debug(f"Inferred memory_type as EXPERIENCE from content keywords")
                 
-                ***REMOVED*** 如果内容推断也没有结果，使用LLM分类（Hindsight类型）
+                # 如果内容推断也没有结果，使用LLM分类（Hindsight类型）
                 if not memory_type:
                     self._record_adapter_call("MemoryTypeAdapter", "classify")
                     memory_type = self.memory_type_adapter.classify(atomic_note)
                     logger.debug(f"Classified memory type using LLM: {memory_type}")
                 
-                ***REMOVED*** 如果LLM分类也失败，使用默认类型
+                # 如果LLM分类也失败，使用默认类型
                 if not memory_type:
                     memory_type = MemoryType.EXPERIENCE
                     logger.debug(f"Using default memory_type: EXPERIENCE")
                 
-                ***REMOVED*** 确保memory_type在所有情况下都有值（防御性编程）
+                # 确保memory_type在所有情况下都有值（防御性编程）
                 if not memory_type:
                     logger.warning(f"memory_type is still None after all attempts, forcing EXPERIENCE")
                     memory_type = MemoryType.EXPERIENCE
                 
-                ***REMOVED*** 4. 构建完整的 Memory 对象
-                ***REMOVED*** 合并context的metadata到memory的metadata；显式写入 session_id 供会话级检索与重要性评分
+                # 4. 构建完整的 Memory 对象
+                # 合并context的metadata到memory的metadata；显式写入 session_id 供会话级检索与重要性评分
                 memory_metadata = {}
                 if hasattr(atomic_note, 'metadata') and atomic_note.metadata:
                     memory_metadata.update(atomic_note.metadata)
@@ -597,19 +597,19 @@ class UniMem:
                 if context.session_id:
                     memory_metadata["session_id"] = context.session_id
                 
-                ***REMOVED*** 捕获决策痕迹和理由（Context Graph增强）
-                ***REMOVED*** 优先使用metadata中已有的decision_trace
+                # 捕获决策痕迹和理由（Context Graph增强）
+                # 优先使用metadata中已有的decision_trace
                 decision_trace = context.metadata.get("decision_trace") if context.metadata else None
                 reasoning = context.metadata.get("reasoning", "") if context.metadata else None
                 
-                ***REMOVED*** 调试日志：检查decision_trace的来源
+                # 调试日志：检查decision_trace的来源
                 logger.debug(f"RETAIN: decision_trace from context.metadata: {decision_trace is not None}, type: {type(decision_trace)}")
                 if decision_trace:
                     logger.debug(f"RETAIN: decision_trace keys: {list(decision_trace.keys()) if isinstance(decision_trace, dict) else 'N/A'}")
                 
-                ***REMOVED*** 如果没有decision_trace，则从metadata中构建
+                # 如果没有decision_trace，则从metadata中构建
                 if not decision_trace and context.metadata:
-                    ***REMOVED*** 检查是否有构建decision_trace所需的字段
+                    # 检查是否有构建decision_trace所需的字段
                     has_trace_fields = any([
                         context.metadata.get("inputs"),
                         context.metadata.get("rules"),
@@ -627,7 +627,7 @@ class UniMem:
                             "operation_id": operation_id,
                         }
                     else:
-                        ***REMOVED*** 即使没有明确字段，也创建一个基础trace（至少包含时间戳和操作ID）
+                        # 即使没有明确字段，也创建一个基础trace（至少包含时间戳和操作ID）
                         decision_trace = {
                             "inputs": [experience.content[:200]] if experience.content else [],
                             "rules_applied": [],
@@ -637,29 +637,29 @@ class UniMem:
                             "operation_id": operation_id,
                         }
                 
-                ***REMOVED*** 如果decision_trace存在，确保包含必要字段
+                # 如果decision_trace存在，确保包含必要字段
                 if decision_trace:
                     if "timestamp" not in decision_trace:
                         decision_trace["timestamp"] = experience.timestamp.isoformat()
                     if "operation_id" not in decision_trace:
                         decision_trace["operation_id"] = operation_id
                 
-                ***REMOVED*** 提取决策理由（如果没有，尝试从metadata中其他字段推断）
+                # 提取决策理由（如果没有，尝试从metadata中其他字段推断）
                 if not reasoning and context.metadata:
-                    ***REMOVED*** 尝试从其他metadata字段构建reasoning
+                    # 尝试从其他metadata字段构建reasoning
                     if context.metadata.get("task_description"):
                         reasoning = f"基于任务：{context.metadata.get('task_description', '')}"
                     elif context.metadata.get("source"):
                         reasoning = f"来源：{context.metadata.get('source', '')}"
                     else:
-                        reasoning = ""  ***REMOVED*** 设置为空字符串而不是None
+                        reasoning = ""  # 设置为空字符串而不是None
                 
-                ***REMOVED*** 调试日志：在创建Memory对象之前检查decision_trace
+                # 调试日志：在创建Memory对象之前检查decision_trace
                 logger.debug(f"RETAIN: Before creating Memory - decision_trace: {decision_trace is not None}, reasoning: {reasoning is not None and len(reasoning) > 0}")
                 if decision_trace:
                     logger.debug(f"RETAIN: decision_trace content: keys={list(decision_trace.keys()) if isinstance(decision_trace, dict) else 'N/A'}")
                 
-                ***REMOVED*** 合并 tags：原子笔记 + context.metadata（过程记忆等角色/范围标签）
+                # 合并 tags：原子笔记 + context.metadata（过程记忆等角色/范围标签）
                 base_tags = getattr(atomic_note, 'tags', []) if hasattr(atomic_note, 'tags') else []
                 meta_tags = (context.metadata.get("tags") or []) if context.metadata else []
                 memory_tags = list(set((base_tags or []) + (meta_tags or [])))
@@ -674,55 +674,55 @@ class UniMem:
                     tags=memory_tags,
                     context=getattr(atomic_note, 'context', None) or experience.context,
                     entities=[e.id for e in entities] if entities else [],
-                    metadata=memory_metadata,  ***REMOVED*** 确保metadata被正确传递
-                    reasoning=reasoning,  ***REMOVED*** 新增：决策理由
-                    decision_trace=decision_trace,  ***REMOVED*** 新增：决策痕迹
+                    metadata=memory_metadata,  # 确保metadata被正确传递
+                    reasoning=reasoning,  # 新增：决策理由
+                    decision_trace=decision_trace,  # 新增：决策痕迹
                 )
                 
-                ***REMOVED*** 调试日志：Memory对象创建后立即检查decision_trace
+                # 调试日志：Memory对象创建后立即检查decision_trace
                 logger.debug(f"RETAIN: After creating Memory {memory.id} - decision_trace: {memory.decision_trace is not None}, reasoning: {memory.reasoning is not None and len(memory.reasoning) > 0 if memory.reasoning else False}")
                 if memory.decision_trace:
                     logger.debug(f"RETAIN: Memory.decision_trace keys: {list(memory.decision_trace.keys()) if isinstance(memory.decision_trace, dict) else 'N/A'}")
                 
-                ***REMOVED*** 去重检查：在存储前检查是否有相似记忆
+                # 去重检查：在存储前检查是否有相似记忆
                 similar_memory = self._check_duplicate_memory(memory)
-                skip_storage = False  ***REMOVED*** 标记是否跳过存储逻辑
+                skip_storage = False  # 标记是否跳过存储逻辑
                 
                 if similar_memory:
-                    ***REMOVED*** 如果找到高度相似的记忆，更新已有记忆而不是创建新记忆
+                    # 如果找到高度相似的记忆，更新已有记忆而不是创建新记忆
                     logger.info(f"Found similar memory {similar_memory.id}, updating instead of creating new")
-                    ***REMOVED*** 更新已有记忆的内容和元数据
-                    similar_memory.content = memory.content  ***REMOVED*** 使用新内容
-                    similar_memory.timestamp = memory.timestamp  ***REMOVED*** 更新时间戳
-                    ***REMOVED*** 重要：更新memory_type（修复memory_type为None的问题）
+                    # 更新已有记忆的内容和元数据
+                    similar_memory.content = memory.content  # 使用新内容
+                    similar_memory.timestamp = memory.timestamp  # 更新时间戳
+                    # 重要：更新memory_type（修复memory_type为None的问题）
                     if memory.memory_type:
                         similar_memory.memory_type = memory.memory_type
                         logger.debug(f"Updated similar_memory {similar_memory.id} with memory_type: {memory.memory_type.value}")
-                    ***REMOVED*** 合并metadata
+                    # 合并metadata
                     if memory.metadata:
                         if not similar_memory.metadata:
                             similar_memory.metadata = {}
                         similar_memory.metadata.update(memory.metadata)
-                    ***REMOVED*** 合并keywords和tags
+                    # 合并keywords和tags
                     similar_memory.keywords = list(set(similar_memory.keywords + memory.keywords))
                     similar_memory.tags = list(set(similar_memory.tags + memory.tags))
-                    ***REMOVED*** 重要：更新decision_trace和reasoning（修复DecisionEvent创建问题）
+                    # 重要：更新decision_trace和reasoning（修复DecisionEvent创建问题）
                     if memory.decision_trace:
                         similar_memory.decision_trace = memory.decision_trace
                         logger.debug(f"Updated similar_memory {similar_memory.id} with decision_trace")
                     if memory.reasoning:
                         similar_memory.reasoning = memory.reasoning
                         logger.debug(f"Updated similar_memory {similar_memory.id} with reasoning")
-                    ***REMOVED*** 更新记忆（相似记忆已经存在，直接更新即可）
+                    # 更新记忆（相似记忆已经存在，直接更新即可）
                     self.storage.update_memory(similar_memory)
-                    ***REMOVED*** 将similar_memory赋值给memory，以便后续的DecisionEvent创建逻辑使用
+                    # 将similar_memory赋值给memory，以便后续的DecisionEvent创建逻辑使用
                     memory = similar_memory
-                    skip_storage = True  ***REMOVED*** 标记跳过存储逻辑
+                    skip_storage = True  # 标记跳过存储逻辑
                 
-                ***REMOVED*** 使用事务确保原子性（仅对新记忆执行）
+                # 使用事务确保原子性（仅对新记忆执行）
                 if not skip_storage:
                     with self._retain_transaction(memory.id) as rollback_actions:
-                        ***REMOVED*** 5. 存储管理器：存储到相应层级（自动判断 FoA/DA/LTM）
+                        # 5. 存储管理器：存储到相应层级（自动判断 FoA/DA/LTM）
                         self._record_adapter_call("LayeredStorageAdapter", "add_to_foa")
                         if not self.storage.add_memory(memory, context):
                             raise RetainError(
@@ -730,10 +730,10 @@ class UniMem:
                                 adapter_name="UniMem"
                             )
                         
-                        ***REMOVED*** 记录回滚操作
+                        # 记录回滚操作
                         rollback_actions.append(lambda: self._rollback_storage(memory.id))
                         
-                        ***REMOVED*** 6. 图结构适配器：更新网络结构
+                        # 6. 图结构适配器：更新网络结构
                         if entities:
                             self._record_adapter_call("GraphAdapter", "add_entities")
                             if not self.graph_adapter.add_entities(entities):
@@ -748,7 +748,7 @@ class UniMem:
                             else:
                                 rollback_actions.append(lambda: self._rollback_relations(relations))
                 else:
-                    ***REMOVED*** 相似记忆也需要更新图结构（如果有新的实体和关系）
+                    # 相似记忆也需要更新图结构（如果有新的实体和关系）
                     if entities:
                         self._record_adapter_call("GraphAdapter", "add_entities")
                         if not self.graph_adapter.add_entities(entities):
@@ -759,47 +759,47 @@ class UniMem:
                         if not self.graph_adapter.add_relations(relations):
                             logger.warning("Failed to add some relations to graph")
                     
-                ***REMOVED*** 7. 原子链接适配器：生成链接
+                # 7. 原子链接适配器：生成链接
                 self._record_adapter_call("AtomLinkAdapter", "generate_links")
                 links = self.network_adapter.generate_links(memory, top_k=10)
                 
-                ***REMOVED*** 从metadata中读取预设的links（用于建立明确的关系，如反馈->脚本）
+                # 从metadata中读取预设的links（用于建立明确的关系，如反馈->脚本）
                 if memory_metadata and "links" in memory_metadata:
                     preset_links = memory_metadata.get("links", [])
                     if isinstance(preset_links, list):
-                        ***REMOVED*** 将预设的links添加到生成的links中
+                        # 将预设的links添加到生成的links中
                         links = list(set(links) | set(preset_links))
                         logger.debug(f"Merged preset links from metadata: {preset_links}")
                     elif isinstance(preset_links, str):
-                        ***REMOVED*** 如果是单个ID字符串
+                        # 如果是单个ID字符串
                         links = list(set(links) | {preset_links})
                         logger.debug(f"Added preset link from metadata: {preset_links}")
                 
-                ***REMOVED*** 如果metadata中有related_script_id，也添加到links
+                # 如果metadata中有related_script_id，也添加到links
                 if memory_metadata and "related_script_id" in memory_metadata:
                     related_id = memory_metadata.get("related_script_id")
                     if related_id:
                         links = list(set(links) | {related_id})
                         logger.debug(f"Added related_script_id to links: {related_id}")
                 
-                memory.links = set(links)  ***REMOVED*** 确保是set类型
+                memory.links = set(links)  # 确保是set类型
                 
-                ***REMOVED*** 更新向量存储中的链接信息
+                # 更新向量存储中的链接信息
                 if hasattr(self.network_adapter, 'update_memory_in_vector_store'):
                     self.network_adapter.update_memory_in_vector_store(memory)
                 
-                ***REMOVED*** 如果生成了links，更新Neo4j中的memory节点以建立RELATED_TO关系
+                # 如果生成了links，更新Neo4j中的memory节点以建立RELATED_TO关系
                 if links:
                     try:
                         self._record_adapter_call("LayeredStorageAdapter", "update_memory_links")
-                        ***REMOVED*** 通过storage manager更新memory（会更新Neo4j中的关系）
+                        # 通过storage manager更新memory（会更新Neo4j中的关系）
                         if hasattr(self.storage, 'update_memory'):
                             self.storage.update_memory(memory)
                         logger.debug(f"Updated memory {memory.id} with {len(links)} links in Neo4j")
                     except Exception as e:
                         logger.warning(f"Failed to update memory links in Neo4j: {e}")
                     
-                    ***REMOVED*** 8. 更新管理器：触发涟漪效应更新（异步，不阻塞）
+                    # 8. 更新管理器：触发涟漪效应更新（异步，不阻塞）
                     try:
                         self._record_adapter_call("UpdateAdapter", "trigger_ripple")
                         self.update_manager.trigger_ripple(
@@ -809,24 +809,24 @@ class UniMem:
                             links=links,
                         )
                     except Exception as e:
-                        ***REMOVED*** 涟漪更新失败不影响主流程
+                        # 涟漪更新失败不影响主流程
                         logger.warning(f"Ripple effect update failed: {e}")
                 
-                ***REMOVED*** 9. 创建决策事件节点（Context Graph增强）
-                ***REMOVED*** 优化：降低创建阈值，增强fallback机制
+                # 9. 创建决策事件节点（Context Graph增强）
+                # 优化：降低创建阈值，增强fallback机制
                 should_create_event = False
                 decision_trace_for_event = None
                 reasoning_for_event = memory.reasoning or ""
                 
-                ***REMOVED*** 调试日志：检查Memory对象在DecisionEvent创建前的状态
+                # 调试日志：检查Memory对象在DecisionEvent创建前的状态
                 logger.debug(f"RETAIN: Before DecisionEvent creation for memory {memory.id} - decision_trace: {memory.decision_trace is not None}, type: {type(memory.decision_trace)}")
                 if memory.decision_trace:
                     logger.debug(f"RETAIN: Memory.decision_trace is dict: {isinstance(memory.decision_trace, dict)}, keys: {list(memory.decision_trace.keys()) if isinstance(memory.decision_trace, dict) else 'N/A'}")
                 
-                ***REMOVED*** 首先检查memory对象中的decision_trace
+                # 首先检查memory对象中的decision_trace
                 if memory.decision_trace and isinstance(memory.decision_trace, dict):
                     decision_trace_for_event = memory.decision_trace
-                    ***REMOVED*** 检查是否有有效内容（降低阈值：只要decision_trace存在且有结构就创建）
+                    # 检查是否有有效内容（降低阈值：只要decision_trace存在且有结构就创建）
                     has_content = (
                         len(memory.decision_trace.get("inputs", [])) > 0 or
                         len(memory.decision_trace.get("rules_applied", [])) > 0 or
@@ -838,17 +838,17 @@ class UniMem:
                     if has_content:
                         should_create_event = True
                 
-                ***REMOVED*** Fallback: 如果memory对象没有decision_trace，尝试从Neo4j读取
+                # Fallback: 如果memory对象没有decision_trace，尝试从Neo4j读取
                 if not decision_trace_for_event:
                     try:
                         from .neo4j import get_memory
-                        ***REMOVED*** 从Neo4j读取完整的memory节点（使用已修复的读取逻辑）
+                        # 从Neo4j读取完整的memory节点（使用已修复的读取逻辑）
                         neo4j_memory = get_memory(memory.id)
                         if neo4j_memory and neo4j_memory.decision_trace and isinstance(neo4j_memory.decision_trace, dict):
                             decision_trace_for_event = neo4j_memory.decision_trace
                             if not reasoning_for_event and neo4j_memory.reasoning:
                                 reasoning_for_event = neo4j_memory.reasoning
-                            ***REMOVED*** 检查是否有有效内容
+                            # 检查是否有有效内容
                             has_content = (
                                 len(decision_trace_for_event.get("inputs", [])) > 0 or
                                 len(decision_trace_for_event.get("rules_applied", [])) > 0 or
@@ -863,9 +863,9 @@ class UniMem:
                     except Exception as e:
                         logger.debug(f"Failed to read decision_trace from Neo4j for memory {memory.id}: {e}")
                 
-                ***REMOVED*** 如果有reasoning但还没有decision_trace，也尝试创建（至少记录推理过程）
+                # 如果有reasoning但还没有decision_trace，也尝试创建（至少记录推理过程）
                 if not should_create_event and reasoning_for_event and len(reasoning_for_event.strip()) > 10:
-                    ***REMOVED*** 创建一个基础的decision_trace
+                    # 创建一个基础的decision_trace
                     decision_trace_for_event = {
                         "inputs": [memory.content[:200]] if memory.content else [],
                         "rules_applied": [],
@@ -878,32 +878,32 @@ class UniMem:
                     should_create_event = True
                     logger.debug(f"Creating decision event based on reasoning for memory {memory.id}")
                 
-                ***REMOVED*** 调试日志：DecisionEvent创建条件检查
+                # 调试日志：DecisionEvent创建条件检查
                 logger.debug(f"RETAIN: DecisionEvent creation check for memory {memory.id} - should_create_event: {should_create_event}, decision_trace_for_event: {decision_trace_for_event is not None}")
                 
-                ***REMOVED*** 创建DecisionEvent节点
+                # 创建DecisionEvent节点
                 if should_create_event and decision_trace_for_event:
                     try:
                         from .neo4j import create_decision_event, get_memory
                         
-                        ***REMOVED*** 确保Memory节点已存在于Neo4j（仅在非skip_storage情况下需要检查）
+                        # 确保Memory节点已存在于Neo4j（仅在非skip_storage情况下需要检查）
                         if not skip_storage:
-                            ***REMOVED*** Memory应该刚刚存储，尝试获取（带重试机制）
+                            # Memory应该刚刚存储，尝试获取（带重试机制）
                             neo4j_memory = None
                             import time
-                            for retry in range(3):  ***REMOVED*** 重试3次
+                            for retry in range(3):  # 重试3次
                                 neo4j_memory = get_memory(memory.id)
                                 if neo4j_memory:
                                     break
-                                if retry < 2:  ***REMOVED*** 不是最后一次重试
-                                    time.sleep(0.1)  ***REMOVED*** 等待100ms
+                                if retry < 2:  # 不是最后一次重试
+                                    time.sleep(0.1)  # 等待100ms
                             
                             if not neo4j_memory:
                                 logger.warning(f"Memory {memory.id} not in Neo4j after retries, skipping DecisionEvent creation")
-                                ***REMOVED*** 记录到待处理队列（可以后续实现重试机制）
-                                ***REMOVED*** 暂时跳过，但记录日志以便后续处理
+                                # 记录到待处理队列（可以后续实现重试机制）
+                                # 暂时跳过，但记录日志以便后续处理
                             else:
-                                ***REMOVED*** Memory存在，创建DecisionEvent
+                                # Memory存在，创建DecisionEvent
                                 related_entity_ids = memory.entities if memory.entities else []
                                 logger.debug(f"RETAIN: Creating DecisionEvent for memory {memory.id} with decision_trace keys: {list(decision_trace_for_event.keys()) if isinstance(decision_trace_for_event, dict) else 'N/A'}")
                                 if create_decision_event(
@@ -916,7 +916,7 @@ class UniMem:
                                 else:
                                     logger.warning(f"Failed to create decision event for memory {memory.id} (create_decision_event returned False)")
                         else:
-                            ***REMOVED*** skip_storage 时先确认 Memory 在 Neo4j 中再创建 DecisionEvent（否则 LTM 为 memory 时无节点）
+                            # skip_storage 时先确认 Memory 在 Neo4j 中再创建 DecisionEvent（否则 LTM 为 memory 时无节点）
                             neo4j_memory = get_memory(memory.id)
                             if neo4j_memory:
                                 related_entity_ids = memory.entities if memory.entities else []
@@ -933,19 +933,19 @@ class UniMem:
                             else:
                                 logger.debug(f"Memory {memory.id} not in Neo4j (LTM may be memory backend), skipping DecisionEvent")
                     except Exception as e:
-                        ***REMOVED*** 决策事件创建失败不影响主流程
+                        # 决策事件创建失败不影响主流程
                         logger.warning(f"Failed to create decision event for memory {memory.id}: {e}", exc_info=True)
                 else:
                     logger.debug(f"Skipping decision event creation for memory {memory.id} - should_create_event: {should_create_event}, decision_trace_for_event: {decision_trace_for_event is not None}, reasoning_for_event: {len(reasoning_for_event) if reasoning_for_event else 0} chars")
                 
-                ***REMOVED*** 记录操作历史（用于幂等性检查）
+                # 记录操作历史（用于幂等性检查）
                 self._record_operation("retain", operation_id, memory)
                 
                 logger.info(f"RETAIN completed: Memory {memory.id} stored")
                 return memory
                 
             except (RetainError, AdapterError, AdapterNotAvailableError):
-                ***REMOVED*** 重新抛出已知的适配器异常
+                # 重新抛出已知的适配器异常
                 raise
             except Exception as e:
                 logger.error(f"RETAIN failed: {e}", exc_info=True)
@@ -989,7 +989,7 @@ class UniMem:
     def _rollback_storage(self, memory_id: str):
         """回滚存储操作"""
         try:
-            ***REMOVED*** 从所有层移除记忆
+            # 从所有层移除记忆
             if hasattr(self.storage_adapter, 'remove_from_foa'):
                 self.storage_adapter.remove_from_foa(memory_id)
             if hasattr(self.storage_adapter, 'remove_from_da'):
@@ -1002,12 +1002,12 @@ class UniMem:
     
     def _rollback_entities(self, entities):
         """回滚实体添加操作"""
-        ***REMOVED*** TODO: 实现实体回滚逻辑（需要适配器支持）
+        # TODO: 实现实体回滚逻辑（需要适配器支持）
         logger.debug(f"Rolling back {len(entities)} entities")
     
     def _rollback_relations(self, relations):
         """回滚关系添加操作"""
-        ***REMOVED*** TODO: 实现关系回滚逻辑（需要适配器支持）
+        # TODO: 实现关系回滚逻辑（需要适配器支持）
         logger.debug(f"Rolling back {len(relations)} relations")
     
     def _construct_atomic_note_with_storage(
@@ -1027,7 +1027,7 @@ class UniMem:
             entities=entities,
         )
         
-        ***REMOVED*** 将记忆添加到向量存储
+        # 将记忆添加到向量存储
         if hasattr(self.network_adapter, 'add_memory_to_vector_store'):
             self.network_adapter.add_memory_to_vector_store(memory)
         
@@ -1094,40 +1094,40 @@ class UniMem:
                 context = Context()
             
             try:
-                ***REMOVED*** 1. 快速检索：FoA 和 DA（带 session 时优先会话级工作/快速记忆）
+                # 1. 快速检索：FoA 和 DA（带 session 时优先会话级工作/快速记忆）
                 foa_results = self.storage.search_foa(query, top_k=top_k, context=context)
                 da_results = self.storage.search_da(query, context, top_k=top_k)
                 
                 logger.debug(f"FoA: {len(foa_results)} results, DA: {len(da_results)} results")
                 
-                ***REMOVED*** 如果快速检索已有足够结果，直接返回
+                # 如果快速检索已有足够结果，直接返回
                 if len(foa_results) >= top_k:
                     logger.debug(f"FoA retrieved {len(foa_results)} results, returning early")
                     return self._filter_results(foa_results, memory_type, tags_include)[:top_k]
                 
-                ***REMOVED*** 2. 多维检索引擎：并行检索并融合
+                # 2. 多维检索引擎：并行检索并融合
                 multi_results = self.retrieval.multi_dimensional_retrieval(
                     query=query,
                     context=context,
-                    top_k=top_k * 2,  ***REMOVED*** 获取更多结果以便过滤
+                    top_k=top_k * 2,  # 获取更多结果以便过滤
                 )
                 
                 logger.debug(f"Multi-dimensional retrieval: {len(multi_results)} results")
                 
-                ***REMOVED*** 3. 合并所有结果
+                # 3. 合并所有结果
                 all_results = foa_results + da_results + multi_results
                 
-                ***REMOVED*** 4. 去重和过滤（含角色感知 tags_include）
+                # 4. 去重和过滤（含角色感知 tags_include）
                 final_results = self._deduplicate_and_filter(
                     all_results,
                     memory_type=memory_type,
                     tags_include=tags_include,
                 )
                 
-                ***REMOVED*** 5. 重排序（检索分数）
+                # 5. 重排序（检索分数）
                 ranked_results = self._rank_results(final_results)
                 
-                ***REMOVED*** 6. 重要性评分融合（可选）：时间衰减 + 访问次数 + 会话/任务匹配
+                # 6. 重要性评分融合（可选）：时间衰减 + 访问次数 + 会话/任务匹配
                 importance_weight = self._get_importance_weight()
                 if importance_weight > 0:
                     ranked_results = self._blend_importance_scores(ranked_results, context, importance_weight)
@@ -1136,7 +1136,7 @@ class UniMem:
                 return ranked_results[:top_k]
                 
             except (RecallError, AdapterError, AdapterNotAvailableError):
-                ***REMOVED*** 重新抛出已知的适配器异常
+                # 重新抛出已知的适配器异常
                 raise
             except Exception as e:
                 logger.error(f"RECALL failed: {e}", exc_info=True)
@@ -1306,8 +1306,8 @@ class UniMem:
                 context = Context()
             
             try:
-                ***REMOVED*** 1. 操作适配器：执行 Hindsight 风格的 REFLECT（CARA）
-                ***REMOVED*** 这会产生答案和新观点
+                # 1. 操作适配器：执行 Hindsight 风格的 REFLECT（CARA）
+                # 这会产生答案和新观点
                 self._record_adapter_call("OperationAdapter", "reflect")
                 reflect_result = self.operation_adapter.reflect(
                     memories=memories,
@@ -1316,7 +1316,7 @@ class UniMem:
                     agent_background=context.metadata.get("agent_background"),
                 )
                 
-                ***REMOVED*** 提取 Hindsight REFLECT 的结果
+                # 提取 Hindsight REFLECT 的结果
                 answer = reflect_result.get("answer", "")
                 updated_memories = reflect_result.get("updated_memories", memories)
                 new_opinions = reflect_result.get("new_opinions", [])
@@ -1328,9 +1328,9 @@ class UniMem:
                 if new_experiences:
                     logger.info(f"REFLECT: Extracted {len(new_experiences)} new experiences")
                 
-                ***REMOVED*** 2. 对每个记忆进行网络演化（A-Mem 风格）
+                # 2. 对每个记忆进行网络演化（A-Mem 风格）
                 for memory in updated_memories:
-                    ***REMOVED*** 原子链接适配器：查找相关记忆并演化
+                    # 原子链接适配器：查找相关记忆并演化
                     related = self.network_adapter.find_related_memories(memory)
                     evolved = self.network_adapter.evolve_memory(
                         memory=memory,
@@ -1339,35 +1339,35 @@ class UniMem:
                     )
                     evolved_memories.append(evolved)
                     
-                    ***REMOVED*** 图结构适配器：更新图结构
+                    # 图结构适配器：更新图结构
                     self._update_graph_from_memory(evolved)
                     
-                    ***REMOVED*** 存储管理器：更新存储层
+                    # 存储管理器：更新存储层
                     self.storage.update_memory(evolved)
                     
-                    ***REMOVED*** 更新向量存储中的记忆
+                    # 更新向量存储中的记忆
                     if hasattr(self.network_adapter, 'update_memory_in_vector_store'):
                         self.network_adapter.update_memory_in_vector_store(evolved)
                     
-                    ***REMOVED*** 更新适配器：记录到睡眠更新队列
+                    # 更新适配器：记录到睡眠更新队列
                     self.update_adapter.add_to_sleep_queue([evolved])
                 
-                ***REMOVED*** 3. 存储新形成的观点（Hindsight 风格）
-                ***REMOVED*** 改进：使用retain方法存储，确保创建decision_trace
+                # 3. 存储新形成的观点（Hindsight 风格）
+                # 改进：使用retain方法存储，确保创建decision_trace
                 for opinion in new_opinions:
-                    ***REMOVED*** 构建决策痕迹（Context Graph增强）
+                    # 构建决策痕迹（Context Graph增强）
                     experience = Experience(
                         content=opinion.content,
                         timestamp=opinion.timestamp
                     )
                     
-                    ***REMOVED*** 构建包含decision_trace的context
+                    # 构建包含decision_trace的context
                     reflect_context = Context(
                         metadata={
                             "source": opinion.metadata.get("source", "reflect"),
                             "task_description": current_task.description,
                             "task_id": current_task.id,
-                            "inputs": [m.content[:200] for m in memories[:3]],  ***REMOVED*** 基于的记忆
+                            "inputs": [m.content[:200] for m in memories[:3]],  # 基于的记忆
                             "rules": [
                                 "基于事实进行推理",
                                 "形成可复用的观点",
@@ -1393,30 +1393,30 @@ class UniMem:
                         }
                     )
                     
-                    ***REMOVED*** 使用retain存储，确保创建decision_trace和DecisionEvent
+                    # 使用retain存储，确保创建decision_trace和DecisionEvent
                     stored_opinion = self.retain(experience, reflect_context)
                     evolved_memories.append(stored_opinion)
                     logger.debug(f"Stored new opinion: {stored_opinion.id}")
                 
-                ***REMOVED*** 4. 存储新提取的经验（增强功能）
-                ***REMOVED*** 改进：使用retain方法存储，确保创建decision_trace
+                # 4. 存储新提取的经验（增强功能）
+                # 改进：使用retain方法存储，确保创建decision_trace
                 for experience_mem in new_experiences:
-                    ***REMOVED*** 确保经验记忆有正确的source
+                    # 确保经验记忆有正确的source
                     source = experience_mem.metadata.get("source", "reflect_experience")
                     
-                    ***REMOVED*** 构建决策痕迹（Context Graph增强）
+                    # 构建决策痕迹（Context Graph增强）
                     experience = Experience(
                         content=experience_mem.content,
                         timestamp=experience_mem.timestamp
                     )
                     
-                    ***REMOVED*** 构建包含decision_trace的context
+                    # 构建包含decision_trace的context
                     reflect_context = Context(
                         metadata={
                             "source": source,
                             "task_description": current_task.description,
                             "task_id": current_task.id,
-                            "inputs": [m.content[:200] for m in memories[:3]],  ***REMOVED*** 基于的记忆
+                            "inputs": [m.content[:200] for m in memories[:3]],  # 基于的记忆
                             "rules": [
                                 "从多轮对话中提取经验模式",
                                 "识别可复用的优化策略",
@@ -1438,12 +1438,12 @@ class UniMem:
                                 "operation_id": f"reflect_experience_{current_task.id}",
                                 "task_id": current_task.id,
                                 "based_on_memories": [m.id for m in memories[:5]],
-                                "experience_type": source  ***REMOVED*** reflect_experience, reflect_implicit, reflect_pattern_summary
+                                "experience_type": source  # reflect_experience, reflect_implicit, reflect_pattern_summary
                             }
                         }
                     )
                     
-                    ***REMOVED*** 使用retain存储，确保创建decision_trace和DecisionEvent
+                    # 使用retain存储，确保创建decision_trace和DecisionEvent
                     stored_experience = self.retain(experience, reflect_context)
                     evolved_memories.append(stored_experience)
                     logger.debug(f"Stored new experience: {stored_experience.id}")
@@ -1453,7 +1453,7 @@ class UniMem:
                 return evolved_memories
                 
             except (ReflectError, AdapterError, AdapterNotAvailableError):
-                ***REMOVED*** 重新抛出已知的适配器异常
+                # 重新抛出已知的适配器异常
                 raise
             except Exception as e:
                 logger.error(f"REFLECT failed: {e}", exc_info=True)
@@ -1541,7 +1541,7 @@ class UniMem:
         for name, adapter in adapters.items():
             try:
                 health_status = adapter.health_check()
-                ***REMOVED*** 如果返回的是数据类，转换为字典
+                # 如果返回的是数据类，转换为字典
                 if hasattr(health_status, '__dict__') and not isinstance(health_status, dict):
                     status[name] = {
                         "adapter": health_status.adapter,
@@ -1612,7 +1612,7 @@ class UniMem:
         """
         with self._history_lock:
             history = list(self._operation_history.values())
-            ***REMOVED*** 按时间排序，返回最新的
+            # 按时间排序，返回最新的
             history.sort(key=lambda x: x["timestamp"], reverse=True)
             return history[:limit]
     
@@ -1639,20 +1639,20 @@ class UniMem:
         adapter_status = self.get_adapter_status()
         metrics = self.get_metrics()
         
-        ***REMOVED*** 检查适配器可用性
+        # 检查适配器可用性
         all_available = all(
             status.get("available", False)
             for status in adapter_status.values()
         )
         
-        ***REMOVED*** 检查关键适配器可用性（操作、存储、检索）
+        # 检查关键适配器可用性（操作、存储、检索）
         critical_adapters = ["operation", "layered_storage", "retrieval"]
         critical_available = all(
             adapter_status.get(name, {}).get("available", False)
             for name in critical_adapters
         )
         
-        ***REMOVED*** 计算总体错误率
+        # 计算总体错误率
         total_operations = (
             metrics["retain"]["count"] + 
             metrics["recall"]["count"] + 
@@ -1665,10 +1665,10 @@ class UniMem:
         )
         error_rate = total_errors / (total_operations + total_errors) if (total_operations + total_errors) > 0 else 0.0
         
-        ***REMOVED*** 计算系统运行时间
+        # 计算系统运行时间
         uptime_seconds = (datetime.now() - self._start_time).total_seconds()
         
-        ***REMOVED*** 判断整体状态
+        # 判断整体状态
         if not critical_available:
             status = "unhealthy"
         elif error_rate > 0.2 or not all_available:
@@ -1718,22 +1718,22 @@ class UniMem:
         except (TypeError, ValueError):
             pass
         
-        ***REMOVED*** 1. 时间衰减：越新越高，指数衰减
+        # 1. 时间衰减：越新越高，指数衰减
         age_days = (now - memory.timestamp).total_seconds() / 86400.0
         recency = 1.0 / (1.0 + age_days / max(decay_days, 0.1))
         score += 0.5 * recency
         
-        ***REMOVED*** 2. 访问次数：被召回越多次说明越重要（归一化到 0~0.3）
+        # 2. 访问次数：被召回越多次说明越重要（归一化到 0~0.3）
         count = getattr(memory, "retrieval_count", 0) or 0
         count_score = min(1.0, count / 10.0) * 0.3
         score += count_score
         
-        ***REMOVED*** 3. 会话匹配：同 session 加分
+        # 3. 会话匹配：同 session 加分
         if context and context.session_id and memory.metadata:
             if memory.metadata.get("session_id") == context.session_id:
                 score += 0.1
         
-        ***REMOVED*** 4. 任务匹配：同 task_id 加分
+        # 4. 任务匹配：同 task_id 加分
         if context and context.metadata and memory.metadata:
             task_id = context.metadata.get("task_id")
             if task_id and memory.metadata.get("task_id") == task_id:
@@ -1796,7 +1796,7 @@ class UniMem:
             如果找到相似记忆，返回已有记忆；否则返回None
         """
         try:
-            ***REMOVED*** 使用网络适配器（AtomLinkAdapter）搜索相似记忆
+            # 使用网络适配器（AtomLinkAdapter）搜索相似记忆
             if hasattr(self.network_adapter, '_search_similar_memories'):
                 similar_memories = self.network_adapter._search_similar_memories(
                     memory.content, 
@@ -1804,22 +1804,22 @@ class UniMem:
                 )
                 
                 if similar_memories:
-                    ***REMOVED*** 检查相似度（如果网络适配器提供了相似度分数）
+                    # 检查相似度（如果网络适配器提供了相似度分数）
                     for similar in similar_memories:
-                        ***REMOVED*** 计算内容相似度（简单的文本相似度作为后备）
+                        # 计算内容相似度（简单的文本相似度作为后备）
                         similarity = self._calculate_content_similarity(memory.content, similar.content)
                         
                         if similarity >= similarity_threshold:
                             logger.debug(f"Found duplicate memory: {similar.id} (similarity: {similarity:.2f})")
                             return similar
                     
-                    ***REMOVED*** 如果相似度在0.7-0.9之间，记录日志但不合并（可能需要人工判断）
+                    # 如果相似度在0.7-0.9之间，记录日志但不合并（可能需要人工判断）
                     best_match = similar_memories[0]
                     best_similarity = self._calculate_content_similarity(memory.content, best_match.content)
                     if 0.7 <= best_similarity < similarity_threshold:
                         logger.debug(f"Found similar memory (not duplicate): {best_match.id} (similarity: {best_similarity:.2f})")
         except Exception as e:
-            ***REMOVED*** 去重检查失败不应该阻止存储
+            # 去重检查失败不应该阻止存储
             logger.debug(f"Duplicate check failed (non-blocking): {e}")
         
         return None
@@ -1857,7 +1857,7 @@ class UniMem:
         """
         from .memory_types import Experience, Context
         
-        ***REMOVED*** 构建经验内容
+        # 构建经验内容
         content = f"{system}: {action}"
         if outputs:
             output_summary = ", ".join([f"{k}: {str(v)[:50]}" for k, v in list(outputs.items())[:3]])
@@ -1868,7 +1868,7 @@ class UniMem:
             timestamp=datetime.now()
         )
         
-        ***REMOVED*** 构建决策痕迹
+        # 构建决策痕迹
         decision_trace = {
             "system": system,
             "action": action,
@@ -1880,7 +1880,7 @@ class UniMem:
             "timestamp": datetime.now().isoformat(),
         }
         
-        ***REMOVED*** 构建上下文
+        # 构建上下文
         context = Context(
             metadata={
                 "source": f"{system.lower()}_decision",
@@ -1896,7 +1896,7 @@ class UniMem:
             }
         )
         
-        ***REMOVED*** 使用RETAIN存储
+        # 使用RETAIN存储
         memory = self.retain(experience, context)
         
         logger.info(f"Captured cross-system decision: {system}/{action} -> memory {memory.id}")
@@ -1932,11 +1932,11 @@ class UniMem:
         precedents = []
         
         try:
-            ***REMOVED*** 1. 构建查询文本（用于向量搜索）
+            # 1. 构建查询文本（用于向量搜索）
             if not query_text:
                 query_parts = []
                 if inputs:
-                    query_parts.extend(inputs[:3])  ***REMOVED*** 最多取前3个输入
+                    query_parts.extend(inputs[:3])  # 最多取前3个输入
                 if rules:
                     query_parts.extend([f"规则: {r}" for r in rules[:3]])
                 if exceptions:
@@ -1947,14 +1947,14 @@ class UniMem:
                 logger.warning("No query text available for precedent search")
                 return []
             
-            ***REMOVED*** 2. 使用向量搜索找到相似记忆
+            # 2. 使用向量搜索找到相似记忆
             if hasattr(self.network_adapter, '_search_similar_memories'):
                 similar_memories = self.network_adapter._search_similar_memories(
                     query_text,
-                    top_k=top_k * 2  ***REMOVED*** 搜索更多，然后过滤
+                    top_k=top_k * 2  # 搜索更多，然后过滤
                 )
             else:
-                ***REMOVED*** 如果没有向量搜索，使用RECALL
+                # 如果没有向量搜索，使用RECALL
                 recall_results = self.recall(query_text, context=Context(), top_k=top_k * 2)
                 similar_memories = [r.memory for r in recall_results[:top_k * 2]]
             
@@ -1962,17 +1962,17 @@ class UniMem:
                 logger.debug("No similar memories found for precedent search")
                 return []
             
-            ***REMOVED*** 3. 基于decision_trace进行精确匹配和评分
+            # 3. 基于decision_trace进行精确匹配和评分
             scored_precedents = []
             for mem in similar_memories:
                 score = 0.0
                 match_reasons = []
                 
-                ***REMOVED*** 检查是否有decision_trace
+                # 检查是否有decision_trace
                 if mem.decision_trace:
                     trace = mem.decision_trace
                     
-                    ***REMOVED*** 匹配规则（权重：0.4）
+                    # 匹配规则（权重：0.4）
                     if rules:
                         trace_rules = trace.get("rules_applied", [])
                         if isinstance(trace_rules, str):
@@ -1988,7 +1988,7 @@ class UniMem:
                             score += 0.4 * rule_score
                             match_reasons.append(f"规则匹配: {len(matched_rules)}/{len(rules)}")
                     
-                    ***REMOVED*** 匹配异常（权重：0.3）
+                    # 匹配异常（权重：0.3）
                     if exceptions:
                         trace_exceptions = trace.get("exceptions", [])
                         if isinstance(trace_exceptions, str):
@@ -2004,7 +2004,7 @@ class UniMem:
                             score += 0.3 * exception_score
                             match_reasons.append(f"异常匹配: {len(matched_exceptions)}/{len(exceptions)}")
                     
-                    ***REMOVED*** 匹配输入（权重：0.3）- 基于相似度
+                    # 匹配输入（权重：0.3）- 基于相似度
                     if inputs:
                         trace_inputs = trace.get("inputs", [])
                         if isinstance(trace_inputs, str):
@@ -2014,10 +2014,10 @@ class UniMem:
                             except:
                                 trace_inputs = [trace_inputs]
                         
-                        ***REMOVED*** 计算输入相似度
+                        # 计算输入相似度
                         input_similarity = 0.0
                         if trace_inputs:
-                            ***REMOVED*** 简单的集合重叠度
+                            # 简单的集合重叠度
                             inputs_set = set([str(i).lower() for i in inputs])
                             trace_inputs_set = set([str(i).lower() for i in trace_inputs])
                             if inputs_set or trace_inputs_set:
@@ -2029,23 +2029,23 @@ class UniMem:
                         if input_similarity > 0.3:
                             match_reasons.append(f"输入相似: {input_similarity:.2f}")
                 
-                ***REMOVED*** 如果没有decision_trace，使用内容相似度（降级）
+                # 如果没有decision_trace，使用内容相似度（降级）
                 else:
-                    ***REMOVED*** 基于内容的简单相似度
+                    # 基于内容的简单相似度
                     content_similarity = self._calculate_content_similarity(
                         query_text,
                         mem.content
                     )
-                    score = content_similarity * 0.7  ***REMOVED*** 降级权重
+                    score = content_similarity * 0.7  # 降级权重
                     if score > 0.5:
                         match_reasons.append(f"内容相似: {content_similarity:.2f}")
                 
-                ***REMOVED*** 如果有reasoning，增加分数（有理由的先例更有价值）
+                # 如果有reasoning，增加分数（有理由的先例更有价值）
                 if mem.reasoning:
                     score += 0.1
                     match_reasons.append("包含决策理由")
                 
-                ***REMOVED*** 只保留达到最小匹配分数的先例
+                # 只保留达到最小匹配分数的先例
                 if score >= min_match_score:
                     precedents.append({
                         "memory": mem,
@@ -2054,10 +2054,10 @@ class UniMem:
                     })
                     logger.debug(f"Precedent match: {mem.id[:20]}... score={score:.2f}, reasons={match_reasons}")
             
-            ***REMOVED*** 4. 按分数排序
+            # 4. 按分数排序
             precedents.sort(key=lambda x: x["score"], reverse=True)
             
-            ***REMOVED*** 5. 返回前top_k个
+            # 5. 返回前top_k个
             result = [p["memory"] for p in precedents[:top_k]]
             
             logger.info(f"Found {len(result)} precedents (from {len(similar_memories)} similar memories)")
@@ -2084,7 +2084,7 @@ class UniMem:
         if not content1 or not content2:
             return 0.0
         
-        ***REMOVED*** 简单的关键词重叠相似度
+        # 简单的关键词重叠相似度
         words1 = set(content1.lower().split())
         words2 = set(content2.lower().split())
         
@@ -2097,13 +2097,13 @@ class UniMem:
         if not union:
             return 0.0
         
-        ***REMOVED*** Jaccard相似度
+        # Jaccard相似度
         jaccard = len(intersection) / len(union)
         
-        ***REMOVED*** 如果内容长度相似，增加相似度
+        # 如果内容长度相似，增加相似度
         length_ratio = min(len(content1), len(content2)) / max(len(content1), len(content2)) if max(len(content1), len(content2)) > 0 else 0
         
-        ***REMOVED*** 综合相似度（Jaccard权重0.7，长度相似度权重0.3）
+        # 综合相似度（Jaccard权重0.7，长度相似度权重0.3）
         similarity = 0.7 * jaccard + 0.3 * length_ratio
         
         return similarity

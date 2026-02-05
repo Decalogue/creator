@@ -1,6 +1,6 @@
-***REMOVED***!/bin/bash
-***REMOVED*** UniMem 测试运行脚本
-***REMOVED*** 自动激活 myswift 环境并运行测试
+#!/bin/bash
+# UniMem 测试运行脚本
+# 自动激活 myswift 环境并运行测试
 
 set -e
 
@@ -8,14 +8,14 @@ echo "=========================================="
 echo "UniMem 测试运行脚本"
 echo "=========================================="
 
-***REMOVED*** 检查是否在 myswift 环境中
+# 检查是否在 myswift 环境中
 if [ "$CONDA_DEFAULT_ENV" != "myswift" ]; then
     echo "正在激活 myswift 环境..."
     
-    ***REMOVED*** 尝试激活 myswift 环境
-    ***REMOVED*** 注意：这需要在 conda 已初始化的 shell 中运行
+    # 尝试激活 myswift 环境
+    # 注意：这需要在 conda 已初始化的 shell 中运行
     if command -v conda &> /dev/null; then
-        ***REMOVED*** 初始化 conda（如果还没有）
+        # 初始化 conda（如果还没有）
         eval "$(conda shell.bash hook)"
         conda activate myswift
         
@@ -35,7 +35,7 @@ echo "当前环境: $CONDA_DEFAULT_ENV"
 echo "Python 路径: $(which python)"
 echo ""
 
-***REMOVED*** 切换到项目根目录
+# 切换到项目根目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$PROJECT_ROOT"
@@ -43,11 +43,11 @@ cd "$PROJECT_ROOT"
 echo "项目根目录: $PROJECT_ROOT"
 echo ""
 
-***REMOVED*** 运行测试
+# 运行测试
 echo "开始运行测试..."
 echo ""
 
-***REMOVED*** 使用 pytest
+# 使用 pytest
 if command -v pytest &> /dev/null; then
     echo "使用 pytest 运行测试..."
     python -m pytest "$SCRIPT_DIR" -v --tb=short

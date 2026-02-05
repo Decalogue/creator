@@ -18,7 +18,7 @@ class SkillMetadata:
     version: str = "1.0.0"
     author: Optional[str] = None
     tags: List[str] = field(default_factory=list)
-    triggers: List[str] = field(default_factory=list)  ***REMOVED*** 触发关键词
+    triggers: List[str] = field(default_factory=list)  # 触发关键词
 
 
 class Skill:
@@ -40,12 +40,12 @@ class Skill:
         if not self.skill_md_path.exists():
             raise ValueError(f"SKILL.md not found in {skill_path}")
         
-        ***REMOVED*** 渐进式披露的三层内容
-        self._metadata: Optional[SkillMetadata] = None  ***REMOVED*** 第一层：元数据（始终加载）
-        self._body: Optional[str] = None  ***REMOVED*** 第二层：主体内容（触发时加载）
-        self._resources: Dict[str, str] = {}  ***REMOVED*** 第三层：资源文件（按需加载）
+        # 渐进式披露的三层内容
+        self._metadata: Optional[SkillMetadata] = None  # 第一层：元数据（始终加载）
+        self._body: Optional[str] = None  # 第二层：主体内容（触发时加载）
+        self._resources: Dict[str, str] = {}  # 第三层：资源文件（按需加载）
         
-        ***REMOVED*** 加载元数据（第一层，始终加载）
+        # 加载元数据（第一层，始终加载）
         self._load_metadata()
     
     def _load_metadata(self) -> None:
@@ -53,7 +53,7 @@ class Skill:
         with open(self.skill_md_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        ***REMOVED*** 解析 YAML front matter
+        # 解析 YAML front matter
         if content.startswith('---'):
             parts = content.split('---', 2)
             if len(parts) >= 3:
@@ -64,7 +64,7 @@ class Skill:
         else:
             metadata_dict = {}
         
-        ***REMOVED*** 创建元数据对象
+        # 创建元数据对象
         self._metadata = SkillMetadata(
             name=metadata_dict.get('name', self.skill_path.name),
             description=metadata_dict.get('description', ''),
@@ -82,7 +82,7 @@ class Skill:
         with open(self.skill_md_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        ***REMOVED*** 移除 YAML front matter，只保留主体内容
+        # 移除 YAML front matter，只保留主体内容
         if content.startswith('---'):
             parts = content.split('---', 2)
             if len(parts) >= 3:
@@ -151,28 +151,28 @@ class Skill:
         """
         context_parts = []
         
-        ***REMOVED*** 第一层：元数据（始终包含）
-        context_parts.append(f"***REMOVED*** {self._metadata.name}\n")
+        # 第一层：元数据（始终包含）
+        context_parts.append(f"# {self._metadata.name}\n")
         context_parts.append(f"**描述**: {self._metadata.description}\n")
         if self._metadata.tags:
             context_parts.append(f"**标签**: {', '.join(self._metadata.tags)}\n")
         if self._metadata.triggers:
             context_parts.append(f"**触发词**: {', '.join(self._metadata.triggers)}\n")
         
-        ***REMOVED*** 第二层：主体内容
+        # 第二层：主体内容
         if level >= 2:
             body = self.load_body()
             context_parts.append(f"\n{body}\n")
         
-        ***REMOVED*** 第三层：资源文件
+        # 第三层：资源文件
         if level >= 3:
             resources = self.list_resources()
             for resource in resources:
                 try:
                     content = self.load_resource(resource)
-                    context_parts.append(f"\n***REMOVED******REMOVED*** {resource}\n\n{content}\n")
+                    context_parts.append(f"\n## {resource}\n\n{content}\n")
                 except Exception as e:
-                    context_parts.append(f"\n***REMOVED******REMOVED*** {resource}\n\n[加载失败: {str(e)}]\n")
+                    context_parts.append(f"\n## {resource}\n\n[加载失败: {str(e)}]\n")
         
         return "\n".join(context_parts)
     

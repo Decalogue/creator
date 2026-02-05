@@ -1,5 +1,5 @@
-***REMOVED*** 查看vllm进程
-***REMOVED*** ps aux | grep -i vllm | grep -v grep
+# 查看vllm进程
+# ps aux | grep -i vllm | grep -v grep
 
 CUDA_VISIBLE_DEVICES=1 \
 swift deploy \

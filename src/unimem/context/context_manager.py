@@ -124,14 +124,14 @@ class ContextManager:
             raise AdapterError("levels must be a non-empty list", adapter_name="ContextManager")
         if top_k <= 0:
             raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="ContextManager")
-        ***REMOVED*** 1. 检查缓存
+        # 1. 检查缓存
         if use_cache:
             cached = self.cache.get(query, [l.value for l in levels])
             if cached:
                 logger.debug("Context retrieved from cache")
                 return cached
         
-        ***REMOVED*** 2. 从分层存储检索
+        # 2. 从分层存储检索
         contexts = []
         if self.storage:
             for level in levels:
@@ -139,11 +139,11 @@ class ContextManager:
                 for memory in memories:
                     contexts.append(memory.content)
         
-        ***REMOVED*** 3. 融合上下文
+        # 3. 融合上下文
         if contexts:
             fused = self.fusion.fuse(contexts)
             
-            ***REMOVED*** 4. 缓存结果
+            # 4. 缓存结果
             if use_cache:
                 self.cache.put(
                     query,

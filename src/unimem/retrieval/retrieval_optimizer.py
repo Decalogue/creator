@@ -48,7 +48,7 @@ class RetrievalOptimizer:
         """
         self.retrieval_engine = retrieval_engine
         
-        ***REMOVED*** 初始化缓存
+        # 初始化缓存
         if enable_cache:
             cache_config = cache_config or {}
             self.cache = RetrievalCache(
@@ -59,7 +59,7 @@ class RetrievalOptimizer:
         else:
             self.cache = None
         
-        ***REMOVED*** 初始化预取器
+        # 初始化预取器
         if enable_prefetch and self.cache:
             self.prefetcher = RetrievalPrefetcher(
                 cache=self.cache,
@@ -97,29 +97,29 @@ class RetrievalOptimizer:
         if top_k <= 0:
             raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="RetrievalOptimizer")
         
-        ***REMOVED*** 1. 检查缓存
+        # 1. 检查缓存
         if use_cache and self.cache:
             cached_results = self.cache.get(query, top_k=top_k)
             if cached_results is not None:
                 logger.debug(f"Cache hit for query: {query[:50]}")
                 return cached_results
         
-        ***REMOVED*** 2. 执行检索
+        # 2. 执行检索
         if self.retrieval_engine:
             results = self.retrieval_engine.multi_dimensional_retrieval(
                 query=query,
                 top_k=top_k
             )
         else:
-            ***REMOVED*** 降级：返回空结果
+            # 降级：返回空结果
             logger.warning("Retrieval engine not available")
             results = []
         
-        ***REMOVED*** 3. 缓存结果
+        # 3. 缓存结果
         if use_cache and self.cache:
             self.cache.put(query, results, top_k=top_k)
         
-        ***REMOVED*** 4. 预取相关查询
+        # 4. 预取相关查询
         if enable_prefetch and self.prefetcher:
             self.prefetcher.prefetch_related(query)
         
@@ -159,7 +159,7 @@ class RetrievalOptimizer:
         results = {}
         
         if parallel and len(queries) > 1:
-            ***REMOVED*** 并行执行
+            # 并行执行
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {
                     executor.submit(self.retrieve, query, top_k, use_cache, False): query
@@ -174,7 +174,7 @@ class RetrievalOptimizer:
                         logger.error(f"Error retrieving query '{query}': {e}", exc_info=True)
                         results[query] = []
         else:
-            ***REMOVED*** 串行执行
+            # 串行执行
             for query in queries:
                 results[query] = self.retrieve(query, top_k, use_cache, False)
         
@@ -206,7 +206,7 @@ class RetrievalOptimizer:
         Returns:
             检索结果列表
         """
-        ***REMOVED*** 简化实现：使用缓存和批量处理
+        # 简化实现：使用缓存和批量处理
         return self.retrieve(query, top_k=top_k)
     
     def optimize_graph_retrieval(
@@ -226,7 +226,7 @@ class RetrievalOptimizer:
         Returns:
             检索结果列表
         """
-        ***REMOVED*** 简化实现：使用缓存
+        # 简化实现：使用缓存
         return self.retrieve(query, top_k=top_k)
     
     def clear_cache(self) -> None:
@@ -242,7 +242,7 @@ class RetrievalOptimizer:
             stats["cache"] = self.cache.get_statistics()
         
         if self.retrieval_engine:
-            ***REMOVED*** 可以添加检索引擎的统计信息
+            # 可以添加检索引擎的统计信息
             pass
         
         return stats

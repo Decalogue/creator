@@ -18,7 +18,7 @@ class TestRetrievalEngine(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** Mock 适配器
+        # Mock 适配器
         self.graph_adapter = Mock()
         self.graph_adapter.is_available.return_value = True
         self.graph_adapter.entity_search = Mock(return_value=[])
@@ -61,7 +61,7 @@ class TestRetrievalEngine(unittest.TestCase):
     
     def test_retrieve_success(self):
         """测试成功检索"""
-        ***REMOVED*** Mock 检索结果
+        # Mock 检索结果
         memory = Memory(
             id="test_1",
             content="Test memory",
@@ -113,13 +113,13 @@ class TestRetrievalEngine(unittest.TestCase):
     
     def test_retrieve_adapter_failure(self):
         """测试适配器失败时的降级处理"""
-        ***REMOVED*** 模拟适配器抛出异常
+        # 模拟适配器抛出异常
         self.graph_adapter.entity_search.side_effect = AdapterError(
             "Adapter error",
             adapter_name="GraphAdapter"
         )
         
-        ***REMOVED*** 应该不抛出异常，而是降级处理
+        # 应该不抛出异常，而是降级处理
         memory = Memory(
             id="test_1",
             content="Test",
@@ -135,7 +135,7 @@ class TestRetrievalEngine(unittest.TestCase):
         self.atom_link_adapter.semantic_retrieval.return_value = [result]
         self.retrieval_adapter.rrf_fusion.return_value = [result]
         
-        ***REMOVED*** 应该仍然能返回结果（降级处理）
+        # 应该仍然能返回结果（降级处理）
         results = self.engine.retrieve("query", top_k=10)
         self.assertIsNotNone(results)
     
@@ -170,7 +170,7 @@ class TestRetrievalEngine(unittest.TestCase):
         self.retrieval_adapter.rrf_fusion.return_value = [result1, result2]
         
         results = self.engine.retrieve("query", top_k=10)
-        self.assertGreaterEqual(len(results), 0)  ***REMOVED*** 至少返回融合后的结果
+        self.assertGreaterEqual(len(results), 0)  # 至少返回融合后的结果
     
     def test_rrf_fusion_called(self):
         """测试 RRF 融合被调用"""
@@ -191,7 +191,7 @@ class TestRetrievalEngine(unittest.TestCase):
         
         self.engine.retrieve("query", top_k=10)
         
-        ***REMOVED*** 验证 RRF 融合被调用
+        # 验证 RRF 融合被调用
         self.retrieval_adapter.rrf_fusion.assert_called()
 
 

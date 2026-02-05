@@ -94,7 +94,7 @@ class ScriptAdapter(AtomLinkAdapter):
             logger.warning("Empty content provided for script analysis")
             return {"keywords": [], "context": "General", "tags": []}
         
-        ***REMOVED*** 限制内容长度以提高分析效率
+        # 限制内容长度以提高分析效率
         content_preview = content[:2000] if len(content) > 2000 else content
         
         prompt = f"""请对以下短剧剧本内容进行结构化分析，提取剧本特有的维度信息。
@@ -143,7 +143,7 @@ class ScriptAdapter(AtomLinkAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=max_new_tokens)
             
-            ***REMOVED*** 解析 JSON（使用父类方法）
+            # 解析 JSON（使用父类方法）
             result = self._parse_json_response(response_text)
             if result:
                 base_result = {
@@ -151,7 +151,7 @@ class ScriptAdapter(AtomLinkAdapter):
                     "context": result.get("context", "General"),
                     "tags": result.get("tags", []),
                 }
-                ***REMOVED*** 添加剧本维度
+                # 添加剧本维度
                 if "script_dimensions" in result:
                     base_result["script_dimensions"] = result.get("script_dimensions")
                 logger.debug(f"Script analysis completed: {len(base_result.get('keywords', []))} keywords, "
@@ -202,10 +202,10 @@ class ScriptAdapter(AtomLinkAdapter):
             )
         
         try:
-            ***REMOVED*** 根据层级选择不同的 prompt
+            # 根据层级选择不同的 prompt
             if level == "episode_outline":
-                ***REMOVED*** 分集 -> 分集大纲
-                ***REMOVED*** 限制处理的集数以提高效率
+                # 分集 -> 分集大纲
+                # 限制处理的集数以提高效率
                 max_episodes = min(10, len(episodes))
                 episodes_preview = [f"第{i+1}集: {ep[:500]}" for i, ep in enumerate(episodes[:max_episodes])]
                 
@@ -234,7 +234,7 @@ class ScriptAdapter(AtomLinkAdapter):
     }}
 }}"""
             elif level == "shot_script":
-                ***REMOVED*** 分集大纲 -> 分镜脚本
+                # 分集大纲 -> 分镜脚本
                 max_episodes = min(5, len(episodes))
                 episodes_preview = [f"大纲{i+1}: {ep[:400]}" for i, ep in enumerate(episodes[:max_episodes])]
                 
@@ -274,7 +274,7 @@ class ScriptAdapter(AtomLinkAdapter):
     ]
 }}"""
             elif level == "full_script":
-                ***REMOVED*** 分镜脚本 -> 完整剧本
+                # 分镜脚本 -> 完整剧本
                 max_episodes = min(3, len(episodes))
                 episodes_preview = [ep[:600] for ep in episodes[:max_episodes]]
                 
@@ -297,7 +297,7 @@ class ScriptAdapter(AtomLinkAdapter):
             else:
                 logger.warning(f"Unknown level '{level}', defaulting to 'episode_outline'")
                 level = "episode_outline"
-                ***REMOVED*** 使用 episode_outline 的 prompt
+                # 使用 episode_outline 的 prompt
                 max_episodes = min(10, len(episodes))
                 episodes_preview = [f"第{i+1}集: {ep[:500]}" for i, ep in enumerate(episodes[:max_episodes])]
                 prompt = f"""请对以下短剧分集内容进行结构化分析，生成分集大纲。
@@ -335,9 +335,9 @@ class ScriptAdapter(AtomLinkAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=2048)
             
-            ***REMOVED*** 解析结果
+            # 解析结果
             if level == "full_script":
-                ***REMOVED*** 完整剧本直接返回文本
+                # 完整剧本直接返回文本
                 script_text = response_text.strip()
                 logger.debug(f"Generated full script with {len(script_text)} characters")
                 return {"script": script_text}
@@ -398,11 +398,11 @@ class ScriptAdapter(AtomLinkAdapter):
             )
         
         try:
-            ***REMOVED*** 构建上下文信息
+            # 构建上下文信息
             context_text = ""
             if context_memories:
                 context_text = "\n相关原子笔记：\n"
-                ***REMOVED*** 限制使用的记忆数量以提高效率
+                # 限制使用的记忆数量以提高效率
                 for mem in context_memories[:5]:
                     context_text += f"- {mem.content[:200]}\n"
                     if mem.metadata and mem.metadata.get("script_dimensions"):
@@ -412,7 +412,7 @@ class ScriptAdapter(AtomLinkAdapter):
                         if dims.get("characters"):
                             context_text += f"  人物: {', '.join(dims['characters'][:3])}\n"
             
-            ***REMOVED*** 根据目标层级选择不同的 prompt
+            # 根据目标层级选择不同的 prompt
             if target_level == "episode_outline":
                 prompt = f"""请根据以下故事大纲生成分集大纲。
 
@@ -554,7 +554,7 @@ class ScriptAdapter(AtomLinkAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=4096)
             
-            ***REMOVED*** 清理响应文本
+            # 清理响应文本
             if target_level in ["episode_outline", "shot_script"]:
                 result = self._parse_json_response(response_text)
                 if result:
@@ -570,7 +570,7 @@ class ScriptAdapter(AtomLinkAdapter):
                     logger.warning(f"Failed to parse JSON response for target_level '{target_level}'")
                     return ""
             
-            ***REMOVED*** 对于完整剧本，直接返回文本
+            # 对于完整剧本，直接返回文本
             script_text = response_text.strip()
             logger.debug(f"Generated full script with {len(script_text)} characters")
             return script_text
@@ -610,7 +610,7 @@ class ScriptAdapter(AtomLinkAdapter):
         """
         if not content or not content.strip():
             logger.warning("Empty content provided for construct_script_note")
-            ***REMOVED*** 返回一个默认的 Memory 对象
+            # 返回一个默认的 Memory 对象
             memory_id = str(uuid.uuid4())
             return Memory(
                 id=memory_id,
@@ -622,10 +622,10 @@ class ScriptAdapter(AtomLinkAdapter):
                 entities=[e.id for e in entities] if entities else [],
             )
         
-        ***REMOVED*** 使用剧本特有的分析
+        # 使用剧本特有的分析
         analysis = self._analyze_script_content(content)
         
-        ***REMOVED*** 如果启用摘要生成，使用 LLM 生成结构化的摘要
+        # 如果启用摘要生成，使用 LLM 生成结构化的摘要
         if generate_summary and self.is_available():
             try:
                 summary = self._generate_script_summary(content, analysis)
@@ -636,7 +636,7 @@ class ScriptAdapter(AtomLinkAdapter):
         else:
             atomic_content = content[:1024] if len(content) > 1024 else content
         
-        ***REMOVED*** 构建 Memory 对象
+        # 构建 Memory 对象
         memory_id = str(uuid.uuid4())
         memory = Memory(
             id=memory_id,
@@ -648,11 +648,11 @@ class ScriptAdapter(AtomLinkAdapter):
             entities=[e.id for e in entities] if entities else [],
         )
         
-        ***REMOVED*** 在 metadata 中保存剧本维度
+        # 在 metadata 中保存剧本维度
         memory.metadata = memory.metadata or {}
         if "script_dimensions" in analysis:
             memory.metadata["script_dimensions"] = analysis["script_dimensions"]
-            ***REMOVED*** 将剧本维度信息添加到 tags 中以便检索
+            # 将剧本维度信息添加到 tags 中以便检索
             script_dims = analysis["script_dimensions"]
             if script_dims:
                 if script_dims.get("script_type"):
@@ -660,7 +660,7 @@ class ScriptAdapter(AtomLinkAdapter):
                 if script_dims.get("dialogue_style"):
                     memory.tags.append(f"对话风格:{script_dims['dialogue_style']}")
         
-        ***REMOVED*** 存储到内存中
+        # 存储到内存中
         self.memory_store[memory_id] = memory
         
         logger.debug(f"Constructed script note: {memory_id} with {len(memory.keywords)} keywords, "
@@ -691,7 +691,7 @@ class ScriptAdapter(AtomLinkAdapter):
             logger.warning("Empty content provided for _generate_script_summary")
             return ""
         
-        ***REMOVED*** 限制内容长度以提高效率
+        # 限制内容长度以提高效率
         content_preview = content[:1536] if len(content) > 1536 else content
         keywords_str = ', '.join(analysis.get('keywords', [])[:5]) if analysis.get('keywords') else '无'
         context_str = analysis.get('context', '') or '无'
@@ -725,20 +725,20 @@ class ScriptAdapter(AtomLinkAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=256)
             
-            ***REMOVED*** 清理响应文本
+            # 清理响应文本
             summary = response_text.strip()
-            ***REMOVED*** 移除可能的 markdown 代码块标记
+            # 移除可能的 markdown 代码块标记
             if summary.startswith("```"):
                 lines = summary.split('\n')
                 summary = '\n'.join([line for line in lines if not line.strip().startswith('```')])
             
-            ***REMOVED*** 限制摘要长度
+            # 限制摘要长度
             summary = summary[:500]
             logger.debug(f"Generated script summary with {len(summary)} characters")
             return summary
         except Exception as e:
             logger.error(f"Error generating script summary: {e}", exc_info=True)
-            ***REMOVED*** 返回截取的内容作为后备
+            # 返回截取的内容作为后备
             return content[:300] + "..." if len(content) > 300 else content
     
     def retrieve_script_with_reward(
@@ -783,19 +783,19 @@ class ScriptAdapter(AtomLinkAdapter):
             raise AdapterError(f"top_k must be positive, got {top_k}", adapter_name="ScriptAdapter")
         
         try:
-            ***REMOVED*** 1. 使用结构化查询检索相似记忆（检索更多以增加匹配机会）
+            # 1. 使用结构化查询检索相似记忆（检索更多以增加匹配机会）
             similar_memories = self._search_similar_memories(query, top_k=top_k * 2)
             
             if not similar_memories:
                 logger.debug("No similar memories found for query")
                 return []
             
-            ***REMOVED*** 2. 匹配到原始剧本并计算奖励
+            # 2. 匹配到原始剧本并计算奖励
             results = []
             N = len(original_scripts)
             
             for idx, memory in enumerate(similar_memories[:top_k]):
-                ***REMOVED*** 尝试匹配到原始剧本（使用前100字符进行匹配）
+                # 尝试匹配到原始剧本（使用前100字符进行匹配）
                 matched_index = None
                 memory_preview = memory.content[:100] if memory.content else ""
                 
@@ -803,19 +803,19 @@ class ScriptAdapter(AtomLinkAdapter):
                     if not orig_script:
                         continue
                     orig_preview = orig_script[:100]
-                    ***REMOVED*** 双向匹配检查
+                    # 双向匹配检查
                     if memory_preview in orig_script or orig_preview in memory.content:
                         matched_index = orig_idx
                         break
                 
-                ***REMOVED*** 计算奖励：reward = 1 - index/N（越靠前奖励越高）
+                # 计算奖励：reward = 1 - index/N（越靠前奖励越高）
                 if matched_index is not None:
                     reward = 1.0 - (matched_index / N) if N > 0 else 1.0
                 else:
-                    ***REMOVED*** 如果没有匹配到，基于检索排名计算奖励
+                    # 如果没有匹配到，基于检索排名计算奖励
                     reward = 1.0 - (idx / top_k) if top_k > 0 else 1.0
                 
-                ***REMOVED*** 获取相似度分数（如果存在）
+                # 获取相似度分数（如果存在）
                 similarity_score = memory.metadata.get("similarity_score", 1.0 - idx / top_k) if memory.metadata else 1.0 - idx / top_k
                 
                 results.append({
@@ -826,7 +826,7 @@ class ScriptAdapter(AtomLinkAdapter):
                     "retrieval_rank": idx + 1
                 })
             
-            ***REMOVED*** 按奖励排序（奖励高的在前）
+            # 按奖励排序（奖励高的在前）
             results.sort(key=lambda x: x["reward"], reverse=True)
             
             logger.debug(f"Retrieved {len(results)} script results with rewards")
@@ -888,7 +888,7 @@ class ScriptAdapter(AtomLinkAdapter):
             }
         
         try:
-            ***REMOVED*** 限制文本长度以提高效率
+            # 限制文本长度以提高效率
             input_preview = input_text[:500] if len(input_text) > 500 else input_text
             result_preview = execution_result[:500] if len(execution_result) > 500 else execution_result
             prompt_preview = current_prompt[:500] if current_prompt and len(current_prompt) > 500 else (current_prompt or "无")

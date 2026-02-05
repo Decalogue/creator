@@ -72,14 +72,14 @@ class ContextFusion:
         
         try:
             if strategy == "merge":
-                ***REMOVED*** 使用 LLM 智能合并
+                # 使用 LLM 智能合并
                 return self._llm_merge(contexts, max_length)
             else:
-                ***REMOVED*** 简单拼接
+                # 简单拼接
                 return self._concatenate(contexts, max_length)
         except Exception as e:
             logger.error(f"Error fusing contexts: {e}", exc_info=True)
-            ***REMOVED*** 降级策略：简单拼接
+            # 降级策略：简单拼接
             return self._concatenate(contexts, max_length)
     
     def _llm_merge(self, contexts: List[str], max_length: Optional[int]) -> str:
@@ -100,7 +100,7 @@ class ContextFusion:
         messages = [{"role": "user", "content": prompt}]
         _, merged = self.llm_func(messages)
         
-        ***REMOVED*** 如果超过最大长度，进行压缩
+        # 如果超过最大长度，进行压缩
         if max_length and len(merged) > max_length:
             from .context_compressor import ContextCompressor
             compressor = ContextCompressor(self.llm_func)
@@ -110,7 +110,7 @@ class ContextFusion:
     
     def _concatenate(self, contexts: List[str], max_length: Optional[int]) -> str:
         """简单拼接"""
-        ***REMOVED*** 去重
+        # 去重
         seen = set()
         unique_contexts = []
         for ctx in contexts:
@@ -118,10 +118,10 @@ class ContextFusion:
                 seen.add(ctx)
                 unique_contexts.append(ctx)
         
-        ***REMOVED*** 拼接
+        # 拼接
         fused = "\n\n".join(unique_contexts)
         
-        ***REMOVED*** 如果超过最大长度，截断
+        # 如果超过最大长度，截断
         if max_length and len(fused) > max_length:
             fused = fused[:max_length] + "..."
         
@@ -148,11 +148,11 @@ class ContextFusion:
             logger.warning("Contexts and weights length mismatch, using equal weights")
             return self.fuse(contexts, max_length=max_length)
         
-        ***REMOVED*** 按权重排序
+        # 按权重排序
         weighted = list(zip(contexts, weights))
         weighted.sort(key=lambda x: x[1], reverse=True)
         
-        ***REMOVED*** 提取排序后的上下文
+        # 提取排序后的上下文
         sorted_contexts = [ctx for ctx, _ in weighted]
         
         return self.fuse(sorted_contexts, strategy="merge", max_length=max_length)

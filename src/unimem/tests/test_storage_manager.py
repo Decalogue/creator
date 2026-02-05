@@ -66,7 +66,7 @@ class TestStorageManager(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** Mock 适配器
+        # Mock 适配器
         self.storage_adapter = Mock()
         self.storage_adapter.is_available.return_value = True
         self.storage_adapter.add_memory = Mock()
@@ -173,7 +173,7 @@ class TestStorageManager(unittest.TestCase):
     
     def test_get_metrics(self):
         """测试获取指标"""
-        ***REMOVED*** 执行一些操作
+        # 执行一些操作
         memory = Memory(
             id="test_1",
             content="Test",
@@ -203,7 +203,7 @@ class TestStorageManager(unittest.TestCase):
             memory_type=MemoryType.EXPERIENCE
         )
         
-        ***REMOVED*** 应该抛出异常或返回 None（取决于实现）
+        # 应该抛出异常或返回 None（取决于实现）
         with self.assertRaises(AdapterNotAvailableError):
             self.manager.add_memory(memory)
 

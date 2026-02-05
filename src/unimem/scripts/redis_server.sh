@@ -1,31 +1,31 @@
-***REMOVED***!/bin/bash
+#!/bin/bash
 
-***REMOVED*** Redis 服务管理脚本
-***REMOVED*** 用于启动、停止、重启和检查 Redis 数据库服务
-***REMOVED*** 默认工作目录为 src
+# Redis 服务管理脚本
+# 用于启动、停止、重启和检查 Redis 数据库服务
+# 默认工作目录为 src
 
 set -e
 
-***REMOVED*** 切换到 src 目录（脚本在 unimem/scripts/，需要回到 src）
+# 切换到 src 目录（脚本在 unimem/scripts/，需要回到 src）
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UNIMEM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SRC_DIR="$(cd "$UNIMEM_DIR/.." && pwd)"
 cd "$SRC_DIR"
 
-***REMOVED*** 配置
+# 配置
 CONTAINER_NAME="redis_unimem"
 HOST_PORT=6379
-STORAGE_PATH="./unimem/redis_storage"  ***REMOVED*** 相对于 src 目录
+STORAGE_PATH="./unimem/redis_storage"  # 相对于 src 目录
 IMAGE_NAME="redis:7-alpine"
-REDIS_PASSWORD=""  ***REMOVED*** 可选，如果设置则启用密码保护
+REDIS_PASSWORD=""  # 可选，如果设置则启用密码保护
 
-***REMOVED*** 颜色输出
+# 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' ***REMOVED*** No Color
+NC='\033[0m' # No Color
 
-***REMOVED*** 打印带颜色的消息
+# 打印带颜色的消息
 print_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
@@ -38,7 +38,7 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-***REMOVED*** 检查 Docker 是否安装
+# 检查 Docker 是否安装
 check_docker() {
     if ! command -v docker &> /dev/null; then
         print_error "Docker 未安装，请先安装 Docker"
@@ -59,13 +59,13 @@ check_docker() {
         echo
         echo "安装后，可能需要将当前用户添加到 docker 组:"
         echo "     sudo usermod -aG docker $USER"
-        echo "     ***REMOVED*** 然后重新登录或执行: newgrp docker"
+        echo "     # 然后重新登录或执行: newgrp docker"
         echo
         echo "详细安装指南: https://docs.docker.com/get-docker/"
         exit 1
     fi
     
-    ***REMOVED*** 检查 Docker 服务是否运行
+    # 检查 Docker 服务是否运行
     if ! docker info &> /dev/null; then
         print_warn "Docker 已安装但服务未运行"
         echo "尝试启动 Docker 服务..."
@@ -78,17 +78,17 @@ check_docker() {
     print_info "Docker 已安装: $(docker --version)"
 }
 
-***REMOVED*** 检查容器是否运行
+# 检查容器是否运行
 is_running() {
     docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"
 }
 
-***REMOVED*** 检查容器是否存在（包括已停止的）
+# 检查容器是否存在（包括已停止的）
 container_exists() {
     docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"
 }
 
-***REMOVED*** 启动 Redis 服务
+# 启动 Redis 服务
 start() {
     check_docker
     
@@ -97,12 +97,12 @@ start() {
         return 0
     fi
     
-    ***REMOVED*** 创建存储目录
+    # 创建存储目录
     mkdir -p "${STORAGE_PATH}"
     
     print_info "启动 Redis 容器..."
     
-    ***REMOVED*** 构建 Docker 命令
+    # 构建 Docker 命令
     DOCKER_CMD=(
         docker run -d
         --name "${CONTAINER_NAME}"
@@ -111,7 +111,7 @@ start() {
         --restart unless-stopped
     )
     
-    ***REMOVED*** 如果设置了密码，添加到命令
+    # 如果设置了密码，添加到命令
     if [ -n "${REDIS_PASSWORD}" ]; then
         DOCKER_CMD+=(--requirepass "${REDIS_PASSWORD}")
         print_info "Redis 密码保护已启用"
@@ -124,7 +124,7 @@ start() {
     
     "${DOCKER_CMD[@]}"
     
-    ***REMOVED*** 等待服务启动
+    # 等待服务启动
     sleep 2
     
     if is_running; then
@@ -147,7 +147,7 @@ start() {
     fi
 }
 
-***REMOVED*** 停止 Redis 服务
+# 停止 Redis 服务
 stop() {
     if ! container_exists; then
         print_warn "Redis 容器不存在: ${CONTAINER_NAME}"
@@ -163,14 +163,14 @@ stop() {
     fi
 }
 
-***REMOVED*** 重启 Redis 服务
+# 重启 Redis 服务
 restart() {
     stop
     sleep 1
     start
 }
 
-***REMOVED*** 删除 Redis 容器（注意：会删除数据）
+# 删除 Redis 容器（注意：会删除数据）
 remove() {
     stop
     
@@ -183,7 +183,7 @@ remove() {
     fi
 }
 
-***REMOVED*** 检查服务状态
+# 检查服务状态
 status() {
     if is_running; then
         print_info "Redis 服务运行中"
@@ -214,7 +214,7 @@ status() {
     fi
 }
 
-***REMOVED*** 查看日志
+# 查看日志
 logs() {
     if ! container_exists; then
         print_error "Redis 容器不存在"
@@ -224,7 +224,7 @@ logs() {
     docker logs -f "${CONTAINER_NAME}"
 }
 
-***REMOVED*** 进入 Redis CLI
+# 进入 Redis CLI
 cli() {
     if ! is_running; then
         print_error "Redis 服务未运行"
@@ -245,7 +245,7 @@ cli() {
     fi
 }
 
-***REMOVED*** 显示帮助信息
+# 显示帮助信息
 usage() {
     echo "Redis 服务管理脚本"
     echo
@@ -272,7 +272,7 @@ usage() {
     echo "  export REDIS_PASSWORD='your_password'"
 }
 
-***REMOVED*** 主函数
+# 主函数
 main() {
     case "${1:-}" in
         start)
@@ -308,7 +308,7 @@ main() {
     esac
 }
 
-***REMOVED*** 读取环境变量覆盖配置
+# 读取环境变量覆盖配置
 if [ -n "${REDIS_CONTAINER_NAME:-}" ]; then
     CONTAINER_NAME="${REDIS_CONTAINER_NAME}"
 fi
@@ -322,6 +322,6 @@ if [ -n "${REDIS_PASSWORD:-}" ]; then
     REDIS_PASSWORD="${REDIS_PASSWORD}"
 fi
 
-***REMOVED*** 执行主函数
+# 执行主函数
 main "$@"
 

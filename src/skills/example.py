@@ -84,19 +84,19 @@ def example_4_integration_code():
 
     code = '''from skills import default_manager
 
-***REMOVED*** 根据创作任务选择相关 Skill（如节奏、对话质量 SOP）
+# 根据创作任务选择相关 Skill（如节奏、对话质量 SOP）
 query = "本章对话占比与节奏要求"
 selected = default_manager.select_skills(query, max_skills=3)
 
-***REMOVED*** 获取 Skill 上下文，注入编排层或创作助手
+# 获取 Skill 上下文，注入编排层或创作助手
 context = default_manager.get_context_for_query(query, level=2)
 
-***REMOVED*** 将 context 加入 system 或 user 消息，供 LLM 使用
+# 将 context 加入 system 或 user 消息，供 LLM 使用
 messages = [
     {"role": "system", "content": f"创作规范与 SOP：\\n{context}"},
     {"role": "user", "content": "请按上述规范写本章。"},
 ]
-***REMOVED*** 调用 LLM...
+# 调用 LLM...
 '''
     print(code)
 

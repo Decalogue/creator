@@ -47,7 +47,7 @@ class TestUniMemRetain(unittest.TestCase):
         """设置测试环境"""
         with patch('unimem.core.UniMem._init_adapters') as mock_init:
             self.unimem = UniMem()
-            ***REMOVED*** Mock 适配器
+            # Mock 适配器
             self.unimem.operation_adapter = Mock()
             self.unimem.storage_adapter = Mock()
             self.unimem.graph_adapter = Mock()
@@ -62,7 +62,7 @@ class TestUniMemRetain(unittest.TestCase):
         )
         context = Context()
         
-        ***REMOVED*** Mock 返回记忆
+        # Mock 返回记忆
         mock_memory = Memory(
             id="test_1",
             content="Test",
@@ -247,7 +247,7 @@ class TestUniMemHealthCheck(unittest.TestCase):
     
     def test_health_check_all_healthy(self):
         """测试所有组件健康"""
-        ***REMOVED*** Mock 所有适配器为可用
+        # Mock 所有适配器为可用
         self.unimem.operation_adapter = Mock()
         self.unimem.operation_adapter.is_available.return_value = True
         
@@ -292,7 +292,7 @@ class TestUniMemThreadSafety(unittest.TestCase):
         def retain_operation():
             return self.unimem.retain(experience, context)
         
-        ***REMOVED*** 创建多个线程并发执行
+        # 创建多个线程并发执行
         threads = []
         results = []
         
@@ -311,7 +311,7 @@ class TestUniMemThreadSafety(unittest.TestCase):
         for t in threads:
             t.join()
         
-        ***REMOVED*** 检查所有操作都成功（或至少没有崩溃）
+        # 检查所有操作都成功（或至少没有崩溃）
         self.assertEqual(len(results), 5)
 
 

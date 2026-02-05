@@ -1,4 +1,4 @@
-***REMOVED*** 调研论文（Memory / Agent）
+# 调研论文（Memory / Agent）
 
 > 与 Creator 记忆与编排相关的论文与资源索引，便于对照与演进。
 

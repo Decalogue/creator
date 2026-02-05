@@ -13,19 +13,19 @@ logger = logging.getLogger(__name__)
 
 class IssueType(Enum):
     """问题类型"""
-    CHARACTER_INCONSISTENCY = "character_inconsistency"  ***REMOVED*** 角色不一致
-    WORLDVIEW_INCONSISTENCY = "worldview_inconsistency"  ***REMOVED*** 世界观不一致
-    TIMELINE_INCONSISTENCY = "timeline_inconsistency"  ***REMOVED*** 时间线不一致
-    PLOT_INCONSISTENCY = "plot_inconsistency"  ***REMOVED*** 情节不一致
-    COHERENCE_ISSUE = "coherence_issue"  ***REMOVED*** 连贯性问题
-    STYLE_ISSUE = "style_issue"  ***REMOVED*** 风格问题
+    CHARACTER_INCONSISTENCY = "character_inconsistency"  # 角色不一致
+    WORLDVIEW_INCONSISTENCY = "worldview_inconsistency"  # 世界观不一致
+    TIMELINE_INCONSISTENCY = "timeline_inconsistency"  # 时间线不一致
+    PLOT_INCONSISTENCY = "plot_inconsistency"  # 情节不一致
+    COHERENCE_ISSUE = "coherence_issue"  # 连贯性问题
+    STYLE_ISSUE = "style_issue"  # 风格问题
 
 
 class IssueSeverity(Enum):
     """问题严重程度"""
-    LOW = "low"  ***REMOVED*** 轻微问题
-    MEDIUM = "medium"  ***REMOVED*** 中等问题
-    HIGH = "high"  ***REMOVED*** 严重问题
+    LOW = "low"  # 轻微问题
+    MEDIUM = "medium"  # 中等问题
+    HIGH = "high"  # 严重问题
 
 
 @dataclass
@@ -34,7 +34,7 @@ class QualityIssue:
     issue_type: IssueType
     severity: IssueSeverity
     description: str
-    location: str  ***REMOVED*** 问题位置（如章节号、行号）
+    location: str  # 问题位置（如章节号、行号）
     suggestion: Optional[str] = None
     metadata: Dict[str, Any] = None
 
@@ -61,9 +61,9 @@ class QualityChecker:
         self.llm_client = llm_client
         self.strict_mode = strict_mode
         
-        ***REMOVED*** 根据模式调整检查阈值
+        # 根据模式调整检查阈值
         if strict_mode:
-            ***REMOVED*** 严格模式：保持原有标准
+            # 严格模式：保持原有标准
             self.dialogue_ratio_min = 0.15
             self.dialogue_ratio_max = 0.45
             self.dialogue_ratio_ideal_min = 0.20
@@ -71,13 +71,13 @@ class QualityChecker:
             self.max_paragraph_length = 1000
             self.max_word_repeat = 20
         else:
-            ***REMOVED*** 宽松模式：放宽标准
-            self.dialogue_ratio_min = 0.05  ***REMOVED*** 允许更低的对话占比
-            self.dialogue_ratio_max = 0.60  ***REMOVED*** 允许更高的对话占比
+            # 宽松模式：放宽标准
+            self.dialogue_ratio_min = 0.05  # 允许更低的对话占比
+            self.dialogue_ratio_max = 0.60  # 允许更高的对话占比
             self.dialogue_ratio_ideal_min = 0.10
             self.dialogue_ratio_ideal_max = 0.50
-            self.max_paragraph_length = 2000  ***REMOVED*** 允许更长的段落
-            self.max_word_repeat = 40  ***REMOVED*** 允许更多重复
+            self.max_paragraph_length = 2000  # 允许更长的段落
+            self.max_word_repeat = 40  # 允许更多重复
     
     def check_chapter(
         self,
@@ -101,45 +101,45 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 1. 角色一致性检查（使用语义网格实体进行深度检查）
+        # 1. 角色一致性检查（使用语义网格实体进行深度检查）
         character_issues = self.check_character_consistency(
             chapter_content, chapter_number, previous_chapters, semantic_mesh_entities
         )
         issues.extend(character_issues)
         
-        ***REMOVED*** 2. 世界观一致性检查
+        # 2. 世界观一致性检查
         worldview_issues = self.check_worldview_consistency(
             chapter_content, chapter_number, previous_chapters
         )
         issues.extend(worldview_issues)
         
-        ***REMOVED*** 3. 时间线一致性检查
+        # 3. 时间线一致性检查
         timeline_issues = self.check_timeline_consistency(
             chapter_content, chapter_number, previous_chapters
         )
         issues.extend(timeline_issues)
         
-        ***REMOVED*** 4. 情节逻辑检查
+        # 4. 情节逻辑检查
         plot_issues = self.check_plot_consistency(
             chapter_content, chapter_number, previous_chapters, novel_plan
         )
         issues.extend(plot_issues)
         
-        ***REMOVED*** 5. 连贯性检查
+        # 5. 连贯性检查
         coherence_issues = self.check_coherence(
             chapter_content, chapter_number, previous_chapters
         )
         issues.extend(coherence_issues)
         
-        ***REMOVED*** 6. 基础风格检查
+        # 6. 基础风格检查
         style_issues = self.check_style_basic(chapter_content, chapter_number)
         issues.extend(style_issues)
         
-        ***REMOVED*** 7. 对话质量检查（新增）
+        # 7. 对话质量检查（新增）
         dialogue_issues = self.check_dialogue_quality(chapter_content, chapter_number)
         issues.extend(dialogue_issues)
         
-        ***REMOVED*** 8. 描写质量检查（新增）
+        # 8. 描写质量检查（新增）
         description_issues = self.check_description_quality(chapter_content, chapter_number)
         issues.extend(description_issues)
         
@@ -169,12 +169,12 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 提取本章角色
+        # 提取本章角色
         chapter_characters = self._extract_characters(chapter_content)
         
-        ***REMOVED*** 如果提供了语义网格实体，使用更深入的检查
+        # 如果提供了语义网格实体，使用更深入的检查
         if semantic_mesh_entities:
-            ***REMOVED*** 从语义网格中获取前面章节的角色实体
+            # 从语义网格中获取前面章节的角色实体
             previous_character_entities = {}
             for entity_id, entity in semantic_mesh_entities.items():
                 if entity.get('type') == 'character':
@@ -185,18 +185,18 @@ class QualityChecker:
                             if char_name not in previous_character_entities:
                                 previous_character_entities[char_name] = entity
             
-            ***REMOVED*** 检查本章角色与语义网格中的角色一致性
+            # 检查本章角色与语义网格中的角色一致性
             for char in chapter_characters:
                 if char in previous_character_entities:
-                    ***REMOVED*** 角色在语义网格中存在，可以进行更深入的检查
+                    # 角色在语义网格中存在，可以进行更深入的检查
                     prev_entity = previous_character_entities[char]
                     prev_content = prev_entity.get('content', '')
                     
-                    ***REMOVED*** 可以检查角色描述的一致性（简单检查）
-                    ***REMOVED*** 这里可以扩展为更复杂的检查逻辑
+                    # 可以检查角色描述的一致性（简单检查）
+                    # 这里可以扩展为更复杂的检查逻辑
                     pass
                 else:
-                    ***REMOVED*** 检查是否有相似的名称（可能是拼写错误）
+                    # 检查是否有相似的名称（可能是拼写错误）
                     for prev_char, prev_entity in previous_character_entities.items():
                         if char != prev_char and self._is_similar_name(char, prev_char):
                             issues.append(QualityIssue(
@@ -212,7 +212,7 @@ class QualityChecker:
                                 }
                             ))
         else:
-            ***REMOVED*** 使用基础检查（文本匹配）
+            # 使用基础检查（文本匹配）
             if previous_chapters:
                 previous_characters = {}
                 for prev_chapter in previous_chapters:
@@ -221,9 +221,9 @@ class QualityChecker:
                         if char not in previous_characters:
                             previous_characters[char] = prev_chapter.get('number', 0)
                 
-                ***REMOVED*** 检查角色名称一致性（简单检查）
+                # 检查角色名称一致性（简单检查）
                 for char in chapter_characters:
-                    ***REMOVED*** 检查是否有相似的名称（可能是拼写错误）
+                    # 检查是否有相似的名称（可能是拼写错误）
                     for prev_char in previous_characters:
                         if char != prev_char and self._is_similar_name(char, prev_char):
                             issues.append(QualityIssue(
@@ -260,7 +260,7 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 提取世界观关键词
+        # 提取世界观关键词
         worldview_keywords = {
             "时间": ["时间", "时空", "时间线", "时间旅行"],
             "地点": ["世界", "星球", "大陆", "国家", "城市"],
@@ -269,20 +269,20 @@ class QualityChecker:
             "生物": ["人类", "种族", "生物", "怪物"],
         }
         
-        ***REMOVED*** 检查本章的世界观设定
+        # 检查本章的世界观设定
         chapter_worldview = {}
         for category, keywords in worldview_keywords.items():
             for keyword in keywords:
                 if keyword in chapter_content:
                     chapter_worldview[category] = chapter_worldview.get(category, 0) + 1
         
-        ***REMOVED*** 与前面章节对比（简单检查）
+        # 与前面章节对比（简单检查）
         if previous_chapters:
             for prev_chapter in previous_chapters:
                 prev_content = prev_chapter.get('content', '')
                 
-                ***REMOVED*** 检查冲突的世界观设定
-                ***REMOVED*** 例如：前面章节没有魔法，但本章提到魔法
+                # 检查冲突的世界观设定
+                # 例如：前面章节没有魔法，但本章提到魔法
                 has_magic_in_prev = any(kw in prev_content for kw in worldview_keywords["魔法"])
                 has_magic_in_current = any(kw in chapter_content for kw in worldview_keywords["魔法"])
                 
@@ -320,11 +320,11 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 提取时间信息
+        # 提取时间信息
         time_patterns = [
-            r'(\d{4})年',  ***REMOVED*** 2023年
-            r'(\d+)天前',  ***REMOVED*** 3天前
-            r'(\d+)小时后',  ***REMOVED*** 2小时后
+            r'(\d{4})年',  # 2023年
+            r'(\d+)天前',  # 3天前
+            r'(\d+)小时后',  # 2小时后
             r'第二天', r'第三天',
             r'次日', r'当晚', r'第二天早上',
         ]
@@ -334,9 +334,9 @@ class QualityChecker:
             matches = re.findall(pattern, chapter_content)
             chapter_times.extend(matches)
         
-        ***REMOVED*** 简单检查：如果章节编号递增，但时间描述倒退了，可能有问题
+        # 简单检查：如果章节编号递增，但时间描述倒退了，可能有问题
         if len(chapter_times) > 0 and chapter_number > 1:
-            ***REMOVED*** 这里可以添加更复杂的时间线检查逻辑
+            # 这里可以添加更复杂的时间线检查逻辑
             pass
         
         return issues
@@ -362,17 +362,17 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 如果有大纲，检查章节是否符合大纲
+        # 如果有大纲，检查章节是否符合大纲
         if novel_plan:
             chapter_outline = novel_plan.get('chapter_outline', [])
             if chapter_number <= len(chapter_outline):
                 expected_summary = chapter_outline[chapter_number - 1].get('summary', '')
                 if expected_summary:
-                    ***REMOVED*** 简单检查：章节内容是否包含大纲中的关键词
+                    # 简单检查：章节内容是否包含大纲中的关键词
                     keywords = self._extract_keywords(expected_summary)
                     found_keywords = sum(1 for kw in keywords if kw in chapter_content)
                     
-                    if found_keywords < len(keywords) * 0.3:  ***REMOVED*** 如果少于30%关键词出现
+                    if found_keywords < len(keywords) * 0.3:  # 如果少于30%关键词出现
                         issues.append(QualityIssue(
                             issue_type=IssueType.PLOT_INCONSISTENCY,
                             severity=IssueSeverity.MEDIUM,
@@ -409,21 +409,21 @@ class QualityChecker:
         if not previous_chapters:
             return issues
         
-        ***REMOVED*** 检查是否与前章有衔接
+        # 检查是否与前章有衔接
         last_chapter = previous_chapters[-1]
         last_content = last_chapter.get('content', '')
         
-        ***REMOVED*** 提取前章的结尾关键词
-        last_sentences = last_content.split('。')[-3:]  ***REMOVED*** 最后3句话
+        # 提取前章的结尾关键词
+        last_sentences = last_content.split('。')[-3:]  # 最后3句话
         last_keywords = []
         for sent in last_sentences:
             last_keywords.extend(self._extract_keywords(sent))
         
-        ***REMOVED*** 检查本章开头是否与前章有衔接
-        first_sentences = chapter_content.split('。')[:3]  ***REMOVED*** 前3句话
+        # 检查本章开头是否与前章有衔接
+        first_sentences = chapter_content.split('。')[:3]  # 前3句话
         first_content = '。'.join(first_sentences)
         
-        ***REMOVED*** 如果前章和本章完全没有共同关键词，可能缺乏衔接
+        # 如果前章和本章完全没有共同关键词，可能缺乏衔接
         common_keywords = [kw for kw in last_keywords if kw in first_content]
         if len(last_keywords) > 0 and len(common_keywords) == 0:
             issues.append(QualityIssue(
@@ -457,7 +457,7 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 检查过长段落
+        # 检查过长段落
         paragraphs = chapter_content.split('\n\n')
         for i, para in enumerate(paragraphs):
             if len(para) > self.max_paragraph_length:
@@ -470,14 +470,14 @@ class QualityChecker:
                     metadata={"paragraph_length": len(para)}
                 ))
         
-        ***REMOVED*** 检查过多重复词汇
+        # 检查过多重复词汇
         words = re.findall(r'[\u4e00-\u9fa5]+', chapter_content)
         word_freq = {}
         for word in words:
-            if len(word) >= 2:  ***REMOVED*** 至少2个字符
+            if len(word) >= 2:  # 至少2个字符
                 word_freq[word] = word_freq.get(word, 0) + 1
         
-        ***REMOVED*** 找出重复次数过多的词
+        # 找出重复次数过多的词
         for word, count in word_freq.items():
             if count > self.max_word_repeat:
                 issues.append(QualityIssue(
@@ -508,30 +508,30 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 提取对话内容（包含引号的内容）
-        ***REMOVED*** 支持中文引号："和"（U+201C和U+201D）、'和'（U+2018和U+2019）
-        ***REMOVED*** 以及日式引号：「和」（U+300C和U+300D）、『和』（U+300E和U+300F）
-        ***REMOVED*** 以及英文引号："和"、'和'
-        ***REMOVED*** 使用Unicode转义确保正确匹配
+        # 提取对话内容（包含引号的内容）
+        # 支持中文引号："和"（U+201C和U+201D）、'和'（U+2018和U+2019）
+        # 以及日式引号：「和」（U+300C和U+300D）、『和』（U+300E和U+300F）
+        # 以及英文引号："和"、'和'
+        # 使用Unicode转义确保正确匹配
         dialogues = []
         
-        ***REMOVED*** 中文双引号："和"（使用Unicode转义）
+        # 中文双引号："和"（使用Unicode转义）
         pattern1 = r'[\u201C]([^\u201D]+?)[\u201D]'
         dialogues.extend(re.findall(pattern1, chapter_content))
         
-        ***REMOVED*** 中文单引号：'和'（使用Unicode转义）
+        # 中文单引号：'和'（使用Unicode转义）
         pattern2 = r'[\u2018]([^\u2019]+?)[\u2019]'
         dialogues.extend(re.findall(pattern2, chapter_content))
         
-        ***REMOVED*** 日式引号：「和」（使用Unicode转义）
+        # 日式引号：「和」（使用Unicode转义）
         pattern3 = r'[\u300C]([^\u300D]+?)[\u300D]'
         dialogues.extend(re.findall(pattern3, chapter_content))
         
-        ***REMOVED*** 日式双引号：『和』（使用Unicode转义）
+        # 日式双引号：『和』（使用Unicode转义）
         pattern4 = r'[\u300E]([^\u300F]+?)[\u300F]'
         dialogues.extend(re.findall(pattern4, chapter_content))
         
-        ***REMOVED*** 英文引号："和"、'和'
+        # 英文引号："和"、'和'
         pattern5 = r'["\']([^"\']+?)["\']'
         dialogues.extend(re.findall(pattern5, chapter_content))
         
@@ -539,7 +539,7 @@ class QualityChecker:
         dialogue_length = sum(len(d) for d in dialogues)
         dialogue_ratio = dialogue_length / total_length if total_length > 0 else 0
         
-        ***REMOVED*** 检查对话占比（根据模式调整阈值）
+        # 检查对话占比（根据模式调整阈值）
         if dialogue_ratio < self.dialogue_ratio_min:
             issues.append(QualityIssue(
                 issue_type=IssueType.STYLE_ISSUE,
@@ -559,7 +559,7 @@ class QualityChecker:
                 metadata={"dialogue_ratio": dialogue_ratio, "dialogue_length": dialogue_length, "total_length": total_length}
             ))
         
-        ***REMOVED*** 检查对话是否推进情节（简单启发式：对话中包含动作词或情绪词）
+        # 检查对话是否推进情节（简单启发式：对话中包含动作词或情绪词）
         action_words = ['说', '道', '问', '答', '喊', '叫', '笑', '哭', '怒', '想', '看', '走', '跑', '站', '坐']
         dialogue_with_action = sum(1 for d in dialogues if any(word in d for word in action_words))
         if len(dialogues) > 0 and dialogue_with_action / len(dialogues) < 0.3:
@@ -591,25 +591,25 @@ class QualityChecker:
         """
         issues = []
         
-        ***REMOVED*** 检查环境描写是否冗余（包含大量形容词但缺少动作）
+        # 检查环境描写是否冗余（包含大量形容词但缺少动作）
         paragraphs = chapter_content.split('\n\n')
         redundant_descriptions = []
         
         for i, para in enumerate(paragraphs):
-            if len(para) < 50:  ***REMOVED*** 太短的段落跳过
+            if len(para) < 50:  # 太短的段落跳过
                 continue
             
-            ***REMOVED*** 统计形容词和动作词
+            # 统计形容词和动作词
             adj_pattern = r'[的的地得]'
             adj_count = len(re.findall(adj_pattern, para))
             action_words = ['看', '听', '说', '走', '跑', '站', '坐', '想', '做', '拿', '放', '开', '关']
             action_count = sum(1 for word in action_words if word in para)
             
-            ***REMOVED*** 如果形容词多但动作少，可能是冗余的环境描写
+            # 如果形容词多但动作少，可能是冗余的环境描写
             if adj_count > len(para) * 0.15 and action_count < 3:
                 redundant_descriptions.append((i + 1, para[:50]))
         
-        if len(redundant_descriptions) > 2:  ***REMOVED*** 超过2段冗余描写
+        if len(redundant_descriptions) > 2:  # 超过2段冗余描写
             issues.append(QualityIssue(
                 issue_type=IssueType.STYLE_ISSUE,
                 severity=IssueSeverity.LOW,
@@ -619,10 +619,10 @@ class QualityChecker:
                 metadata={"redundant_count": len(redundant_descriptions)}
             ))
         
-        ***REMOVED*** 检查重复的心理活动（包含"想"、"觉得"、"认为"等词）
+        # 检查重复的心理活动（包含"想"、"觉得"、"认为"等词）
         thought_pattern = r'[想觉得认为感觉]'
         thought_sentences = re.findall(r'[^。！？]*' + thought_pattern + r'[^。！？]*[。！？]', chapter_content)
-        if len(thought_sentences) > 10:  ***REMOVED*** 心理活动句子过多
+        if len(thought_sentences) > 10:  # 心理活动句子过多
             issues.append(QualityIssue(
                 issue_type=IssueType.STYLE_ISSUE,
                 severity=IssueSeverity.LOW,
@@ -634,56 +634,56 @@ class QualityChecker:
         
         return issues
     
-    ***REMOVED*** 辅助方法
+    # 辅助方法
     
     def _extract_characters(self, text: str) -> List[str]:
         """提取角色名称"""
-        ***REMOVED*** 简单提取：引号内的内容可能是对话，提取说话者
-        ***REMOVED*** 或者使用角色名称模式
+        # 简单提取：引号内的内容可能是对话，提取说话者
+        # 或者使用角色名称模式
         
-        ***REMOVED*** 提取引号内的对话（说话者通常在前面）
-        ***REMOVED*** 支持中文引号："和"（U+201C和U+201D）、'和'（U+2018和U+2019）
-        ***REMOVED*** 以及日式引号：「和」（U+300C和U+300D）、『和』（U+300E和U+300F）
-        ***REMOVED*** 以及英文引号："和"、'和'
-        ***REMOVED*** 使用Unicode转义确保正确匹配
+        # 提取引号内的对话（说话者通常在前面）
+        # 支持中文引号："和"（U+201C和U+201D）、'和'（U+2018和U+2019）
+        # 以及日式引号：「和」（U+300C和U+300D）、『和』（U+300E和U+300F）
+        # 以及英文引号："和"、'和'
+        # 使用Unicode转义确保正确匹配
         dialogues = []
         
-        ***REMOVED*** 中文双引号："和"（使用Unicode转义）
+        # 中文双引号："和"（使用Unicode转义）
         pattern1 = r'[\u201C]([^\u201D]{2,50})[\u201D]'
         dialogues.extend(re.findall(pattern1, text))
         
-        ***REMOVED*** 中文单引号：'和'（使用Unicode转义）
+        # 中文单引号：'和'（使用Unicode转义）
         pattern2 = r'[\u2018]([^\u2019]{2,50})[\u2019]'
         dialogues.extend(re.findall(pattern2, text))
         
-        ***REMOVED*** 日式引号：「和」（使用Unicode转义）
+        # 日式引号：「和」（使用Unicode转义）
         pattern3 = r'[\u300C]([^\u300D]{2,50})[\u300D]'
         dialogues.extend(re.findall(pattern3, text))
         
-        ***REMOVED*** 日式双引号：『和』（使用Unicode转义）
+        # 日式双引号：『和』（使用Unicode转义）
         pattern4 = r'[\u300E]([^\u300F]{2,50})[\u300F]'
         dialogues.extend(re.findall(pattern4, text))
         
-        ***REMOVED*** 英文引号："和"、'和'
+        # 英文引号："和"、'和'
         pattern5 = r'["\']([^"\']{2,50})["\']'
         dialogues.extend(re.findall(pattern5, text))
         
-        ***REMOVED*** 提取 "XXX说道" 模式
+        # 提取 "XXX说道" 模式
         speaker_pattern = r'([A-Za-z\u4e00-\u9fa5]{2,10})\s*[说道说]'
         speakers = re.findall(speaker_pattern, text)
         
-        ***REMOVED*** 合并并去重
+        # 合并并去重
         characters = list(set(speakers + [d[:10] for d in dialogues if len(d) < 10]))
         
-        ***REMOVED*** 过滤明显不是角色的词
+        # 过滤明显不是角色的词
         exclude_words = ["这个", "那个", "什么", "怎么", "为什么", "是否"]
         characters = [c for c in characters if c not in exclude_words]
         
-        return characters[:20]  ***REMOVED*** 最多返回20个
+        return characters[:20]  # 最多返回20个
     
     def _is_similar_name(self, name1: str, name2: str) -> bool:
         """检查两个名称是否相似（可能是拼写错误）"""
-        ***REMOVED*** 简单检查：如果名称长度相同且只有一个字符不同
+        # 简单检查：如果名称长度相同且只有一个字符不同
         if len(name1) != len(name2):
             return False
         
@@ -691,18 +691,18 @@ class QualityChecker:
             return False
         
         diff_count = sum(1 for c1, c2 in zip(name1, name2) if c1 != c2)
-        return diff_count == 1  ***REMOVED*** 只有一个字符不同
+        return diff_count == 1  # 只有一个字符不同
     
     def _extract_keywords(self, text: str) -> List[str]:
         """提取关键词"""
-        ***REMOVED*** 简单提取：2-5个字符的连续中文字符
+        # 简单提取：2-5个字符的连续中文字符
         keywords = re.findall(r'[\u4e00-\u9fa5]{2,5}', text)
         
-        ***REMOVED*** 过滤停用词
+        # 过滤停用词
         stop_words = ["的", "了", "在", "是", "和", "与", "或", "但", "而", "为", "从", "到"]
         keywords = [kw for kw in keywords if kw not in stop_words]
         
-        return list(set(keywords))[:10]  ***REMOVED*** 最多返回10个不重复的关键词
+        return list(set(keywords))[:10]  # 最多返回10个不重复的关键词
 
 
 def check_chapter_quality(
@@ -730,7 +730,7 @@ def check_chapter_quality(
         chapter_content, chapter_number, previous_chapters, novel_plan
     )
     
-    ***REMOVED*** 统计问题
+    # 统计问题
     by_type = {}
     by_severity = {}
     

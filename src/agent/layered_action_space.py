@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 class ActionLayer(Enum):
     """行动空间层级"""
-    L1_ATOMIC = "L1_ATOMIC"  ***REMOVED*** 原子函数调用
-    L2_SANDBOX = "L2_SANDBOX"  ***REMOVED*** 沙盒工具
-    L3_CODE = "L3_CODE"  ***REMOVED*** 软件包与 API
+    L1_ATOMIC = "L1_ATOMIC"  # 原子函数调用
+    L2_SANDBOX = "L2_SANDBOX"  # 沙盒工具
+    L3_CODE = "L3_CODE"  # 软件包与 API
 
 
 class LayeredActionSpace:
@@ -47,7 +47,7 @@ class LayeredActionSpace:
         self.sandbox_dir = Path(sandbox_dir)
         self.sandbox_dir.mkdir(parents=True, exist_ok=True)
         
-        ***REMOVED*** L1 原子函数列表（固定、正交）
+        # L1 原子函数列表（固定、正交）
         self.l1_functions = {
             "read_file": self._l1_read_file,
             "write_file": self._l1_write_file,
@@ -56,8 +56,8 @@ class LayeredActionSpace:
             "search_web": self._l1_search_web,
         }
         
-        ***REMOVED*** L2 沙盒工具（通过 shell 命令使用）
-        ***REMOVED*** 这些工具预装在系统中，Agent 通过 L1 的 execute_shell 使用
+        # L2 沙盒工具（通过 shell 命令使用）
+        # 这些工具预装在系统中，Agent 通过 L1 的 execute_shell 使用
         self.l2_tools_info = {
             "grep": "在文件中搜索文本模式",
             "sed": "流编辑器，用于文本替换",
@@ -69,13 +69,13 @@ class LayeredActionSpace:
             "pandoc": "文档格式转换工具",
         }
         
-        ***REMOVED*** L3 代码层（Python 脚本和 API）
+        # L3 代码层（Python 脚本和 API）
         self.l3_scripts_dir = self.sandbox_dir / "scripts"
         self.l3_scripts_dir.mkdir(exist_ok=True)
         
-        ***REMOVED*** 预授权的 API keys（示例）
+        # 预授权的 API keys（示例）
         self.l3_api_keys = {
-            ***REMOVED*** 可以从环境变量或配置文件读取
+            # 可以从环境变量或配置文件读取
         }
     
     def get_l1_functions_description(self) -> str:
@@ -92,11 +92,11 @@ class LayeredActionSpace:
         
         for func_name, func in self.l1_functions.items():
             doc = func.__doc__ or "无描述"
-            ***REMOVED*** 提取第一行非空描述
+            # 提取第一行非空描述
             lines = [line.strip() for line in doc.split('\n') if line.strip()]
             if lines:
                 first_line = lines[0]
-                ***REMOVED*** 如果第一行以句号结尾，去掉句号
+                # 如果第一行以句号结尾，去掉句号
                 if first_line.endswith('。'):
                     first_line = first_line[:-1]
                 descriptions.append(f"- {func_name}: {first_line}")
@@ -149,7 +149,7 @@ class LayeredActionSpace:
 2. 使用 `execute_shell` 执行脚本：`python script.py`
 """
     
-    ***REMOVED*** ========== L1 原子函数实现 ==========
+    # ========== L1 原子函数实现 ==========
     
     def _l1_read_file(self, arguments: Dict[str, Any]) -> str:
         """
@@ -214,14 +214,14 @@ class LayeredActionSpace:
             return "错误：缺少 command 参数"
         
         try:
-            ***REMOVED*** 在沙箱目录中执行命令
+            # 在沙箱目录中执行命令
             result = subprocess.run(
                 command,
                 shell=True,
                 cwd=str(self.sandbox_dir),
                 capture_output=True,
                 text=True,
-                timeout=30  ***REMOVED*** 30秒超时
+                timeout=30  # 30秒超时
             )
             
             output = result.stdout
@@ -257,11 +257,11 @@ class LayeredActionSpace:
             if not search_dir.exists():
                 return f"错误：目录不存在: {directory}"
             
-            ***REMOVED*** 使用 glob 搜索文件
+            # 使用 glob 搜索文件
             matches = list(search_dir.rglob(pattern))
             
             if matches:
-                results = [f"- {str(match)}" for match in matches[:20]]  ***REMOVED*** 最多20个结果
+                results = [f"- {str(match)}" for match in matches[:20]]  # 最多20个结果
                 if len(matches) > 20:
                     results.append(f"... 还有 {len(matches) - 20} 个结果")
                 return f"找到 {len(matches)} 个匹配文件:\n" + "\n".join(results)
@@ -284,7 +284,7 @@ class LayeredActionSpace:
         if not query:
             return "错误：缺少 query 参数"
         
-        ***REMOVED*** 这里是模拟实现，实际应该调用搜索引擎 API
+        # 这里是模拟实现，实际应该调用搜索引擎 API
         return f"网络搜索结果（模拟）: {query}\n\n提示：实际实现需要集成搜索引擎 API（如 Google Search API、Bing API 等）。"
     
     def execute_l1_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
@@ -318,7 +318,7 @@ class LayeredActionSpace:
             工具描述（如果存在）
         """
         try:
-            ***REMOVED*** 检查工具是否存在
+            # 检查工具是否存在
             result = subprocess.run(
                 f"which {tool_name}",
                 shell=True,
@@ -329,7 +329,7 @@ class LayeredActionSpace:
             
             if result.returncode == 0:
                 tool_path = result.stdout.strip()
-                ***REMOVED*** 尝试获取工具描述（通过 man 命令）
+                # 尝试获取工具描述（通过 man 命令）
                 man_result = subprocess.run(
                     f"man {tool_name} 2>/dev/null | head -n 5",
                     shell=True,
@@ -368,27 +368,27 @@ class LayeredActionSpace:
         script_path = self.l3_scripts_dir / script_name
         
         try:
-            ***REMOVED*** 写入脚本文件
+            # 写入脚本文件
             script_path.write_text(script_content, encoding="utf-8")
             
-            ***REMOVED*** 执行脚本
+            # 执行脚本
             result = subprocess.run(
                 f"python {script_path}",
                 shell=True,
                 cwd=str(self.sandbox_dir),
                 capture_output=True,
                 text=True,
-                timeout=60  ***REMOVED*** 60秒超时
+                timeout=60  # 60秒超时
             )
             
             output = result.stdout
             error = result.stderr
             
             if result.returncode == 0:
-                ***REMOVED*** 返回摘要（不返回所有原始数据）
+                # 返回摘要（不返回所有原始数据）
                 summary = f"脚本执行成功: {script_name}\n输出长度: {len(output)} 字符"
                 if output:
-                    ***REMOVED*** 只返回前500字符作为预览
+                    # 只返回前500字符作为预览
                     summary += f"\n输出预览:\n{output[:500]}{'...' if len(output) > 500 else ''}"
                 return summary, script_path
             else:
@@ -399,7 +399,7 @@ class LayeredActionSpace:
             return f"错误：执行脚本失败: {str(e)}", script_path
 
 
-***REMOVED*** 全局分层行动空间实例（延迟初始化）
+# 全局分层行动空间实例（延迟初始化）
 _layered_action_space_instance: Optional[LayeredActionSpace] = None
 
 

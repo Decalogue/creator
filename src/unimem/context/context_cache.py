@@ -58,14 +58,14 @@ class ContextCache:
             ttl_seconds: TTL（秒），如果为 None 则不过期（默认 None）
             enable_lru: 是否启用 LRU 淘汰（默认 True）
         """
-        self.max_size = max(max_size, 1)  ***REMOVED*** 确保至少为 1
+        self.max_size = max(max_size, 1)  # 确保至少为 1
         self.ttl_seconds = ttl_seconds
         self.enable_lru = enable_lru
         
-        ***REMOVED*** 线程安全锁
+        # 线程安全锁
         self._lock = threading.RLock()
         
-        ***REMOVED*** 缓存存储（线程安全）
+        # 缓存存储（线程安全）
         self._cache: Dict[str, CacheEntry] = {}
         
         logger.info(f"ContextCache initialized: max_size={self.max_size}, ttl={ttl_seconds}")
@@ -101,7 +101,7 @@ class ContextCache:
             if not entry:
                 return None
             
-            ***REMOVED*** 检查是否过期
+            # 检查是否过期
             if self.ttl_seconds:
                 age = (datetime.now() - entry.created_at).total_seconds()
                 if age > self.ttl_seconds:
@@ -109,7 +109,7 @@ class ContextCache:
                     logger.debug(f"Cache entry expired: {key}")
                     return None
             
-            ***REMOVED*** 记录访问
+            # 记录访问
             entry.access()
             return entry.value
     
@@ -135,11 +135,11 @@ class ContextCache:
         key = self._generate_key(query, levels)
         
         with self._lock:
-            ***REMOVED*** 检查是否需要淘汰
+            # 检查是否需要淘汰
             if len(self._cache) >= self.max_size and key not in self._cache:
                 self._evict()
             
-            ***REMOVED*** 创建缓存条目
+            # 创建缓存条目
             entry = CacheEntry(
                 key=key,
                 value=context,
@@ -155,7 +155,7 @@ class ContextCache:
             return
         
         if self.enable_lru:
-            ***REMOVED*** LRU 策略：淘汰最久未访问的
+            # LRU 策略：淘汰最久未访问的
             lru_key = min(
                 self._cache.keys(),
                 key=lambda k: self._cache[k].last_accessed or self._cache[k].created_at
@@ -163,7 +163,7 @@ class ContextCache:
             del self._cache[lru_key]
             logger.debug(f"Evicted LRU entry: {lru_key}")
         else:
-            ***REMOVED*** FIFO 策略：淘汰最早创建的
+            # FIFO 策略：淘汰最早创建的
             fifo_key = min(
                 self._cache.keys(),
                 key=lambda k: self._cache[k].created_at

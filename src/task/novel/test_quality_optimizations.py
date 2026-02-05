@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 测试质量优化功能
 包括：字数控制、质量问题、节奏和悬念优化
@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-***REMOVED*** 添加项目根目录到路径
+# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -46,7 +46,7 @@ def test_quality_optimizations(
     logger.info("开始测试质量优化功能")
     logger.info("=" * 80)
     
-    ***REMOVED*** 确定测试标题（用于输出目录）
+    # 确定测试标题（用于输出目录）
     if test_title is None:
         test_title = novel_title
     
@@ -56,9 +56,9 @@ def test_quality_optimizations(
     logger.info(f"目标章节数: {target_chapters}, 每章目标字数: {words_per_chapter}")
     logger.info("")
     
-    ***REMOVED*** 选择LLM客户端（可通过环境变量或参数控制）
+    # 选择LLM客户端（可通过环境变量或参数控制）
     import os
-    llm_model = os.getenv("NOVEL_LLM_MODEL", "gemini_3_flash")  ***REMOVED*** 默认使用gemini_3_flash（基于对比测试结果）
+    llm_model = os.getenv("NOVEL_LLM_MODEL", "gemini_3_flash")  # 默认使用gemini_3_flash（基于对比测试结果）
     
     if llm_model == "gemini_3_flash":
         from llm.chat import gemini_3_flash
@@ -77,17 +77,17 @@ def test_quality_optimizations(
         llm_client = deepseek_v3_2
         logger.info(f"使用LLM模型: deepseek_v3_2 (默认)")
     
-    ***REMOVED*** 创建创作器（使用test_title作为输出目录，novel_title作为小说标题）
+    # 创建创作器（使用test_title作为输出目录，novel_title作为小说标题）
     creator = ReactNovelCreator(
-        novel_title=novel_title,  ***REMOVED*** 小说标题用于创作内容
-        output_dir=f"task/novel/outputs/{test_title}",  ***REMOVED*** 测试标题用于输出目录
+        novel_title=novel_title,  # 小说标题用于创作内容
+        output_dir=f"task/novel/outputs/{test_title}",  # 测试标题用于输出目录
         enable_quality_check=True,
         enable_creative_context=True,
         llm_client=llm_client
     )
     
     try:
-        ***REMOVED*** 创作小说
+        # 创作小说
         result = creator.create_novel(
             genre=genre,
             theme=theme,
@@ -101,7 +101,7 @@ def test_quality_optimizations(
         logger.info("测试完成！")
         logger.info("=" * 80)
         
-        ***REMOVED*** 输出质量统计
+        # 输出质量统计
         quality_tracker = creator.metadata.get("quality_tracker", {})
         quality_history = quality_tracker.get("chapter_quality_history", [])
         
@@ -110,7 +110,7 @@ def test_quality_optimizations(
             logger.info("📊 质量统计:")
             logger.info(f"  总章节数: {len(quality_history)}")
             
-            ***REMOVED*** 字数控制统计
+            # 字数控制统计
             avg_word_control = sum(m.get("word_control_score", 0) for m in quality_history) / len(quality_history)
             avg_words = sum(m.get("word_count", 0) for m in quality_history) / len(quality_history)
             target_words = quality_history[0].get("target_words", words_per_chapter)
@@ -118,12 +118,12 @@ def test_quality_optimizations(
             logger.info(f"  平均字数控制得分: {avg_word_control:.2f} (满分1.0)")
             logger.info(f"  平均字数: {avg_words:.0f}字 (目标: {target_words}字)")
             
-            ***REMOVED*** 质量问题统计
+            # 质量问题统计
             total_issues = sum(m.get("quality_issues", 0) for m in quality_history)
             avg_issues = total_issues / len(quality_history)
             logger.info(f"  平均质量问题数: {avg_issues:.2f}个/章")
             
-            ***REMOVED*** 阶段性质量检查
+            # 阶段性质量检查
             periodic_checks = creator.metadata.get("periodic_quality_checks", [])
             if periodic_checks:
                 logger.info("")
@@ -148,7 +148,7 @@ def test_quality_optimizations(
 if __name__ == "__main__":
     import random
     
-    ***REMOVED*** 创意小说标题和主题库
+    # 创意小说标题和主题库
     creative_novels = [
         {
             "title": "时间碎片收集者",
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    ***REMOVED*** 如果指定了--random或所有参数都未指定，随机选择一个创意小说
+    # 如果指定了--random或所有参数都未指定，随机选择一个创意小说
     if args.random or (args.novel_title is None and args.genre is None and args.theme is None):
         selected = random.choice(creative_novels)
         novel_title = args.novel_title or selected["title"]
@@ -221,12 +221,12 @@ if __name__ == "__main__":
         theme = args.theme or selected["theme"]
         logger.info(f"🎲 随机选择创意小说: 《{novel_title}》({genre} - {theme})")
     else:
-        ***REMOVED*** 使用用户指定的参数，缺失的用默认值
+        # 使用用户指定的参数，缺失的用默认值
         novel_title = args.novel_title or "创意小说"
         genre = args.genre or "都市"
         theme = args.theme or "系统文、打脸装逼"
     
-    ***REMOVED*** 测试标题默认使用小说标题
+    # 测试标题默认使用小说标题
     test_title = args.title or novel_title
     
     test_quality_optimizations(

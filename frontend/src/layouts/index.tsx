@@ -88,7 +88,7 @@ export default function Layout() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '***REMOVED***fff',
+                color: '#fff',
                 fontSize: 16,
               }}
             >

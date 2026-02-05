@@ -1,10 +1,10 @@
-***REMOVED*** OpenAI 库流式输出（stream=True）机制说明
+# OpenAI 库流式输出（stream=True）机制说明
 
 针对 `client.chat.completions.create(..., stream=True)`，流式输出的核心逻辑分布在 **OpenAI** 与 **httpx** 两层。
 
 ---
 
-***REMOVED******REMOVED*** 1. 调用入口与参数传递
+## 1. 调用入口与参数传递
 
 **你的代码**（`deepseek.py`）：
 
@@ -12,10 +12,10 @@
 response = client.chat.completions.create(
     model="ep-20251209150604-gxb42",
     messages=messages,
-    stream=True,   ***REMOVED*** 触发流式
+    stream=True,   # 触发流式
     max_tokens=max_new_tokens,
 )
-***REMOVED*** response 实为 Stream[ChatCompletionChunk]，可 for chunk in response 迭代
+# response 实为 Stream[ChatCompletionChunk]，可 for chunk in response 迭代
 ```
 
 **OpenAI 库内部**：
@@ -25,7 +25,7 @@ response = client.chat.completions.create(
 
 ---
 
-***REMOVED******REMOVED*** 2. HTTP 层：httpx 的 `stream=True`
+## 2. HTTP 层：httpx 的 `stream=True`
 
 **位置**：`openai/_base_client.py` 约 982–985 行
 
@@ -44,28 +44,28 @@ response = self._client.send(
 
 ---
 
-***REMOVED******REMOVED*** 3. httpx.Response 的 `iter_bytes()`：字节流迭代
+## 3. httpx.Response 的 `iter_bytes()`：字节流迭代
 
 **位置**：`httpx/_models.py` 约 884–905、935–958 行
 
 ```python
 def iter_bytes(self, chunk_size: int | None = None) -> typing.Iterator[bytes]:
     """ decoded response content 的字节迭代器 """
-    ***REMOVED*** ...
-    for raw_bytes in self.iter_raw():   ***REMOVED*** 实际从 self.stream 读
+    # ...
+    for raw_bytes in self.iter_raw():   # 实际从 self.stream 读
         decoded = decoder.decode(raw_bytes)
         for chunk in chunker.decode(decoded):
             yield chunk
-    ***REMOVED*** ...
+    # ...
 
 def iter_raw(self, chunk_size: int | None = None) -> typing.Iterator[bytes]:
     """ 原始响应体的字节迭代 """
-    ***REMOVED*** ...
-    for raw_stream_bytes in self.stream:   ***REMOVED*** 关键：遍历 response.stream
+    # ...
+    for raw_stream_bytes in self.stream:   # 关键：遍历 response.stream
         self._num_bytes_downloaded += len(raw_stream_bytes)
         for chunk in chunker.decode(raw_stream_bytes):
             yield chunk
-    ***REMOVED*** ...
+    # ...
     self.close()
 ```
 
@@ -77,17 +77,17 @@ def iter_raw(self, chunk_size: int | None = None) -> typing.Iterator[bytes]:
 
 ---
 
-***REMOVED******REMOVED*** 4. OpenAI 的 SSE 解析与 `Stream` 迭代
+## 4. OpenAI 的 SSE 解析与 `Stream` 迭代
 
 **位置**：`openai/_streaming.py`
 
-***REMOVED******REMOVED******REMOVED*** 4.1 `Stream` 类（同步）
+### 4.1 `Stream` 类（同步）
 
 ```python
 class Stream(Generic[_T]):
     def __init__(self, *, cast_to, response: httpx.Response, client):
         self.response = response
-        self._decoder = client._make_sse_decoder()   ***REMOVED*** SSEDecoder
+        self._decoder = client._make_sse_decoder()   # SSEDecoder
         self._iterator = self.__stream__()
 
     def __iter__(self):
@@ -95,16 +95,16 @@ class Stream(Generic[_T]):
             yield item
 
     def _iter_events(self) -> Iterator[ServerSentEvent]:
-        yield from self._decoder.iter_bytes(self.response.iter_bytes())  ***REMOVED*** 关键
+        yield from self._decoder.iter_bytes(self.response.iter_bytes())  # 关键
 
     def __stream__(self) -> Iterator[_T]:
-        ***REMOVED*** ...
-        for sse in self._iter_events():   ***REMOVED*** 遍历 SSE 事件
+        # ...
+        for sse in self._iter_events():   # 遍历 SSE 事件
             if sse.data.startswith("[DONE]"):
                 break
             data = sse.json()
-            ***REMOVED*** 解析 error、thread.* 等
-            yield process_data(data=data, cast_to=cast_to, response=response)  ***REMOVED*** 转为 ChatCompletionChunk
+            # 解析 error、thread.* 等
+            yield process_data(data=data, cast_to=cast_to, response=response)  # 转为 ChatCompletionChunk
         finally:
             response.close()
 ```
@@ -121,7 +121,7 @@ class Stream(Generic[_T]):
 - **字节级**：`httpx.Response.iter_bytes()` → `iter_raw()` → **`self.stream` 的迭代**
 - **事件级**：`SSEDecoder.iter_bytes()` 把字节流切成 SSE 事件，再 `__stream__` 里逐个 `yield` 解析后的 chunk
 
-***REMOVED******REMOVED******REMOVED*** 4.2 `SSEDecoder`：按 SSE 规范切事件
+### 4.2 `SSEDecoder`：按 SSE 规范切事件
 
 **位置**：`openai/_streaming.py` 约 269–371 行
 
@@ -132,7 +132,7 @@ class SSEDecoder:
         for chunk in self._iter_chunks(iterator):
             for raw_line in chunk.splitlines():
                 line = raw_line.decode("utf-8")
-                sse = self.decode(line)   ***REMOVED*** 解析 event/data/id/retry
+                sse = self.decode(line)   # 解析 event/data/id/retry
                 if sse:
                     yield sse
 
@@ -149,15 +149,15 @@ class SSEDecoder:
             yield data
 
     def decode(self, line: str) -> ServerSentEvent | None:
-        ***REMOVED*** 解析 event: / data: / id: / retry:，空行时返回一个 ServerSentEvent
-        ***REMOVED*** 见 https://html.spec.whatwg.org/multipage/server-sent-events.html
+        # 解析 event: / data: / id: / retry:，空行时返回一个 ServerSentEvent
+        # 见 https://html.spec.whatwg.org/multipage/server-sent-events.html
 ```
 
 SSE 的 **事件边界** 是双换行（`\n\n` / `\r\n\r\n` 等）。**`_iter_chunks`** 在拿到字节块后拼 buffer，遇到双换行就 `yield` 一个完整事件，**`decode`** 再拆成 `event`、`data` 等字段。
 
 ---
 
-***REMOVED******REMOVED*** 5. 响应解析时如何返回 `Stream`
+## 5. 响应解析时如何返回 `Stream`
 
 **位置**：`openai/_response.py` 约 141–166 行
 
@@ -165,10 +165,10 @@ SSE 的 **事件边界** 是双换行（`\n\n` / `\r\n\r\n` 等）。**`_iter_ch
 
 ```python
 if self._is_sse_stream:
-    ***REMOVED*** ...
+    # ...
     return self._stream_cls(
         cast_to=extract_stream_chunk_type(self._stream_cls),
-        response=self.http_response,   ***REMOVED*** 原始 httpx.Response
+        response=self.http_response,   # 原始 httpx.Response
         client=cast(Any, self._client),
     )
 ```
@@ -183,7 +183,7 @@ if self._is_sse_stream:
 
 ---
 
-***REMOVED******REMOVED*** 6. 总结：流式输出的控制链
+## 6. 总结：流式输出的控制链
 
 | 层级 | 位置 | 作用 |
 |------|------|------|
@@ -204,7 +204,7 @@ if self._is_sse_stream:
 
 ---
 
-***REMOVED******REMOVED*** 7. 相关源码路径（本机）
+## 7. 相关源码路径（本机）
 
 - **OpenAI**
   - `.../site-packages/openai/_streaming.py`：`Stream`、`AsyncStream`、`SSEDecoder`、`ServerSentEvent`
@@ -217,7 +217,7 @@ if self._is_sse_stream:
 
 ---
 
-***REMOVED******REMOVED*** 8. 与 vLLM 的关系
+## 8. 与 vLLM 的关系
 
 当后端是 **vLLM**（或 swift deploy + vLLM）时，**服务端** 的流式在 vLLM **引擎内部** 实现：通过 **AsyncStream + asyncio.Queue** 每 step 产出 `RequestOutput`，再转成 SSE 通过 HTTP 推给客户端。  
 

@@ -1,6 +1,6 @@
-***REMOVED*** UniMem 系统优化路线图
+# UniMem 系统优化路线图
 
-***REMOVED******REMOVED*** 📋 项目目标
+## 📋 项目目标
 
 将 UniMem 打造成**高稳定性、高性能、生产就绪**的强大记忆系统，具备：
 - ✅ 工业级代码质量（异常处理、线程安全、类型提示）
@@ -10,9 +10,9 @@
 - ✅ 测试覆盖率
 - ✅ 文档完整性
 
-***REMOVED******REMOVED*** 🎯 优化阶段规划
+## 🎯 优化阶段规划
 
-***REMOVED******REMOVED******REMOVED*** 阶段一：核心基础设施 ✅（已完成）
+### 阶段一：核心基础设施 ✅（已完成）
 
 **状态**: ✅ **已完成**
 
@@ -26,13 +26,13 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段二：核心模块优化 ✅（已完成）
+### 阶段二：核心模块优化 ✅（已完成）
 
 **状态**: ✅ **已完成**
 
 **完成内容**:
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 2.1 核心类 (core.py) ✅
+#### 2.1 核心类 (core.py) ✅
 
 **已完成优化**:
 - ✅ 统一异常处理（使用适配器异常体系）
@@ -45,7 +45,7 @@
 
 **实际工作量**: 已完成
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 2.2 类型系统 (types.py) ✅
+#### 2.2 类型系统 (types.py) ✅
 
 **已完成优化**:
 - ✅ 数据类验证（__post_init__ 验证器）
@@ -56,7 +56,7 @@
 
 **实际工作量**: 已完成
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 2.3 配置管理 (config.py) ✅
+#### 2.3 配置管理 (config.py) ✅
 
 **已完成优化**:
 - ✅ 配置验证（validate 方法，类型、范围、格式验证）
@@ -68,13 +68,13 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段三：存储层优化 ✅（已完成）
+### 阶段三：存储层优化 ✅（已完成）
 
 **优先级**: ⚡ **高**
 
 **状态**: ✅ **已完成**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 3.1 存储管理器 (storage/storage_manager.py) ✅
+#### 3.1 存储管理器 (storage/storage_manager.py) ✅
 
 **已完成优化**:
 - ✅ 线程安全（RLock、Lock）
@@ -84,7 +84,7 @@
 - ✅ 连接健康检查
 - ✅ 性能监控（OperationStats）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 3.2 分层存储 (storage/hierarchical/) ✅
+#### 3.2 分层存储 (storage/hierarchical/) ✅
 
 **已完成优化**:
 - ✅ 线程安全（RLock、Lock）
@@ -92,7 +92,7 @@
 - ✅ 性能监控
 - ✅ 输入验证
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 3.3 Redis/Neo4j/Qdrant 客户端 ✅
+#### 3.3 Redis/Neo4j/Qdrant 客户端 ✅
 
 **已完成优化**:
 - ✅ Redis：连接池配置、重试机制、健康检查、代码精简
@@ -103,27 +103,27 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段四：检索层优化 ✅（已完成）
+### 阶段四：检索层优化 ✅（已完成）
 
 **优先级**: ⚡ **高**
 
 **状态**: ✅ **已完成**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 4.1 检索引擎 (retrieval/retrieval_engine.py) ✅
+#### 4.1 检索引擎 (retrieval/retrieval_engine.py) ✅
 
 **已完成优化**:
 - ✅ 参数验证
 - ✅ 统一异常处理
 - ✅ 代码精简（循环优化）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 4.2 检索缓存 (retrieval/retrieval_cache.py) ✅
+#### 4.2 检索缓存 (retrieval/retrieval_cache.py) ✅
 
 **已完成优化**:
 - ✅ 线程安全（RLock）
 - ✅ 参数验证
 - ✅ 代码精简
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 4.3 检索优化器 (retrieval/retrieval_optimizer.py) ✅
+#### 4.3 检索优化器 (retrieval/retrieval_optimizer.py) ✅
 
 **已完成优化**:
 - ✅ 参数验证
@@ -134,20 +134,20 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段五：更新层优化 ✅（已完成）
+### 阶段五：更新层优化 ✅（已完成）
 
 **优先级**: ⚡ **中**
 
 **状态**: ✅ **已完成**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5.1 更新管理器 (update/update_manager.py) ✅
+#### 5.1 更新管理器 (update/update_manager.py) ✅
 
 **已完成优化**:
 - ✅ 统一异常处理
 - ✅ 参数验证
 - ✅ Import 优化
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5.2 涟漪效应 (update/ripple_effect.py) ✅
+#### 5.2 涟漪效应 (update/ripple_effect.py) ✅
 
 **已完成优化**:
 - ✅ 参数验证
@@ -158,20 +158,20 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段六：上下文管理优化 ✅（已完成）
+### 阶段六：上下文管理优化 ✅（已完成）
 
 **优先级**: ⚡ **中**
 
 **状态**: ✅ **已完成**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6.1 上下文管理器 (context/context_manager.py) ✅
+#### 6.1 上下文管理器 (context/context_manager.py) ✅
 
 **已完成优化**:
 - ✅ 参数验证
 - ✅ 统一异常处理
 - ✅ 关键参数保护
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6.2 上下文缓存 (context/context_cache.py) ✅
+#### 6.2 上下文缓存 (context/context_cache.py) ✅
 
 **已完成优化**:
 - ✅ 线程安全（RLock）
@@ -182,20 +182,20 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段七：编排和流程优化 ✅（已完成）
+### 阶段七：编排和流程优化 ✅（已完成）
 
 **优先级**: ⚡ **中低**
 
 **状态**: ✅ **已完成**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 7.1 编排器 (orchestration/orchestrator.py) ✅
+#### 7.1 编排器 (orchestration/orchestrator.py) ✅
 
 **已完成优化**:
 - ✅ 统一异常处理
 - ✅ 参数验证
 - ✅ 线程安全
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 7.2 工作流 (orchestration/workflow.py) ✅
+#### 7.2 工作流 (orchestration/workflow.py) ✅
 
 **已完成优化**:
 - ✅ 数据验证（__post_init__）
@@ -206,20 +206,20 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段八：服务层优化 ✅（已完成）
+### 阶段八：服务层优化 ✅（已完成）
 
 **优先级**: ⚡ **中低**
 
 **状态**: ✅ **已完成**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 8.1 API 服务 (service/server.py, service/api.py) ✅
+#### 8.1 API 服务 (service/server.py, service/api.py) ✅
 
 **已完成优化**:
 - ✅ 参数验证
 - ✅ 统一异常处理
 - ✅ HTTP 状态码规范
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 8.2 服务工具 (service/utils.py) ✅
+#### 8.2 服务工具 (service/utils.py) ✅
 
 **已完成优化**:
 - ✅ 输入验证
@@ -230,13 +230,13 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段九：测试和文档 📚
+### 阶段九：测试和文档 📚
 
 **优先级**: ⚡ **高（贯穿所有阶段）**
 
 **状态**: 🔄 **进行中**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 9.1 单元测试 ✅（部分完成）
+#### 9.1 单元测试 ✅（部分完成）
 
 **已完成**:
 - ✅ **test_types.py**: 类型系统全面测试（数据验证、序列化）
@@ -257,7 +257,7 @@
 
 **目标**: 核心模块测试覆盖率 > 80%
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 9.2 文档
+#### 9.2 文档
 
 **优化目标**:
 - [ ] API 文档完善
@@ -269,13 +269,13 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 阶段十：监控和可观测性 ✅（已完成）
+### 阶段十：监控和可观测性 ✅（已完成）
 
 **优先级**: ⚡ **中**
 
 **状态**: ✅ **已完成**
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 10.1 日志系统 ✅
+#### 10.1 日志系统 ✅
 
 **已完成**:
 - ✅ 结构化日志（JSON 格式输出）
@@ -283,7 +283,7 @@
 - ✅ 结构化日志记录器（带上下文字段）
 - ✅ 操作日志记录（自动记录操作耗时和状态）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 10.2 指标收集 ✅
+#### 10.2 指标收集 ✅
 
 **已完成**:
 - ✅ 指标收集器（MetricsCollector）
@@ -293,7 +293,7 @@
 - ✅ 错误率统计（已集成到 core.py）
 - ✅ 线程安全的指标收集
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 10.3 健康监控 ✅
+#### 10.3 健康监控 ✅
 
 **已完成**:
 - ✅ 健康监控器（HealthMonitor）
@@ -303,7 +303,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 📅 实施时间表
+## 📅 实施时间表
 
 | 阶段 | 预计时间 | 优先级 | 状态 |
 |------|----------|--------|------|
@@ -322,9 +322,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 🎯 下一步行动
+## 🎯 下一步行动
 
-***REMOVED******REMOVED******REMOVED*** 已完成核心优化（阶段一至阶段八）✅
+### 已完成核心优化（阶段一至阶段八）✅
 
 所有核心模块已优化完成，包括：
 - ✅ 适配器层（异常处理、线程安全、连接池、重试机制）
@@ -336,7 +336,7 @@
 - ✅ 编排层（数据验证、依赖检测）
 - ✅ 服务层（参数验证、统一异常）
 
-***REMOVED******REMOVED******REMOVED*** 后续建议
+### 后续建议
 
 1. **阶段九：测试和文档**（高优先级）
    - 单元测试覆盖率 > 80%
@@ -353,7 +353,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 📝 优化原则
+## 📝 优化原则
 
 1. **稳定性优先**: 确保系统在异常情况下也能正常工作
 2. **性能优化**: 关注关键路径的性能
@@ -363,7 +363,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 🔍 质量检查清单
+## 🔍 质量检查清单
 
 每个模块优化完成后，检查：
 

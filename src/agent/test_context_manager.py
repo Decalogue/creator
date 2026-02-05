@@ -1,11 +1,11 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 测试上下文管理器
 """
 import sys
 from pathlib import Path
 
-***REMOVED*** 添加项目根目录到路径
+# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -20,7 +20,7 @@ def test_tool_result_offloading():
     
     manager = get_context_manager()
     
-    ***REMOVED*** 测试短结果（不卸载）
+    # 测试短结果（不卸载）
     short_result = "计算结果：2 + 3 = 5"
     result, file_path = manager.offload_tool_result(
         tool_name="calculator",
@@ -34,8 +34,8 @@ def test_tool_result_offloading():
     print(f"  文件路径: {file_path}")
     print()
     
-    ***REMOVED*** 测试长结果（卸载）
-    long_result = "这是一个很长的工具输出结果。\n" * 100  ***REMOVED*** 生成长结果
+    # 测试长结果（卸载）
+    long_result = "这是一个很长的工具输出结果。\n" * 100  # 生成长结果
     result, file_path = manager.offload_tool_result(
         tool_name="get_weather",
         tool_input={"city": "北京"},
@@ -61,7 +61,7 @@ def test_chat_history_offloading():
     
     manager = get_context_manager()
     
-    ***REMOVED*** 模拟对话历史
+    # 模拟对话历史
     conversation_history = [
         {"role": "system", "content": "你是一个助手"},
         {"role": "user", "content": "计算 2 + 3"},
@@ -88,7 +88,7 @@ def test_context_length_estimation():
     
     manager = get_context_manager()
     
-    ***REMOVED*** 测试短对话
+    # 测试短对话
     short_history = [
         {"role": "user", "content": "你好"},
         {"role": "assistant", "content": "你好！"},
@@ -100,11 +100,11 @@ def test_context_length_estimation():
     print(f"  需要缩减: {needs_reduction}")
     print()
     
-    ***REMOVED*** 测试长对话（模拟）
+    # 测试长对话（模拟）
     long_history = [
         {"role": "user", "content": "这是一个很长的用户消息。" * 1000},
         {"role": "assistant", "content": "这是一个很长的助手回复。" * 1000},
-    ] * 50  ***REMOVED*** 50轮对话
+    ] * 50  # 50轮对话
     
     tokens, needs_reduction = manager.estimate_context_length(long_history, threshold=128000)
     print(f"长对话:")
@@ -121,7 +121,7 @@ def test_compact_tool_call():
     
     manager = get_context_manager()
     
-    ***REMOVED*** 测试有文件路径的情况
+    # 测试有文件路径的情况
     long_output = "这是一个很长的工具输出。" * 100
     file_path = manager.output_dir / "tool_results" / "test_output.txt"
     file_path.write_text(long_output, encoding="utf-8")
@@ -150,12 +150,12 @@ def test_compaction():
     
     manager = get_context_manager()
     
-    ***REMOVED*** 创建包含长工具结果的对话历史
+    # 创建包含长工具结果的对话历史
     conversation_history = [
         {"role": "system", "content": "你是一个助手"},
         {"role": "user", "content": "查询天气"},
         {"role": "assistant", "content": "我来查询"},
-        {"role": "tool", "content": "这是一个很长的工具输出结果。\n" * 100},  ***REMOVED*** 长结果
+        {"role": "tool", "content": "这是一个很长的工具输出结果。\n" * 100},  # 长结果
         {"role": "assistant", "content": "查询完成"},
         {"role": "user", "content": "再查询一次"},
         {"role": "assistant", "content": "好的"},
@@ -171,7 +171,7 @@ def test_compaction():
     print(f"移除的记录: {len(removed_records)} 条")
     print()
     
-    ***REMOVED*** 检查紧凑化结果
+    # 检查紧凑化结果
     for i, msg in enumerate(compacted_history):
         if msg.get("compacted"):
             print(f"消息 {i+1}: [已紧凑化] {msg.get('content', '')[:100]}...")
@@ -189,7 +189,7 @@ def test_summarization_with_dump():
     
     manager = get_context_manager()
     
-    ***REMOVED*** 创建对话历史
+    # 创建对话历史
     conversation_history = [
         {"role": "system", "content": "你是一个助手"},
         {"role": "user", "content": "计算 2 + 3"},

@@ -93,18 +93,18 @@ class ToolRegistry:
         if tool is None:
             raise ValueError(f"Function '{name}' not found")
         
-        ***REMOVED*** 如果 arguments 是字符串，解析为字典
+        # 如果 arguments 是字符串，解析为字典
         if isinstance(arguments, str):
             try:
                 arguments = json.loads(arguments)
             except json.JSONDecodeError:
                 raise ValueError(f"Invalid JSON arguments: {arguments}")
         
-        ***REMOVED*** 验证参数
+        # 验证参数
         if not tool.validate_arguments(arguments):
             raise ValueError(f"Invalid arguments for function '{name}': {arguments}")
         
-        ***REMOVED*** 执行函数
+        # 执行函数
         return tool.execute(arguments)
     
     def list_tools(self) -> List[str]:
@@ -112,5 +112,5 @@ class ToolRegistry:
         return list(self._tools.keys())
 
 
-***REMOVED*** 全局函数注册表
+# 全局函数注册表
 default_registry = ToolRegistry()

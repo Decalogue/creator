@@ -40,7 +40,7 @@ export const OrchestrationFlow: React.FC<OrchestrationFlowProps> = ({
   return (
     <div
       style={{
-        background: 'linear-gradient(135deg, ***REMOVED***0f0f1a 0%, ***REMOVED***1a1a2e 100%)',
+        background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%)',
         borderRadius: 16,
         border: `1px solid ${T.borderStrong}`,
         overflow: 'hidden',
@@ -69,7 +69,7 @@ export const OrchestrationFlow: React.FC<OrchestrationFlowProps> = ({
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  background: '***REMOVED***22c55e',
+                  background: '#22c55e',
                   boxShadow: '0 0 8px rgba(34,197,94,0.6)',
                 }}
               />
@@ -85,10 +85,10 @@ export const OrchestrationFlow: React.FC<OrchestrationFlowProps> = ({
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: '***REMOVED***22c55e',
+              background: '#22c55e',
             }}
           />
-          <span style={{ fontSize: 11, color: '***REMOVED***22c55e', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: 11, color: '#22c55e', fontFamily: 'monospace' }}>
             系统正常
           </span>
         </div>
@@ -225,14 +225,14 @@ export const OrchestrationFlow: React.FC<OrchestrationFlowProps> = ({
                       width: 20,
                       height: 20,
                       borderRadius: '50%',
-                      background: '***REMOVED***22c55e',
+                      background: '#22c55e',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    <CheckCircleOutlined style={{ fontSize: 10, color: '***REMOVED***fff' }} />
+                    <CheckCircleOutlined style={{ fontSize: 10, color: '#fff' }} />
                   </div>
                 )}
               </div>
@@ -292,17 +292,17 @@ export const OrchestrationFlow: React.FC<OrchestrationFlowProps> = ({
           <div style={{ fontSize: 10, color: T.textDim }}>运行中</div>
         </div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: T.fontWeightBold, color: '***REMOVED***22c55e' }}>{doneCount}</div>
+          <div style={{ fontSize: 15, fontWeight: T.fontWeightBold, color: '#22c55e' }}>{doneCount}</div>
           <div style={{ fontSize: 10, color: T.textDim }}>已完成</div>
         </div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: T.fontWeightBold, color: '***REMOVED***3b82f6' }}>
+          <div style={{ fontSize: 15, fontWeight: T.fontWeightBold, color: '#3b82f6' }}>
             {agents.length}
           </div>
           <div style={{ fontSize: 10, color: T.textDim }}>智能体</div>
         </div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: T.fontWeightBold, color: '***REMOVED***a78bfa' }}>—</div>
+          <div style={{ fontSize: 15, fontWeight: T.fontWeightBold, color: '#a78bfa' }}>—</div>
           <div style={{ fontSize: 10, color: T.textDim }}>平均效率</div>
         </div>
       </div>

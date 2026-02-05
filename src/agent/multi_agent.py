@@ -17,7 +17,7 @@ import logging
 try:
     from orchestrator.react import ReActAgent
 except ImportError:
-    ***REMOVED*** 如果 orchestrator.react 不可用，定义占位类
+    # 如果 orchestrator.react 不可用，定义占位类
     class ReActAgent:
         def __init__(self, *args, **kwargs):
             pass
@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 class CollaborationMode(Enum):
     """协作模式"""
-    TASK_DELEGATION = "TASK_DELEGATION"  ***REMOVED*** 任务委托
-    INFO_SYNC = "INFO_SYNC"  ***REMOVED*** 信息同步
+    TASK_DELEGATION = "TASK_DELEGATION"  # 任务委托
+    INFO_SYNC = "INFO_SYNC"  # 信息同步
 
 
 class SubAgent:
@@ -70,23 +70,23 @@ class SubAgent:
         self.sandbox_dir = sandbox_dir
         self.mode = mode
         
-        ***REMOVED*** 创建独立的 ReActAgent
+        # 创建独立的 ReActAgent
         self.agent = ReActAgent(
             max_iterations=10,
             enable_context_offloading=True
         )
         
-        ***REMOVED*** 设置共享沙箱
+        # 设置共享沙箱
         if sandbox_dir:
             self.agent.layered_action_space = get_layered_action_space(sandbox_dir)
         
-        ***REMOVED*** 构建系统提示词
+        # 构建系统提示词
         self.system_prompt = self._build_system_prompt()
     
     def _build_system_prompt(self) -> str:
         """构建系统提示词"""
         if self.mode == CollaborationMode.TASK_DELEGATION:
-            ***REMOVED*** 任务委托模式：简短指令，独立上下文
+            # 任务委托模式：简短指令，独立上下文
             prompt = f"""你是一个 Sub-Agent，负责执行以下任务：
 
 任务描述：
@@ -102,7 +102,7 @@ class SubAgent:
 使用 `submit_result` 工具提交结果，确保结果严格符合 Schema。
 """
         else:
-            ***REMOVED*** 信息同步模式：完整历史上下文
+            # 信息同步模式：完整历史上下文
             prompt = f"""你是一个 Sub-Agent，负责执行以下任务：
 
 任务描述：
@@ -128,37 +128,37 @@ class SubAgent:
         Returns:
             (是否成功, 结果)
         """
-        ***REMOVED*** 构建初始消息
+        # 构建初始消息
         messages = [
             {"role": "system", "content": self.system_prompt}
         ]
         
-        ***REMOVED*** 如果是信息同步模式，添加共享上下文
+        # 如果是信息同步模式，添加共享上下文
         if self.mode == CollaborationMode.INFO_SYNC and self.shared_context:
             messages.append({
                 "role": "user",
                 "content": f"以下是 Master Agent 的完整历史上下文：\n{json.dumps(self.shared_context, ensure_ascii=False, indent=2)}"
             })
         
-        ***REMOVED*** 添加任务描述
+        # 添加任务描述
         messages.append({
             "role": "user",
             "content": f"请执行任务：{self.task_description}"
         })
         
-        ***REMOVED*** 运行 Agent
+        # 运行 Agent
         try:
             result = self.agent.run(
                 query=f"执行任务：{self.task_description}",
                 verbose=verbose
             )
             
-            ***REMOVED*** 验证输出 Schema（如果指定）
+            # 验证输出 Schema（如果指定）
             if self.output_schema and self.mode == CollaborationMode.TASK_DELEGATION:
-                ***REMOVED*** 尝试解析结果
+                # 尝试解析结果
                 try:
                     parsed_result = json.loads(result) if isinstance(result, str) else result
-                    ***REMOVED*** 简单验证：检查是否包含必需的字段
+                    # 简单验证：检查是否包含必需的字段
                     if isinstance(parsed_result, dict) and isinstance(self.output_schema, dict):
                         required_fields = self.output_schema.get("required", [])
                         for field in required_fields:
@@ -197,19 +197,19 @@ class MasterAgent:
         self.sandbox_dir = sandbox_dir or Path("agent/sandbox")
         self.sandbox_dir.mkdir(parents=True, exist_ok=True)
         
-        ***REMOVED*** 创建 Master Agent 的 ReActAgent
+        # 创建 Master Agent 的 ReActAgent
         self.agent = ReActAgent(
             max_iterations=10,
             enable_context_offloading=True
         )
         
-        ***REMOVED*** 设置共享沙箱
+        # 设置共享沙箱
         self.agent.layered_action_space = get_layered_action_space(self.sandbox_dir)
         
-        ***REMOVED*** Sub-Agent 列表
+        # Sub-Agent 列表
         self.sub_agents: Dict[str, SubAgent] = {}
         
-        ***REMOVED*** 对话历史（用于信息同步）
+        # 对话历史（用于信息同步）
         self.conversation_history: List[Dict[str, Any]] = []
     
     def create_sub_agent(
@@ -236,12 +236,12 @@ class MasterAgent:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             agent_id = f"sub_{timestamp}"
         
-        ***REMOVED*** 准备共享上下文（用于信息同步模式）
+        # 准备共享上下文（用于信息同步模式）
         shared_context = None
         if mode == CollaborationMode.INFO_SYNC:
             shared_context = self.conversation_history.copy()
         
-        ***REMOVED*** 创建 Sub-Agent
+        # 创建 Sub-Agent
         sub_agent = SubAgent(
             agent_id=agent_id,
             task_description=task_description,
@@ -277,17 +277,17 @@ class MasterAgent:
         Returns:
             (是否成功, 结果)
         """
-        ***REMOVED*** 创建 Sub-Agent（任务委托模式）
+        # 创建 Sub-Agent（任务委托模式）
         sub_agent = self.create_sub_agent(
             task_description=task_description,
             output_schema=output_schema,
             mode=CollaborationMode.TASK_DELEGATION
         )
         
-        ***REMOVED*** 运行 Sub-Agent
+        # 运行 Sub-Agent
         success, result = sub_agent.run(verbose=verbose)
         
-        ***REMOVED*** 记录结果
+        # 记录结果
         if success:
             logger.info(f"任务委托成功: {sub_agent.agent_id}")
         else:
@@ -313,17 +313,17 @@ class MasterAgent:
         Returns:
             (是否成功, 结果)
         """
-        ***REMOVED*** 创建 Sub-Agent（信息同步模式）
+        # 创建 Sub-Agent（信息同步模式）
         sub_agent = self.create_sub_agent(
             task_description=task_description,
-            output_schema=None,  ***REMOVED*** 信息同步模式不需要严格的 Schema
+            output_schema=None,  # 信息同步模式不需要严格的 Schema
             mode=CollaborationMode.INFO_SYNC
         )
         
-        ***REMOVED*** 运行 Sub-Agent
+        # 运行 Sub-Agent
         success, result = sub_agent.run(verbose=verbose)
         
-        ***REMOVED*** 记录结果
+        # 记录结果
         if success:
             logger.info(f"信息同步任务成功: {sub_agent.agent_id}")
         else:
@@ -342,16 +342,16 @@ class MasterAgent:
         Returns:
             最终答案
         """
-        ***REMOVED*** 运行 Master Agent
+        # 运行 Master Agent
         result = self.agent.run(query=query, verbose=verbose)
         
-        ***REMOVED*** 更新对话历史
+        # 更新对话历史
         self.conversation_history.extend(self.agent.conversation_history)
         
         return result
 
 
-***REMOVED*** 全局 Master Agent 实例（延迟初始化）
+# 全局 Master Agent 实例（延迟初始化）
 _master_agent_instance: Optional[MasterAgent] = None
 
 

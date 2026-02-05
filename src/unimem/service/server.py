@@ -17,14 +17,14 @@ from .api import router, set_unimem_instance
 from ..core import UniMem
 from ..config import UniMemConfig
 
-***REMOVED*** 配置日志
+# 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-***REMOVED*** 创建 FastAPI 应用
+# 创建 FastAPI 应用
 app = FastAPI(
     title="UniMem Service",
     description="UniMem HTTP API Service - 提供记忆系统的 REST API 接口",
@@ -33,16 +33,16 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-***REMOVED*** 添加 CORS 中间件（允许跨域请求）
+# 添加 CORS 中间件（允许跨域请求）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  ***REMOVED*** 生产环境应该设置具体的域名
+    allow_origins=["*"],  # 生产环境应该设置具体的域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-***REMOVED*** 注册路由
+# 注册路由
 app.include_router(router)
 
 
@@ -56,15 +56,15 @@ def load_config(config_file: Optional[str] = None):
     Returns:
         (config_dict, storage_backend, graph_backend, vector_backend)
     """
-    ***REMOVED*** 1. 从环境变量获取配置文件路径
+    # 1. 从环境变量获取配置文件路径
     if not config_file:
         config_file = os.getenv("UNIMEM_CONFIG_FILE")
     
-    ***REMOVED*** 2. 使用 UniMemConfig 加载配置（会自动从环境变量读取）
+    # 2. 使用 UniMemConfig 加载配置（会自动从环境变量读取）
     config_obj = UniMemConfig(config_file=config_file)
     config_dict = config_obj.to_dict()
     
-    ***REMOVED*** 3. 从环境变量获取后端配置（UniMemConfig已经处理了，但我们还需要返回）
+    # 3. 从环境变量获取后端配置（UniMemConfig已经处理了，但我们还需要返回）
     storage_backend = os.getenv("UNIMEM_STORAGE_BACKEND", "redis")
     graph_backend = os.getenv("UNIMEM_GRAPH_BACKEND", "neo4j")
     vector_backend = os.getenv("UNIMEM_VECTOR_BACKEND", "qdrant")
@@ -80,7 +80,7 @@ async def startup_event():
         logger.info("Starting UniMem Service...")
         logger.info("=" * 60)
         
-        ***REMOVED*** 加载配置
+        # 加载配置
         config_file = os.getenv("UNIMEM_CONFIG_FILE")
         config_dict, storage_backend, graph_backend, vector_backend = load_config(config_file)
         
@@ -89,7 +89,7 @@ async def startup_event():
         logger.info(f"  Graph backend: {graph_backend}")
         logger.info(f"  Vector backend: {vector_backend}")
         
-        ***REMOVED*** 初始化 UniMem
+        # 初始化 UniMem
         logger.info("Initializing UniMem...")
         unimem = UniMem(
             config=config_dict,
@@ -98,7 +98,7 @@ async def startup_event():
             vector_backend=vector_backend,
         )
         
-        ***REMOVED*** 设置全局实例
+        # 设置全局实例
         set_unimem_instance(unimem)
         
         logger.info("=" * 60)
@@ -110,7 +110,7 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to initialize UniMem: {e}", exc_info=True)
         logger.error("Service will start but UniMem operations will fail")
-        ***REMOVED*** 不抛出异常，让服务启动（可以处理健康检查等请求）
+        # 不抛出异常，让服务启动（可以处理健康检查等请求）
 
 
 @app.on_event("shutdown")
@@ -161,11 +161,11 @@ def main():
     
     args = parser.parse_args()
     
-    ***REMOVED*** 设置配置文件环境变量（如果提供）
+    # 设置配置文件环境变量（如果提供）
     if args.config:
         os.environ["UNIMEM_CONFIG_FILE"] = args.config
     
-    ***REMOVED*** 启动服务
+    # 启动服务
     uvicorn.run(
         app,
         host=args.host,

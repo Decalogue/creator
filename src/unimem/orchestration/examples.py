@@ -22,7 +22,7 @@ def create_retain_recall_reflect_workflow(orchestrator: Orchestrator) -> Workflo
     
     展示基本的串行执行流程
     """
-    ***REMOVED*** 1. RETAIN 步骤
+    # 1. RETAIN 步骤
     experience = Experience(
         content="用户喜欢在早上喝咖啡，并且偏爱深度烘焙的豆子。",
         timestamp=datetime.now(),
@@ -36,7 +36,7 @@ def create_retain_recall_reflect_workflow(orchestrator: Orchestrator) -> Workflo
         context=context,
     )
     
-    ***REMOVED*** 2. RECALL 步骤（依赖 RETAIN）
+    # 2. RECALL 步骤（依赖 RETAIN）
     recall_step = orchestrator.create_recall_step(
         step_id="recall_1",
         query="用户的早餐偏好是什么？",
@@ -45,7 +45,7 @@ def create_retain_recall_reflect_workflow(orchestrator: Orchestrator) -> Workflo
         dependencies=["retain_1"],
     )
     
-    ***REMOVED*** 3. REFLECT 步骤（依赖 RECALL）
+    # 3. REFLECT 步骤（依赖 RECALL）
     task = Task(
         id="task_001",
         description="更新用户画像",
@@ -59,7 +59,7 @@ def create_retain_recall_reflect_workflow(orchestrator: Orchestrator) -> Workflo
         dependencies=["recall_1"],
     )
     
-    ***REMOVED*** 创建工作流
+    # 创建工作流
     workflow = Workflow(
         id="retain_recall_reflect",
         name="典型的记忆操作流程",
@@ -78,7 +78,7 @@ def create_parallel_retrieval_workflow(orchestrator: Orchestrator) -> Workflow:
     """
     context = Context(session_id="session_001", user_id="user_123")
     
-    ***REMOVED*** 多个并行的 RECALL 步骤
+    # 多个并行的 RECALL 步骤
     recall_steps = [
         orchestrator.create_recall_step(
             step_id=f"recall_{i}",
@@ -93,7 +93,7 @@ def create_parallel_retrieval_workflow(orchestrator: Orchestrator) -> Workflow:
         ])
     ]
     
-    ***REMOVED*** 合并结果的步骤（依赖所有检索步骤）
+    # 合并结果的步骤（依赖所有检索步骤）
     def merge_results(ctx: Dict, unimem):
         """合并多个检索结果"""
         all_results = []
@@ -102,7 +102,7 @@ def create_parallel_retrieval_workflow(orchestrator: Orchestrator) -> Workflow:
             if result:
                 all_results.extend(result)
         
-        ***REMOVED*** 去重
+        # 去重
         seen_ids = set()
         unique_results = []
         for r in all_results:
@@ -138,7 +138,7 @@ def create_conditional_workflow(orchestrator: Orchestrator) -> Workflow:
     """
     context = Context(session_id="session_001", user_id="user_123")
     
-    ***REMOVED*** 1. 检索步骤
+    # 1. 检索步骤
     recall_step = orchestrator.create_recall_step(
         step_id="recall_check",
         query="用户是否有咖啡偏好记录？",
@@ -146,13 +146,13 @@ def create_conditional_workflow(orchestrator: Orchestrator) -> Workflow:
         top_k=1,
     )
     
-    ***REMOVED*** 2. 条件步骤：如果有记录则更新，否则创建
+    # 2. 条件步骤：如果有记录则更新，否则创建
     def update_or_create_func(ctx: Dict, unimem):
         """根据检索结果决定更新或创建"""
         recall_result = ctx.get("step_recall_check_result", [])
         
         if recall_result:
-            ***REMOVED*** 有记录，执行更新
+            # 有记录，执行更新
             task = Task(
                 id="task_update",
                 description="更新现有记录",
@@ -161,7 +161,7 @@ def create_conditional_workflow(orchestrator: Orchestrator) -> Workflow:
             memories = [r.memory for r in recall_result if hasattr(r, 'memory')]
             return unimem.reflect(memories, task)
         else:
-            ***REMOVED*** 无记录，创建新记录
+            # 无记录，创建新记录
             experience = Experience(
                 content="用户喜欢在早上喝咖啡",
                 timestamp=datetime.now(),
@@ -169,7 +169,7 @@ def create_conditional_workflow(orchestrator: Orchestrator) -> Workflow:
             )
             return unimem.retain(experience, context)
     
-    ***REMOVED*** 条件：检查是否有检索结果
+    # 条件：检查是否有检索结果
     def has_results(ctx: Dict) -> bool:
         result = ctx.get("step_recall_check_result", [])
         return len(result) > 0
@@ -179,7 +179,7 @@ def create_conditional_workflow(orchestrator: Orchestrator) -> Workflow:
         name="更新或创建",
         func=update_or_create_func,
         dependencies=["recall_check"],
-        condition=has_results,  ***REMOVED*** 只在有结果时执行
+        condition=has_results,  # 只在有结果时执行
     )
     
     create_step = orchestrator.create_custom_step(
@@ -194,7 +194,7 @@ def create_conditional_workflow(orchestrator: Orchestrator) -> Workflow:
             context
         ),
         dependencies=["recall_check"],
-        condition=lambda ctx: len(ctx.get("step_recall_check_result", [])) == 0,  ***REMOVED*** 只在无结果时执行
+        condition=lambda ctx: len(ctx.get("step_recall_check_result", [])) == 0,  # 只在无结果时执行
     )
     
     workflow = Workflow(

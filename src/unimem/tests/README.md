@@ -1,8 +1,8 @@
-***REMOVED*** UniMem 测试说明
+# UniMem 测试说明
 
-***REMOVED******REMOVED*** 环境要求
+## 环境要求
 
-***REMOVED******REMOVED******REMOVED*** 1. Conda 环境
+### 1. Conda 环境
 
 运行测试前需要激活 `seeme` 环境：
 
@@ -10,11 +10,11 @@
 conda activate seeme
 ```
 
-***REMOVED******REMOVED******REMOVED*** 2. Qdrant 向量数据库
+### 2. Qdrant 向量数据库
 
 **Qdrant 不需要注册账号！** 可以使用以下方式：
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 方式一：本地运行（推荐，无需注册）
+#### 方式一：本地运行（推荐，无需注册）
 
 使用 Docker 运行 Qdrant：
 
@@ -28,84 +28,84 @@ docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 
-***REMOVED*** 使用内存模式（不需要实际服务）
+# 使用内存模式（不需要实际服务）
 client = QdrantClient(":memory:")
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 方式二：Qdrant Cloud（可选，需要注册）
+#### 方式二：Qdrant Cloud（可选，需要注册）
 
 如果需要使用云端服务，可以注册 [Qdrant Cloud](https://cloud.qdrant.io/) 账号，但这不是必需的。
 
 **对于测试，推荐使用本地 Docker 方式，无需注册任何账号。**
 
-***REMOVED******REMOVED*** 运行测试
+## 运行测试
 
-***REMOVED******REMOVED******REMOVED*** 方式一：自动运行脚本（推荐）
+### 方式一：自动运行脚本（推荐）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 使用 Bash 脚本
+#### 使用 Bash 脚本
 
 ```bash
-***REMOVED*** 给脚本添加执行权限
+# 给脚本添加执行权限
 chmod +x tests/run_tests.sh
 
-***REMOVED*** 运行测试（会自动激活 seeme 环境）
+# 运行测试（会自动激活 seeme 环境）
 ./tests/run_tests.sh
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 使用 Python 脚本
+#### 使用 Python 脚本
 
 ```bash
-***REMOVED*** 给脚本添加执行权限
+# 给脚本添加执行权限
 chmod +x tests/run_tests.py
 
-***REMOVED*** 运行测试
+# 运行测试
 python tests/run_tests.py
 ```
 
-***REMOVED******REMOVED******REMOVED*** 方式二：手动运行
+### 方式二：手动运行
 
 ```bash
-***REMOVED*** 1. 激活 seeme 环境
+# 1. 激活 seeme 环境
 conda activate seeme
 
-***REMOVED*** 2. 运行所有测试
+# 2. 运行所有测试
 python -m pytest unimem/tests/ -v
 
-***REMOVED*** 或使用 unittest
+# 或使用 unittest
 python -m unittest discover -s unimem/tests -p "test_*.py" -v
 ```
 
-***REMOVED******REMOVED******REMOVED*** 运行特定测试
+### 运行特定测试
 
 ```bash
-***REMOVED*** 测试网络链接适配器
+# 测试网络链接适配器
 python -m pytest unimem/tests/test_atom_link_adapter.py -v
 
-***REMOVED*** 运行特定测试类
+# 运行特定测试类
 python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapter -v
 
-***REMOVED*** 运行特定测试方法
+# 运行特定测试方法
 python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapter::test_construct_atomic_note -v
 ```
 
-***REMOVED******REMOVED******REMOVED*** 运行集成测试
+### 运行集成测试
 
 集成测试需要实际的 Qdrant 和 LLM 服务：
 
 ```bash
-***REMOVED*** 1. 确保 Qdrant 服务运行
+# 1. 确保 Qdrant 服务运行
 docker run -d -p 6333:6333 -p 6334:6334 qdrant/qdrant
 
-***REMOVED*** 2. 设置环境变量启用集成测试
+# 2. 设置环境变量启用集成测试
 export RUN_INTEGRATION_TESTS=1
 
-***REMOVED*** 3. 运行集成测试
+# 3. 运行集成测试
 python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterIntegration -v
 ```
 
-***REMOVED******REMOVED*** 测试分类
+## 测试分类
 
-***REMOVED******REMOVED******REMOVED*** 单元测试
+### 单元测试
 
 使用 Mock 对象，不依赖外部服务：
 - ✅ 快速执行
@@ -113,7 +113,7 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
 - ✅ 测试核心逻辑
 - ✅ 可以随时运行
 
-***REMOVED******REMOVED******REMOVED*** 集成测试
+### 集成测试
 
 需要实际的外部服务：
 - ⚠️ 需要 Qdrant 服务运行（本地 Docker 即可）
@@ -121,9 +121,9 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
 - ⚠️ 需要设置 `RUN_INTEGRATION_TESTS=1` 环境变量
 - ⚠️ 默认跳过，避免意外运行
 
-***REMOVED******REMOVED*** 测试覆盖
+## 测试覆盖
 
-***REMOVED******REMOVED******REMOVED*** 核心模块测试
+### 核心模块测试
 - ✅ **test_types.py**: 类型系统测试
   - Experience、Memory、Task、Context 数据类
   - 数据验证（空值、范围检查）
@@ -145,7 +145,7 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
   - 健康检查和指标
   - 线程安全测试
 
-***REMOVED******REMOVED******REMOVED*** 适配器测试
+### 适配器测试
 - ✅ **test_atom_link_adapter.py**: 原子链接适配器
   - ✅ 原子笔记构建
   - ✅ 内容分析和元数据提取
@@ -173,14 +173,14 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
   - Budget 枚举测试
   - 错误处理测试
 
-***REMOVED******REMOVED******REMOVED*** 集成测试
+### 集成测试
 - ✅ **test_integration.py**: 端到端集成测试
   - UniMem 完整工作流（RETAIN -> RECALL -> REFLECT）
   - 存储和检索集成测试
   - 适配器协同工作测试
   - 健康检查和指标收集测试
 
-***REMOVED******REMOVED******REMOVED*** 存储层测试
+### 存储层测试
 - ✅ **test_storage_manager.py**: 存储管理器测试
   - OperationStats 统计功能
   - 三层存储操作（FoA/DA/LTM）
@@ -198,7 +198,7 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
 
 - ✅ **test_neo4j_ltm.py**: Neo4j LTM 测试
 
-***REMOVED******REMOVED******REMOVED*** 检索层测试
+### 检索层测试
 - ✅ **test_retrieval_engine.py**: 检索引擎测试
   - 多维检索（实体、抽象、语义、子图）
   - RRF 融合测试
@@ -213,14 +213,14 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
   - 缓存统计和监控
   - 线程安全测试
 
-***REMOVED******REMOVED******REMOVED*** 更新层测试
+### 更新层测试
 - ✅ **test_update_manager.py**: 更新管理器测试
   - 涟漪效应触发
   - 睡眠更新队列
   - 参数验证
   - 错误处理
 
-***REMOVED******REMOVED******REMOVED*** 上下文管理测试
+### 上下文管理测试
 - ✅ **test_context_manager.py**: 上下文管理器测试
   - 上下文压缩
   - 上下文融合
@@ -228,14 +228,14 @@ python -m pytest unimem/tests/test_atom_link_adapter.py::TestAtomLinkAdapterInte
   - 缓存管理
   - 参数验证
 
-***REMOVED******REMOVED*** Qdrant 使用说明
+## Qdrant 使用说明
 
-***REMOVED******REMOVED******REMOVED*** 本地运行（推荐）
+### 本地运行（推荐）
 
 **无需注册账号**，使用 Docker 运行：
 
 ```bash
-***REMOVED*** 启动 Qdrant
+# 启动 Qdrant
 docker run -d \
   --name qdrant \
   -p 6333:6333 \
@@ -243,42 +243,42 @@ docker run -d \
   -v $(pwd)/local_storage/qdrant:/qdrant/storage \
   qdrant/qdrant
 
-***REMOVED*** 检查服务状态
+# 检查服务状态
 curl http://localhost:6333/health
 
-***REMOVED*** 停止服务
+# 停止服务
 docker stop qdrant
 
-***REMOVED*** 删除容器（可选）
+# 删除容器（可选）
 docker rm qdrant
 ```
 
-***REMOVED******REMOVED******REMOVED*** 配置说明
+### 配置说明
 
 在 `unimem/config.py` 或初始化时配置：
 
 ```python
 config = {
     "network": {
-        "qdrant_host": "localhost",  ***REMOVED*** 本地运行
+        "qdrant_host": "localhost",  # 本地运行
         "qdrant_port": 6333,
         "collection_name": "unimem_memories",
     }
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** 内存模式（仅测试）
+### 内存模式（仅测试）
 
 对于测试，可以使用内存模式（不需要 Docker）：
 
 ```python
-***REMOVED*** 在测试中使用内存模式
+# 在测试中使用内存模式
 from qdrant_client import QdrantClient
 
-client = QdrantClient(":memory:")  ***REMOVED*** 内存模式，不持久化
+client = QdrantClient(":memory:")  # 内存模式，不持久化
 ```
 
-***REMOVED******REMOVED*** 注意事项
+## 注意事项
 
 1. **环境依赖**：确保已激活 `seeme` 环境
 2. **Qdrant 服务**：
@@ -288,40 +288,40 @@ client = QdrantClient(":memory:")  ***REMOVED*** 内存模式，不持久化
 4. **测试隔离**：每个测试方法都会重置状态
 5. **清理数据**：集成测试会自动清理测试数据
 
-***REMOVED******REMOVED*** 故障排查
+## 故障排查
 
-***REMOVED******REMOVED******REMOVED*** 问题：无法激活 seeme 环境
+### 问题：无法激活 seeme 环境
 
 ```bash
-***REMOVED*** 检查 conda 是否已初始化
+# 检查 conda 是否已初始化
 conda --version
 
-***REMOVED*** 手动激活
+# 手动激活
 conda activate seeme
 
-***REMOVED*** 检查环境
+# 检查环境
 echo $CONDA_DEFAULT_ENV
 ```
 
-***REMOVED******REMOVED******REMOVED*** 问题：Qdrant 连接失败
+### 问题：Qdrant 连接失败
 
 ```bash
-***REMOVED*** 检查 Qdrant 是否运行
+# 检查 Qdrant 是否运行
 curl http://localhost:6333/health
 
-***REMOVED*** 如果未运行，启动 Qdrant
+# 如果未运行，启动 Qdrant
 docker run -d -p 6333:6333 -p 6334:6334 qdrant/qdrant
 ```
 
-***REMOVED******REMOVED******REMOVED*** 问题：测试导入失败
+### 问题：测试导入失败
 
 ```bash
-***REMOVED*** 确保在项目根目录
+# 确保在项目根目录
 cd /root/data/AI/creator/src/memory
 
-***REMOVED*** 检查 Python 路径
+# 检查 Python 路径
 python -c "import sys; print(sys.path)"
 
-***REMOVED*** 确保 unimem 在路径中
+# 确保 unimem 在路径中
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 ```

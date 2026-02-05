@@ -18,7 +18,7 @@ class TestUniMemIntegration(unittest.TestCase):
     
     def setUp(self):
         """设置测试环境"""
-        ***REMOVED*** 创建最小配置的 UniMem 实例
+        # 创建最小配置的 UniMem 实例
         config = {
             "storage": {
                 "foa_backend": "inmemory",
@@ -26,45 +26,45 @@ class TestUniMemIntegration(unittest.TestCase):
                 "foa_max_memories": 100
             },
             "graph": {
-                "backend": "none"  ***REMOVED*** 测试时禁用图数据库
+                "backend": "none"  # 测试时禁用图数据库
             },
             "vector": {
-                "backend": "none"  ***REMOVED*** 测试时禁用向量数据库
+                "backend": "none"  # 测试时禁用向量数据库
             },
             "operation_timeout": 30.0
         }
         
         with patch('unimem.core.UniMem._init_adapters'):
             self.unimem = UniMem(config=config)
-            ***REMOVED*** Mock 关键适配器
+            # Mock 关键适配器
             self._mock_adapters()
     
     def _mock_adapters(self):
         """Mock 适配器"""
-        ***REMOVED*** Mock 操作适配器
+        # Mock 操作适配器
         self.unimem.operation_adapter = Mock()
         self.unimem.operation_adapter.is_available.return_value = True
         
-        ***REMOVED*** Mock 存储适配器
+        # Mock 存储适配器
         self.unimem.storage_adapter = Mock()
         self.unimem.storage_adapter.is_available.return_value = True
         
-        ***REMOVED*** Mock 检索引擎
+        # Mock 检索引擎
         self.unimem.retrieval_engine = Mock()
         
-        ***REMOVED*** Mock 更新管理器
+        # Mock 更新管理器
         self.unimem.update_manager = Mock()
     
     def test_retain_recall_workflow(self):
         """测试 RETAIN -> RECALL 完整工作流"""
-        ***REMOVED*** 1. RETAIN: 存储新记忆
+        # 1. RETAIN: 存储新记忆
         experience = Experience(
             content="Python is a programming language",
             timestamp=datetime.now()
         )
         context = Context()
         
-        ***REMOVED*** Mock retain 返回
+        # Mock retain 返回
         memory = Memory(
             id="test_1",
             content=experience.content,
@@ -77,7 +77,7 @@ class TestUniMemIntegration(unittest.TestCase):
         self.assertIsNotNone(stored_memory)
         self.assertEqual(stored_memory.content, experience.content)
         
-        ***REMOVED*** 2. RECALL: 检索记忆
+        # 2. RECALL: 检索记忆
         from unimem.memory_types import RetrievalResult
         result = RetrievalResult(
             memory=memory,
@@ -93,7 +93,7 @@ class TestUniMemIntegration(unittest.TestCase):
     
     def test_retain_reflect_workflow(self):
         """测试 RETAIN -> REFLECT 工作流"""
-        ***REMOVED*** 1. RETAIN
+        # 1. RETAIN
         experience = Experience(
             content="Test experience",
             timestamp=datetime.now()
@@ -109,7 +109,7 @@ class TestUniMemIntegration(unittest.TestCase):
         
         stored = self.unimem.retain(experience, Context())
         
-        ***REMOVED*** 2. REFLECT: 优化记忆
+        # 2. REFLECT: 优化记忆
         task = Task(
             id="task_1",
             description="Optimize memory",
@@ -131,7 +131,7 @@ class TestUniMemIntegration(unittest.TestCase):
     
     def test_complete_workflow(self):
         """测试完整的 RETAIN -> RECALL -> REFLECT 工作流"""
-        ***REMOVED*** 1. RETAIN
+        # 1. RETAIN
         experience = Experience(
             content="Learning Python programming",
             timestamp=datetime.now()
@@ -146,7 +146,7 @@ class TestUniMemIntegration(unittest.TestCase):
         self.unimem.operation_adapter.retain.return_value = memory
         stored = self.unimem.retain(experience, Context())
         
-        ***REMOVED*** 2. RECALL
+        # 2. RECALL
         from unimem.memory_types import RetrievalResult
         result = RetrievalResult(
             memory=memory,
@@ -156,7 +156,7 @@ class TestUniMemIntegration(unittest.TestCase):
         self.unimem.retrieval_engine.retrieve.return_value = [result]
         retrieved = self.unimem.recall("Python", top_k=5)
         
-        ***REMOVED*** 3. REFLECT
+        # 3. REFLECT
         task = Task(
             id="task_1",
             description="Improve understanding",
@@ -171,7 +171,7 @@ class TestUniMemIntegration(unittest.TestCase):
         self.unimem.operation_adapter.reflect.return_value = [updated_memory]
         reflected = self.unimem.reflect([retrieved[0].memory], task, Context())
         
-        ***REMOVED*** 验证整个流程
+        # 验证整个流程
         self.assertIsNotNone(stored)
         self.assertIsNotNone(retrieved)
         self.assertIsNotNone(reflected)
@@ -185,7 +185,7 @@ class TestUniMemIntegration(unittest.TestCase):
     
     def test_metrics_collection(self):
         """测试指标收集"""
-        ***REMOVED*** 执行一些操作
+        # 执行一些操作
         experience = Experience(
             content="Test",
             timestamp=datetime.now()
@@ -212,7 +212,7 @@ class TestStorageRetrievalIntegration(unittest.TestCase):
         """设置测试环境"""
         from unimem.storage.storage_manager import StorageManager
         
-        ***REMOVED*** Mock 存储适配器
+        # Mock 存储适配器
         self.storage_adapter = Mock()
         self.storage_adapter.is_available.return_value = True
         self.storage_adapter.add_memory = Mock()
@@ -220,7 +220,7 @@ class TestStorageRetrievalIntegration(unittest.TestCase):
         self.storage_adapter.search_da = Mock(return_value=[])
         self.storage_adapter.search_ltm = Mock(return_value=[])
         
-        ***REMOVED*** Mock 类型适配器
+        # Mock 类型适配器
         self.type_adapter = Mock()
         self.type_adapter.is_available.return_value = True
         
@@ -238,12 +238,12 @@ class TestStorageRetrievalIntegration(unittest.TestCase):
             memory_type=MemoryType.EXPERIENCE
         )
         
-        ***REMOVED*** 存储
+        # 存储
         self.storage_adapter.add_memory.return_value = memory
         stored = self.storage_manager.add_memory(memory)
         self.assertIsNotNone(stored)
         
-        ***REMOVED*** 检索
+        # 检索
         self.storage_adapter.search_foa.return_value = [memory]
         retrieved = self.storage_manager.search_foa("test", top_k=10)
         self.assertIsNotNone(retrieved)
@@ -258,29 +258,29 @@ class TestAdapterIntegration(unittest.TestCase):
         from unimem.adapters.operation_adapter import OperationAdapter
         from unimem.storage.storage_manager import StorageManager
         
-        ***REMOVED*** Mock 存储管理器
+        # Mock 存储管理器
         storage_manager = Mock()
         storage_manager.add_memory = Mock()
         
-        ***REMOVED*** 创建操作适配器
+        # 创建操作适配器
         config = {
             "llm_provider": "deepseek",
             "llm_model": "deepseek-v3.2"
         }
         op_adapter = OperationAdapter(config=config)
         
-        ***REMOVED*** 创建经验
+        # 创建经验
         experience = Experience(
             content="Test experience",
             timestamp=datetime.now()
         )
         context = Context()
         
-        ***REMOVED*** 操作适配器应该能处理经验并返回记忆
+        # 操作适配器应该能处理经验并返回记忆
         memory = op_adapter.retain(experience, context)
         self.assertIsNotNone(memory)
         
-        ***REMOVED*** 存储管理器应该能存储记忆
+        # 存储管理器应该能存储记忆
         storage_manager.add_memory.return_value = memory
         stored = storage_manager.add_memory(memory)
         self.assertIsNotNone(stored)

@@ -58,7 +58,7 @@ class EmbeddingCache:
     def set(self, key: str, value: List[float]) -> None:
         """设置缓存的嵌入向量"""
         if len(self.cache) >= self.max_size:
-            ***REMOVED*** 简单策略：删除最早的条目（FIFO）
+            # 简单策略：删除最早的条目（FIFO）
             oldest_key = next(iter(self.cache))
             del self.cache[oldest_key]
         self.cache[key] = value
@@ -97,31 +97,31 @@ class AtomLinkAdapter(BaseAdapter):
         Raises:
             AdapterConfigurationError: 如果配置无效
         """
-        ***REMOVED*** 初始化记忆存储
+        # 初始化记忆存储
         self.memory_store: Dict[str, Memory] = {}
-        ***REMOVED*** ID 映射：memory.id -> qdrant_point_id (用于处理非 UUID 格式的 ID)
+        # ID 映射：memory.id -> qdrant_point_id (用于处理非 UUID 格式的 ID)
         self.id_mapping: Dict[str, Any] = {}
         
-        ***REMOVED*** 初始化嵌入缓存
+        # 初始化嵌入缓存
         cache_size = int(self.config.get("embedding_cache_size", 1000))
         self.embedding_cache = EmbeddingCache(max_size=cache_size)
         
-        ***REMOVED*** 批量操作配置
+        # 批量操作配置
         self.batch_size = int(self.config.get("batch_size", 100))
         self.embedding_batch_size = int(self.config.get("embedding_batch_size", 32))
         
-        ***REMOVED*** 初始化属性（确保即使失败也有默认值）
+        # 初始化属性（确保即使失败也有默认值）
         self.qdrant_client = None
         self.embedding_model = None
         self.collection_name = None
         self.embedding_dimension = None
         
-        ***REMOVED*** 向量存储：使用 Qdrant
+        # 向量存储：使用 Qdrant
         qdrant_host = str(self.config.get("qdrant_host", "localhost"))
         qdrant_port = int(self.config.get("qdrant_port", 6333))
         collection_name = str(self.config.get("collection_name", "unimem_memories"))
         
-        ***REMOVED*** 配置验证
+        # 配置验证
         if not qdrant_host:
             raise AdapterConfigurationError(
                 "qdrant_host cannot be empty",
@@ -133,7 +133,7 @@ class AtomLinkAdapter(BaseAdapter):
                 adapter_name=self.__class__.__name__
             )
         
-        ***REMOVED*** 初始化 Qdrant 客户端
+        # 初始化 Qdrant 客户端
         if QDRANT_AVAILABLE:
             try:
                 from qdrant_client import QdrantClient
@@ -142,7 +142,7 @@ class AtomLinkAdapter(BaseAdapter):
                 default_dim = int(self.config.get("embedding_dimension", 384))
                 self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
 
-                ***REMOVED*** 获取集合信息或创建集合；若 get_collection 因客户端/服务端响应格式不匹配抛 ValidationError 则用默认维度
+                # 获取集合信息或创建集合；若 get_collection 因客户端/服务端响应格式不匹配抛 ValidationError 则用默认维度
                 try:
                     collection_info = self.qdrant_client.get_collection(collection_name)
                     params = getattr(getattr(collection_info, "config", None), "params", None)
@@ -200,7 +200,7 @@ class AtomLinkAdapter(BaseAdapter):
             logger.warning("qdrant_client not available, vector operations will be limited")
             self.qdrant_client = None
         
-        ***REMOVED*** 嵌入模型：使用 sentence-transformers（独立于 Qdrant）
+        # 嵌入模型：使用 sentence-transformers（独立于 Qdrant）
         if SENTENCE_TRANSFORMERS_AVAILABLE:
             try:
                 local_model_path = self.config.get("local_model_path")
@@ -216,7 +216,7 @@ class AtomLinkAdapter(BaseAdapter):
                 self.embedding_dimension = self.embedding_model.get_sentence_embedding_dimension()
                 logger.info(f"Embedding model loaded successfully (dimension: {self.embedding_dimension})")
                 
-                ***REMOVED*** 如果 Qdrant 集合维度不匹配，警告
+                # 如果 Qdrant 集合维度不匹配，警告
                 if self.qdrant_client and self.embedding_dimension:
                     try:
                         collection_info = self.qdrant_client.get_collection(collection_name)
@@ -238,7 +238,7 @@ class AtomLinkAdapter(BaseAdapter):
             logger.warning("sentence-transformers not available, semantic retrieval will be limited")
             self.embedding_model = None
         
-        ***REMOVED*** 检查是否有可用的组件
+        # 检查是否有可用的组件
         if not self.qdrant_client and not self.embedding_model:
             logger.warning("Both Qdrant and embedding model unavailable, adapter will be limited")
             self._available = False
@@ -349,13 +349,13 @@ class AtomLinkAdapter(BaseAdapter):
             logger.warning("Empty query provided for subgraph_link_retrieval")
             return []
         
-        ***REMOVED*** 1. 语义检索找到初始记忆
+        # 1. 语义检索找到初始记忆
         initial_memories = self._search_similar_memories(query, top_k=top_k)
         
         if not initial_memories:
             return []
         
-        ***REMOVED*** 2. 通过链接扩散
+        # 2. 通过链接扩散
         all_memories = []
         seen_ids = set()
         
@@ -364,7 +364,7 @@ class AtomLinkAdapter(BaseAdapter):
                 all_memories.append(mem)
                 seen_ids.add(mem.id)
             
-            ***REMOVED*** 通过链接查找相关记忆
+            # 通过链接查找相关记忆
             for link_id in mem.links:
                 if link_id in self.memory_store and link_id not in seen_ids:
                     all_memories.append(self.memory_store[link_id])
@@ -393,7 +393,7 @@ class AtomLinkAdapter(BaseAdapter):
             return None
         
         try:
-            ***REMOVED*** 提取 JSON 部分（可能包含 markdown 代码块）
+            # 提取 JSON 部分（可能包含 markdown 代码块）
             if "```json" in response_text:
                 json_start = response_text.find("```json") + 7
                 json_end = response_text.find("```", json_start)
@@ -407,14 +407,14 @@ class AtomLinkAdapter(BaseAdapter):
                     json_end = len(response_text)
                 response_text = response_text[json_start:json_end].strip()
             
-            ***REMOVED*** 尝试直接解析
+            # 尝试直接解析
             return json.loads(response_text)
         except (json.JSONDecodeError, ValueError) as e:
-            ***REMOVED*** 尝试修复常见的 JSON 错误
+            # 尝试修复常见的 JSON 错误
             try:
-                ***REMOVED*** 移除可能的控制字符
+                # 移除可能的控制字符
                 cleaned = ''.join(char for char in response_text if ord(char) >= 32 or char in '\n\r\t')
-                ***REMOVED*** 尝试修复单引号（如果存在）
+                # 尝试修复单引号（如果存在）
                 if "'" in cleaned and '"' not in cleaned:
                     cleaned = cleaned.replace("'", '"')
                 return json.loads(cleaned)
@@ -449,7 +449,7 @@ class AtomLinkAdapter(BaseAdapter):
             logger.warning("Empty content provided for _analyze_content")
             return {"keywords": [], "context": "General", "tags": []}
         if is_creative_content:
-            ***REMOVED*** 创作内容的增强分析
+            # 创作内容的增强分析
             prompt = """请对以下创作内容进行结构化分析，提取语义元数据和创作维度信息。要求：
 
 1. 识别最重要的关键词（重点关注名词、动词和核心概念）
@@ -499,7 +499,7 @@ class AtomLinkAdapter(BaseAdapter):
 待分析的内容：
 """ + content
         else:
-            ***REMOVED*** 通用内容分析
+            # 通用内容分析
             prompt = """请对以下内容进行结构化分析，提取语义元数据。要求：
 
 1. 识别最重要的关键词（重点关注名词、动词和核心概念）
@@ -540,7 +540,7 @@ class AtomLinkAdapter(BaseAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=max_new_tokens)
             
-            ***REMOVED*** 解析 JSON
+            # 解析 JSON
             result = self._parse_json_response(response_text)
             if result:
                 base_result = {
@@ -548,7 +548,7 @@ class AtomLinkAdapter(BaseAdapter):
                     "context": result.get("context", "General"),
                     "tags": result.get("tags", []),
                 }
-                ***REMOVED*** 如果是创作内容，添加创作维度
+                # 如果是创作内容，添加创作维度
                 if is_creative_content and "creative_dimensions" in result:
                     base_result["creative_dimensions"] = result.get("creative_dimensions")
                 return base_result
@@ -573,7 +573,7 @@ class AtomLinkAdapter(BaseAdapter):
         if self.embedding_model is None:
             return None
         
-        ***REMOVED*** 检查缓存
+        # 检查缓存
         if use_cache:
             cached_embedding = self.embedding_cache.get(text)
             if cached_embedding is not None:
@@ -582,7 +582,7 @@ class AtomLinkAdapter(BaseAdapter):
         
         try:
             embedding = self.embedding_model.encode(text, show_progress_bar=False).tolist()
-            ***REMOVED*** 保存到缓存
+            # 保存到缓存
             if use_cache:
                 self.embedding_cache.set(text, embedding)
             return embedding
@@ -611,7 +611,7 @@ class AtomLinkAdapter(BaseAdapter):
         texts_to_encode = []
         indices_to_encode = []
         
-        ***REMOVED*** 检查缓存
+        # 检查缓存
         for idx, text in enumerate(texts):
             if use_cache:
                 cached_embedding = self.embedding_cache.get(text)
@@ -622,7 +622,7 @@ class AtomLinkAdapter(BaseAdapter):
             texts_to_encode.append(text)
             indices_to_encode.append(idx)
         
-        ***REMOVED*** 批量编码未缓存的文本
+        # 批量编码未缓存的文本
         if texts_to_encode:
             try:
                 embeddings = self.embedding_model.encode(
@@ -631,18 +631,18 @@ class AtomLinkAdapter(BaseAdapter):
                     show_progress_bar=False
                 ).tolist()
                 
-                ***REMOVED*** 保存到缓存并添加到结果
+                # 保存到缓存并添加到结果
                 for i, (idx, embedding) in enumerate(zip(indices_to_encode, embeddings)):
                     if use_cache:
                         self.embedding_cache.set(texts_to_encode[i], embedding)
                     results.append((idx, embedding))
             except Exception as e:
                 logger.error(f"Error generating embeddings batch: {e}", exc_info=True)
-                ***REMOVED*** 为失败的索引添加 None
+                # 为失败的索引添加 None
                 for idx in indices_to_encode:
                     results.append((idx, None))
         
-        ***REMOVED*** 按原始索引排序并返回
+        # 按原始索引排序并返回
         results.sort(key=lambda x: x[0])
         return [embedding for _, embedding in results]
     
@@ -654,15 +654,15 @@ class AtomLinkAdapter(BaseAdapter):
         """
         enhanced = memory.content
         
-        ***REMOVED*** 添加上下文信息
+        # 添加上下文信息
         if memory.context and memory.context != "General":
             enhanced += f" context: {memory.context}"
         
-        ***REMOVED*** 添加关键词信息
+        # 添加关键词信息
         if memory.keywords:
             enhanced += f" keywords: {', '.join(memory.keywords)}"
         
-        ***REMOVED*** 添加标签信息
+        # 添加标签信息
         if memory.tags:
             enhanced += f" tags: {', '.join(memory.tags)}"
         
@@ -706,7 +706,7 @@ class AtomLinkAdapter(BaseAdapter):
         """
         if not content or not content.strip():
             logger.warning("Empty content provided for construct_atomic_note")
-            ***REMOVED*** 返回一个默认的 Memory 对象
+            # 返回一个默认的 Memory 对象
             memory_id = str(uuid.uuid4())
             return Memory(
                 id=memory_id,
@@ -717,18 +717,18 @@ class AtomLinkAdapter(BaseAdapter):
                 tags=[],
                 entities=[e.id for e in entities] if entities else [],
             )
-        ***REMOVED*** 分析内容，提取元数据（支持创作维度）
+        # 分析内容，提取元数据（支持创作维度）
         analysis = self._analyze_content(content, is_creative_content=is_creative_content)
         
-        ***REMOVED*** 如果启用摘要生成，使用 LLM 生成结构化的摘要
+        # 如果启用摘要生成，使用 LLM 生成结构化的摘要
         if generate_summary and self.is_available():
             summary = self._generate_content_summary(content, analysis)
             atomic_content = summary
         else:
-            ***REMOVED*** 否则使用原始内容（但可以截断过长的内容）
+            # 否则使用原始内容（但可以截断过长的内容）
             atomic_content = content[:1024] if len(content) > 1024 else content
         
-        ***REMOVED*** 构建 Memory 对象
+        # 构建 Memory 对象
         memory_id = str(uuid.uuid4())
         memory = Memory(
             id=memory_id,
@@ -740,16 +740,16 @@ class AtomLinkAdapter(BaseAdapter):
             entities=[e.id for e in entities] if entities else [],
         )
         
-        ***REMOVED*** 在 metadata 中保存原始内容的引用（如果需要）
+        # 在 metadata 中保存原始内容的引用（如果需要）
         memory.metadata = memory.metadata or {}
         if generate_summary and len(content) > len(atomic_content):
             memory.metadata["original_length"] = len(content)
             memory.metadata["is_summary"] = True
         
-        ***REMOVED*** 如果是创作内容，保存创作维度到 metadata
+        # 如果是创作内容，保存创作维度到 metadata
         if is_creative_content and "creative_dimensions" in analysis:
             memory.metadata["creative_dimensions"] = analysis["creative_dimensions"]
-            ***REMOVED*** 将创作维度信息添加到 tags 中以便检索
+            # 将创作维度信息添加到 tags 中以便检索
             creative_dims = analysis["creative_dimensions"]
             if creative_dims:
                 if creative_dims.get("genre"):
@@ -757,7 +757,7 @@ class AtomLinkAdapter(BaseAdapter):
                 if creative_dims.get("writing_style"):
                     memory.tags.append(f"风格:{creative_dims['writing_style']}")
         
-        ***REMOVED*** 存储到内存中（用于快速访问）
+        # 存储到内存中（用于快速访问）
         self.memory_store[memory_id] = memory
         
         logger.debug(f"Constructed atomic note: {memory_id} with {len(memory.keywords)} keywords, {len(memory.tags)} tags, content length: {len(atomic_content)}")
@@ -805,17 +805,17 @@ class AtomLinkAdapter(BaseAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=256)
             
-            ***REMOVED*** 清理响应文本（移除可能的 markdown 格式）
+            # 清理响应文本（移除可能的 markdown 格式）
             summary = response_text.strip()
             if summary.startswith("```"):
-                ***REMOVED*** 移除 markdown 代码块标记
+                # 移除 markdown 代码块标记
                 lines = summary.split('\n')
                 summary = '\n'.join([line for line in lines if not line.strip().startswith('```')])
             
-            return summary[:500]  ***REMOVED*** 限制摘要长度
+            return summary[:500]  # 限制摘要长度
         except Exception as e:
             logger.error(f"Error generating content summary: {e}")
-            ***REMOVED*** 如果生成摘要失败，返回一个简化的版本
+            # 如果生成摘要失败，返回一个简化的版本
             return content[:300] + "..." if len(content) > 300 else content
     
     def _search_similar_memories(self, query: str, top_k: int = 10) -> List[Memory]:
@@ -832,51 +832,51 @@ class AtomLinkAdapter(BaseAdapter):
         if not self.is_available() or self.embedding_model is None:
             return []
         
-        ***REMOVED*** 检查 Qdrant 客户端是否可用
+        # 检查 Qdrant 客户端是否可用
         if self.qdrant_client is None:
             logger.warning("Qdrant client not available, cannot search similar memories")
             return []
         
         try:
-            ***REMOVED*** 获取查询向量
+            # 获取查询向量
             query_vector = self._get_embedding(query)
             if query_vector is None:
                 return []
             
-            ***REMOVED*** 在 Qdrant 中搜索（使用 search API）
+            # 在 Qdrant 中搜索（使用 search API）
             search_results = self.qdrant_client.search(
                 collection_name=self.collection_name,
-                query_vector=query_vector,  ***REMOVED*** 查询向量
+                query_vector=query_vector,  # 查询向量
                 limit=top_k,
             )
             
-            ***REMOVED*** 转换为 Memory 对象
+            # 转换为 Memory 对象
             memories = []
-            ***REMOVED*** Qdrant search API 返回 ScoredPoint 列表
+            # Qdrant search API 返回 ScoredPoint 列表
             points = search_results if isinstance(search_results, list) else []
             for point in points:
-                ***REMOVED*** 获取 point ID（ScoredPoint 对象）
+                # 获取 point ID（ScoredPoint 对象）
                 point_id = point.id
-                ***REMOVED*** Qdrant 返回的 ID 可能是 UUID 对象，需要转换为字符串
+                # Qdrant 返回的 ID 可能是 UUID 对象，需要转换为字符串
                 if isinstance(point_id, uuid.UUID):
                     point_id_str = str(point_id)
                 else:
                     point_id_str = str(point_id)
                 
-                ***REMOVED*** 查找对应的记忆
+                # 查找对应的记忆
                 memory = None
-                ***REMOVED*** 首先尝试通过 ID 映射查找
+                # 首先尝试通过 ID 映射查找
                 for mem_id, qdrant_id in self.id_mapping.items():
                     if str(qdrant_id) == point_id_str or qdrant_id == point_id:
                         if mem_id in self.memory_store:
                             memory = self.memory_store[mem_id]
                             break
                 
-                ***REMOVED*** 如果没找到，尝试直接匹配
+                # 如果没找到，尝试直接匹配
                 if not memory and point_id_str in self.memory_store:
                     memory = self.memory_store[point_id_str]
                 
-                ***REMOVED*** 如果还是没找到，尝试从 payload 中获取 original_id
+                # 如果还是没找到，尝试从 payload 中获取 original_id
                 if not memory and hasattr(point, 'payload'):
                     original_id = point.payload.get('original_id') if point.payload else None
                     if original_id and original_id in self.memory_store:
@@ -961,14 +961,14 @@ class AtomLinkAdapter(BaseAdapter):
             return set()
         
         try:
-            ***REMOVED*** 1. 搜索相似记忆
+            # 1. 搜索相似记忆
             similar_memories = self._search_similar_memories(new_note.content, top_k=top_k * 2)
             
             if not similar_memories:
                 return set()
             
-            ***REMOVED*** 2. 使用 LLM 判断是否应该链接
-            ***REMOVED*** 构建提示词
+            # 2. 使用 LLM 判断是否应该链接
+            # 构建提示词
             neighbors_text = ""
             memory_ids = []
             for mem in similar_memories[:top_k]:
@@ -984,14 +984,14 @@ class AtomLinkAdapter(BaseAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=2048)
             
-            ***REMOVED*** 解析响应
+            # 解析响应
             response_json = self._parse_json_response(response_text)
             if response_json is None:
                 logger.warning("Failed to parse evolution response, using fallback")
-                ***REMOVED*** 回退：返回前 top_k 个相似记忆的 ID
+                # 回退：返回前 top_k 个相似记忆的 ID
                 return set(mem.id for mem in similar_memories[:top_k])
             
-            ***REMOVED*** 处理 strengthen 操作
+            # 处理 strengthen 操作
             links = set()
             if response_json.get("should_evolve", False):
                 actions = response_json.get("actions", [])
@@ -999,7 +999,7 @@ class AtomLinkAdapter(BaseAdapter):
                     suggested_connections = response_json.get("suggested_connections", [])
                     links.update(suggested_connections)
                     
-                    ***REMOVED*** 更新标签
+                    # 更新标签
                     tags_to_update = response_json.get("tags_to_update", [])
                     if tags_to_update:
                         new_note.tags = tags_to_update
@@ -1023,13 +1023,13 @@ class AtomLinkAdapter(BaseAdapter):
         related = []
         seen_ids = {memory.id}
         
-        ***REMOVED*** 1. 通过链接查找
+        # 1. 通过链接查找
         for link_id in memory.links:
             if link_id in self.memory_store and link_id not in seen_ids:
                 related.append(self.memory_store[link_id])
                 seen_ids.add(link_id)
         
-        ***REMOVED*** 2. 通过向量检索查找语义相关的记忆
+        # 2. 通过向量检索查找语义相关的记忆
         if len(related) < top_k:
             semantic_memories = self._search_similar_memories(memory.content, top_k=top_k * 2)
             for mem in semantic_memories:
@@ -1051,7 +1051,7 @@ class AtomLinkAdapter(BaseAdapter):
             return memory
         
         try:
-            ***REMOVED*** 构建相关记忆的文本
+            # 构建相关记忆的文本
             neighbors_text = ""
             memory_ids = []
             for mem in related:
@@ -1067,7 +1067,7 @@ class AtomLinkAdapter(BaseAdapter):
             
             _, response_text = ark_deepseek_v3_2(messages, max_new_tokens=2048)
             
-            ***REMOVED*** 解析响应
+            # 解析响应
             response_json = self._parse_json_response(response_text)
             if response_json is None:
                 logger.warning("Failed to parse evolution response, updating context only")
@@ -1077,7 +1077,7 @@ class AtomLinkAdapter(BaseAdapter):
             if response_json.get("should_evolve", False):
                 actions = response_json.get("actions", [])
                 
-                ***REMOVED*** 处理 strengthen 操作
+                # 处理 strengthen 操作
                 if "strengthen" in actions:
                     suggested_connections = response_json.get("suggested_connections", [])
                     memory.links.update(suggested_connections)
@@ -1086,7 +1086,7 @@ class AtomLinkAdapter(BaseAdapter):
                     if tags_to_update:
                         memory.tags = tags_to_update
                 
-                ***REMOVED*** 更新上下文
+                # 更新上下文
                 memory.context = new_context
             
             return memory
@@ -1105,43 +1105,43 @@ class AtomLinkAdapter(BaseAdapter):
             return False
         
         try:
-            ***REMOVED*** 增强内容用于嵌入
+            # 增强内容用于嵌入
             enhanced_content = self._enhance_content_for_embedding(memory)
             
-            ***REMOVED*** 生成嵌入
+            # 生成嵌入
             embedding = self._get_embedding(enhanced_content)
             if embedding is None:
                 return False
             
-            ***REMOVED*** 检查 Qdrant 客户端是否可用
+            # 检查 Qdrant 客户端是否可用
             if self.qdrant_client is None:
                 logger.warning("Qdrant client not available, cannot add memory to vector store")
                 return False
             
-            ***REMOVED*** 确保 ID 是有效的格式（Qdrant 要求字符串或整数）
+            # 确保 ID 是有效的格式（Qdrant 要求字符串或整数）
             try:
-                ***REMOVED*** 如果 memory.id 已在映射中，使用映射的ID
+                # 如果 memory.id 已在映射中，使用映射的ID
                 if memory.id in self.id_mapping:
                     point_id = self.id_mapping[memory.id]
                 else:
-                    ***REMOVED*** 尝试将 memory.id 解析为 UUID，然后转换为字符串
+                    # 尝试将 memory.id 解析为 UUID，然后转换为字符串
                     try:
                         uuid_obj = uuid.UUID(memory.id) if isinstance(memory.id, str) else memory.id
-                        ***REMOVED*** Qdrant PointStruct 要求 ID 是字符串或整数，不是 UUID 对象
+                        # Qdrant PointStruct 要求 ID 是字符串或整数，不是 UUID 对象
                         point_id = str(uuid_obj)
                     except (ValueError, AttributeError, TypeError):
-                        ***REMOVED*** 如果不是有效的 UUID，使用原始字符串
+                        # 如果不是有效的 UUID，使用原始字符串
                         point_id = str(memory.id)
-                    ***REMOVED*** 保存映射
+                    # 保存映射
                     self.id_mapping[memory.id] = point_id
                 original_id = None
             except Exception:
-                ***REMOVED*** 如果以上都失败，生成一个新的 UUID 字符串并保存映射
+                # 如果以上都失败，生成一个新的 UUID 字符串并保存映射
                 point_id = str(uuid.uuid4())
                 self.id_mapping[memory.id] = point_id
                 original_id = memory.id
             
-            ***REMOVED*** 添加到 Qdrant
+            # 添加到 Qdrant
             payload = {
                 "content": memory.content,
                 "context": memory.context or "",
@@ -1152,7 +1152,7 @@ class AtomLinkAdapter(BaseAdapter):
             if original_id:
                 payload["original_id"] = original_id
             
-            ***REMOVED*** 使用PointStruct格式（Qdrant客户端要求）
+            # 使用PointStruct格式（Qdrant客户端要求）
             from qdrant_client.models import PointStruct
             
             self.qdrant_client.upsert(
@@ -1166,7 +1166,7 @@ class AtomLinkAdapter(BaseAdapter):
                 ]
             )
             
-            ***REMOVED*** 更新内存存储
+            # 更新内存存储
             self.memory_store[memory.id] = memory
             
             logger.debug(f"Added memory {memory.id} to vector store")
@@ -1184,41 +1184,41 @@ class AtomLinkAdapter(BaseAdapter):
         if not self.is_available():
             return False
         
-        ***REMOVED*** 检查 Qdrant 客户端是否可用
+        # 检查 Qdrant 客户端是否可用
         if self.qdrant_client is None:
             logger.warning("Qdrant client not available, cannot delete memory from vector store")
             return False
         
         try:
-            ***REMOVED*** 查找对应的 Qdrant 点 ID
+            # 查找对应的 Qdrant 点 ID
             point_id = None
             if memory_id in self.id_mapping:
                 point_id = self.id_mapping[memory_id]
             else:
-                ***REMOVED*** 尝试直接解析为 UUID
+                # 尝试直接解析为 UUID
                 try:
                     point_id = uuid.UUID(memory_id) if isinstance(memory_id, str) else memory_id
                 except (ValueError, AttributeError, TypeError):
                     logger.warning(f"Memory ID {memory_id} is not a valid UUID and not in mapping, cannot delete from Qdrant")
-                    ***REMOVED*** 仍然从内存存储中删除
+                    # 仍然从内存存储中删除
                     if memory_id in self.memory_store:
                         del self.memory_store[memory_id]
                     if memory_id in self.id_mapping:
                         del self.id_mapping[memory_id]
                     return False
             
-            ***REMOVED*** 使用正确的格式删除
+            # 使用正确的格式删除
             from qdrant_client.models import PointIdsList
             self.qdrant_client.delete(
                 collection_name=self.collection_name,
                 points_selector=PointIdsList(points=[point_id])
             )
             
-            ***REMOVED*** 清理映射
+            # 清理映射
             if memory_id in self.id_mapping:
                 del self.id_mapping[memory_id]
             
-            ***REMOVED*** 从内存存储中删除
+            # 从内存存储中删除
             if memory_id in self.memory_store:
                 del self.memory_store[memory_id]
             
@@ -1281,7 +1281,7 @@ class AtomLinkAdapter(BaseAdapter):
             }
         
         try:
-            ***REMOVED*** 限制文本长度以提高效率
+            # 限制文本长度以提高效率
             input_preview = input_text[:500] if len(input_text) > 500 else input_text
             result_preview = execution_result[:500] if len(execution_result) > 500 else execution_result
             prompt_preview = current_prompt[:500] if current_prompt and len(current_prompt) > 500 else (current_prompt or "无")

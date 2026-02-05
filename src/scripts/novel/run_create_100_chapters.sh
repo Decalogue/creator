@@ -1,5 +1,5 @@
-***REMOVED***!/bin/bash
-***REMOVED*** 在 seeme 环境中后台运行 100 章小说创作（需在 src 目录下执行）
+#!/bin/bash
+# 在 seeme 环境中后台运行 100 章小说创作（需在 src 目录下执行）
 
 source /opt/miniconda/etc/profile.d/conda.sh 2>/dev/null || true
 conda activate seeme

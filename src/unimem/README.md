@@ -1,10 +1,10 @@
-***REMOVED*** UniMem: 统一记忆系统
+# UniMem: 统一记忆系统
 
 UniMem 是一个统一记忆系统，整合了当前最先进的记忆架构的核心优势，采用"分层存储 + 多维检索 + 涟漪更新 + 操作驱动"的混合架构。
 
-***REMOVED******REMOVED*** 核心设计
+## 核心设计
 
-***REMOVED******REMOVED******REMOVED*** 功能适配器架构
+### 功能适配器架构
 
 UniMem 采用**功能导向的适配器设计**，按照功能需求而非架构名称组织：
 
@@ -18,14 +18,14 @@ UniMem 采用**功能导向的适配器设计**，按照功能需求而非架构
 | 检索引擎 | `RetrievalAdapter` | 各架构 | 多维检索和结果融合 |
 | 更新机制 | `UpdateAdapter` | LightMem + A-Mem | 涟漪效应和睡眠更新 |
 
-***REMOVED******REMOVED******REMOVED*** 设计优势
+### 设计优势
 
 1. **功能导向**：适配器按照 UniMem 的功能需求命名，清晰表达用途
 2. **思路吸收**：从各大架构学习优秀思路，但接口统一为 UniMem 的需求
 3. **易于扩展**：新增功能只需实现适配器接口
 4. **解耦设计**：各适配器独立，易于维护和测试
 
-***REMOVED******REMOVED*** 编排层记忆 API（决策编排 Agent / 任务 Agent）
+## 编排层记忆 API（决策编排 Agent / 任务 Agent）
 
 为「决策编排 Agent + 记忆 Agent 做通用上层、任务 Agent 组」架构提供统一检索入口：
 
@@ -34,10 +34,10 @@ from unimem import UniMem, context_for_agent
 
 memory = UniMem(...)
 
-***REMOVED*** 构建编排/任务上下文
+# 构建编排/任务上下文
 ctx = context_for_agent(session_id="s1", task_id="t1", role="orchestrator")
 
-***REMOVED*** 编排层专用检索：自动注入 session/task/role，并参与重要性评分
+# 编排层专用检索：自动注入 session/task/role，并参与重要性评分
 results = memory.recall_for_agent(
     query="当前任务的约束与偏好",
     context=ctx,
@@ -46,7 +46,7 @@ results = memory.recall_for_agent(
     top_k=5,
 )
 
-***REMOVED*** 编排层专用存储：自动注入 session/task/role，便于会话级检索与重要性匹配
+# 编排层专用存储：自动注入 session/task/role，便于会话级检索与重要性匹配
 from unimem.memory_types import Experience
 mem = memory.retain_for_agent(
     Experience(content="用户偏好：喜欢短句。", timestamp=datetime.now()),
@@ -62,7 +62,7 @@ mem = memory.retain_for_agent(
 
 检索结果会与**重要性评分**融合（见下）后排序；当 `context.session_id` 存在时，FoA/DA 优先按**会话**返回（会话级工作记忆 / 快速访问）。
 
-***REMOVED******REMOVED*** 记忆重要性评分（Recall 重排序）
+## 记忆重要性评分（Recall 重排序）
 
 Recall 支持将「检索分数」与「重要性分数」融合后重排序，便于优先返回更相关、更新、更常被访问的记忆：
 
@@ -82,7 +82,7 @@ Recall 支持将「检索分数」与「重要性分数」融合后重排序，�
 - `importance_weight`：与检索分数融合时的重要性权重，0=仅用检索分，1=仅用重要性；默认 0.3。
 - `importance_decay_days`：时间衰减半衰期（天）。
 
-***REMOVED******REMOVED*** 会话级 FoA/DA（工作记忆与快速访问）
+## 会话级 FoA/DA（工作记忆与快速访问）
 
 当 `context.session_id` 存在时，**FoA** 与 **DA** 的检索会优先按会话返回：
 
@@ -94,42 +94,42 @@ Recall 支持将「检索分数」与「重要性分数」融合后重排序，�
 
 ---
 
-***REMOVED******REMOVED*** 快速开始
+## 快速开始
 
-***REMOVED******REMOVED******REMOVED*** 安装依赖
+### 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-***REMOVED******REMOVED******REMOVED*** 基本使用
+### 基本使用
 
 ```python
 import logging
 from datetime import datetime
 from unimem import UniMem, Experience, Context, Task
 
-***REMOVED*** 配置日志（可选，用于查看系统运行状态）
+# 配置日志（可选，用于查看系统运行状态）
 logging.basicConfig(level=logging.INFO)
 
-***REMOVED*** 初始化系统
-***REMOVED*** 注意：实际使用时需要配置相应的后端服务（Redis、Neo4j、Qdrant）
+# 初始化系统
+# 注意：实际使用时需要配置相应的后端服务（Redis、Neo4j、Qdrant）
 memory = UniMem(
     config={
         "network": {
-            "local_model_path": "/path/to/all-MiniLM-L6-v2",  ***REMOVED*** 本地嵌入模型路径
+            "local_model_path": "/path/to/all-MiniLM-L6-v2",  # 本地嵌入模型路径
             "qdrant_host": "localhost",
             "qdrant_port": 6333,
         }
     },
-    storage_backend="redis",  ***REMOVED*** 可选：redis, mongodb, postgresql
-    graph_backend="neo4j",     ***REMOVED*** 可选：neo4j, networkx
-    vector_backend="qdrant"   ***REMOVED*** 可选：qdrant, faiss, milvus
+    storage_backend="redis",  # 可选：redis, mongodb, postgresql
+    graph_backend="neo4j",     # 可选：neo4j, networkx
+    vector_backend="qdrant"   # 可选：qdrant, faiss, milvus
 )
 
-***REMOVED*** ============================================
-***REMOVED*** 1. RETAIN: 存储新记忆
-***REMOVED*** ============================================
+# ============================================
+# 1. RETAIN: 存储新记忆
+# ============================================
 experience = Experience(
     content="用户喜欢在早上喝咖啡，并且偏爱深度烘焙的豆子。",
     timestamp=datetime.now(),
@@ -149,15 +149,15 @@ try:
 except Exception as e:
     print(f"✗ 存储失败: {e}")
 
-***REMOVED*** ============================================
-***REMOVED*** 2. RECALL: 检索相关记忆
-***REMOVED*** ============================================
+# ============================================
+# 2. RECALL: 检索相关记忆
+# ============================================
 query = "用户的早餐偏好是什么？"
 try:
     results = memory.recall(
         query=query,
         context=context,
-        top_k=5  ***REMOVED*** 返回前5个最相关的记忆
+        top_k=5  # 返回前5个最相关的记忆
     )
     
     print(f"\n✓ 检索到 {len(results)} 条相关记忆:")
@@ -168,9 +168,9 @@ try:
 except Exception as e:
     print(f"✗ 检索失败: {e}")
 
-***REMOVED*** ============================================
-***REMOVED*** 3. REFLECT: 更新和优化记忆
-***REMOVED*** ============================================
+# ============================================
+# 3. REFLECT: 更新和优化记忆
+# ============================================
 task = Task(
     id="task_001",
     description="更新用户画像",
@@ -178,7 +178,7 @@ task = Task(
 )
 
 try:
-    ***REMOVED*** 选择需要演化的记忆（通常选择检索结果中的前几条）
+    # 选择需要演化的记忆（通常选择检索结果中的前几条）
     memories_to_reflect = [result.memory for result in results[:3]] if results else [memory_obj]
     
     evolved_memories = memory.reflect(memories_to_reflect, task)
@@ -188,18 +188,18 @@ try:
 except Exception as e:
     print(f"✗ 演化失败: {e}")
 
-***REMOVED*** ============================================
-***REMOVED*** 4. 睡眠更新：批量优化记忆网络
-***REMOVED*** ============================================
+# ============================================
+# 4. 睡眠更新：批量优化记忆网络
+# ============================================
 try:
     count = memory.run_sleep_update()
     print(f"\n✓ 睡眠更新完成: 处理了 {count} 条记忆")
 except Exception as e:
     print(f"✗ 睡眠更新失败: {e}")
 
-***REMOVED*** ============================================
-***REMOVED*** 5. 查看系统状态（可选）
-***REMOVED*** ============================================
+# ============================================
+# 5. 查看系统状态（可选）
+# ============================================
 status = memory.get_adapter_status()
 print("\n系统适配器状态:")
 for name, info in status.items():
@@ -207,7 +207,7 @@ for name, info in status.items():
     print(f"  {status_icon} {name}: {info.get('adapter', 'N/A')}")
 ```
 
-***REMOVED******REMOVED******REMOVED*** 快速示例（最小化配置）
+### 快速示例（最小化配置）
 
 如果只需要快速体验核心功能，可以使用默认配置：
 
@@ -215,25 +215,25 @@ for name, info in status.items():
 from unimem import UniMem, Experience, Context
 from datetime import datetime
 
-***REMOVED*** 使用默认配置初始化（无需外部服务）
+# 使用默认配置初始化（无需外部服务）
 memory = UniMem()
 
-***REMOVED*** 存储记忆
+# 存储记忆
 experience = Experience(
     content="Python 是一种高级编程语言",
     timestamp=datetime.now()
 )
 memory_obj = memory.retain(experience, Context())
 
-***REMOVED*** 检索记忆
+# 检索记忆
 results = memory.recall("编程语言", top_k=3)
 for result in results:
     print(f"{result.score:.3f}: {result.memory.content}")
 ```
 
-***REMOVED******REMOVED*** 系统架构
+## 系统架构
 
-***REMOVED******REMOVED******REMOVED*** 总体架构图
+### 总体架构图
 
 UniMem 采用五层架构设计，从用户操作到数据存储的完整流程：
 
@@ -277,17 +277,17 @@ flowchart TD
     Layer5 --> Ripple[实时涟漪更新<br/>新记忆触发->直接相关节点->多级传播->图结构增量更新]
     Layer5 --> Sleep[批量睡眠更新<br/>定期触发->批量处理->压缩去重->长期记忆固化]
     
-    style A fill:***REMOVED***e1f5ff
-    style Layer1 fill:***REMOVED***fff4e6
-    style Layer2 fill:***REMOVED***e8f5e9
-    style Layer3 fill:***REMOVED***f3e5f5
-    style Layer4 fill:***REMOVED***fff3e0
-    style Layer5 fill:***REMOVED***fce4ec
+    style A fill:#e1f5ff
+    style Layer1 fill:#fff4e6
+    style Layer2 fill:#e8f5e9
+    style Layer3 fill:#f3e5f5
+    style Layer4 fill:#fff3e0
+    style Layer5 fill:#fce4ec
 ```
 
-***REMOVED******REMOVED******REMOVED*** 架构图分解（便于制作 PPT）
+### 架构图分解（便于制作 PPT）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 部分 1：操作接口层
+#### 部分 1：操作接口层
 
 ```mermaid
 flowchart TD
@@ -312,13 +312,13 @@ flowchart TD
     D --> D3[• 内容演化]
     D --> D4[• 网络更新]
     
-    style A fill:***REMOVED***fff4e6
-    style B fill:***REMOVED***e3f2fd
-    style C fill:***REMOVED***e8f5e9
-    style D fill:***REMOVED***fce4ec
+    style A fill:#fff4e6
+    style B fill:#e3f2fd
+    style C fill:#e8f5e9
+    style D fill:#fce4ec
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 部分 2：存储管理层
+#### 部分 2：存储管理层
 
 ```mermaid
 flowchart TD
@@ -348,14 +348,14 @@ flowchart TD
     MemoryType --> Type2[语义记忆]
     MemoryType --> Type3[用户画像记忆]
     
-    style A fill:***REMOVED***e8f5e9
-    style FoA fill:***REMOVED***c8e6c9
-    style DA fill:***REMOVED***a5d6a7
-    style LTM fill:***REMOVED***81c784
-    style MemoryType fill:***REMOVED***fff9c4
+    style A fill:#e8f5e9
+    style FoA fill:#c8e6c9
+    style DA fill:#a5d6a7
+    style LTM fill:#81c784
+    style MemoryType fill:#fff9c4
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 部分 3：网络组织层
+#### 部分 3：网络组织层
 
 ```mermaid
 flowchart TD
@@ -376,14 +376,14 @@ flowchart TD
     
     NetworkLayer -.->|映射关系| GraphLayer
     
-    style A fill:***REMOVED***f3e5f5
-    style GraphLayer fill:***REMOVED***e1bee7
-    style NetworkLayer fill:***REMOVED***ce93d8
-    style Index fill:***REMOVED***fff9c4
-    style Evolution fill:***REMOVED***fff9c4
+    style A fill:#f3e5f5
+    style GraphLayer fill:#e1bee7
+    style NetworkLayer fill:#ce93d8
+    style Index fill:#fff9c4
+    style Evolution fill:#fff9c4
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 部分 4：检索引擎层
+#### 部分 4：检索引擎层
 
 ```mermaid
 flowchart TD
@@ -409,17 +409,17 @@ flowchart TD
     ReRank --> ReRank2[• 上下文匹配]
     ReRank --> ReRank3[• 最终结果排序]
     
-    style A fill:***REMOVED***fff3e0
-    style EntityRet fill:***REMOVED***ffe0b2
-    style AbstractRet fill:***REMOVED***ffe0b2
-    style SemanticRet fill:***REMOVED***ffe0b2
-    style GraphRet fill:***REMOVED***ffe0b2
-    style TemporalRet fill:***REMOVED***ffe0b2
-    style RRF fill:***REMOVED***ffcc80
-    style ReRank fill:***REMOVED***ffb74d
+    style A fill:#fff3e0
+    style EntityRet fill:#ffe0b2
+    style AbstractRet fill:#ffe0b2
+    style SemanticRet fill:#ffe0b2
+    style GraphRet fill:#ffe0b2
+    style TemporalRet fill:#ffe0b2
+    style RRF fill:#ffcc80
+    style ReRank fill:#ffb74d
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 部分 5：更新机制层
+#### 部分 5：更新机制层
 
 ```mermaid
 flowchart TD
@@ -449,14 +449,14 @@ flowchart TD
     Compress --> Optimize
     Persist --> Optimize
     
-    style A fill:***REMOVED***fce4ec
-    style Ripple fill:***REMOVED***f8bbd0
-    style Sleep fill:***REMOVED***f48fb1
-    style GraphUpdate fill:***REMOVED***fff9c4
-    style Optimize fill:***REMOVED***fff9c4
+    style A fill:#fce4ec
+    style Ripple fill:#f8bbd0
+    style Sleep fill:#f48fb1
+    style GraphUpdate fill:#fff9c4
+    style Optimize fill:#fff9c4
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 部分 6：数据流图
+#### 部分 6：数据流图
 
 ```mermaid
 flowchart TD
@@ -474,49 +474,49 @@ flowchart TD
     
     Update --> Result[结果返回用户]
     
-    style User fill:***REMOVED***e3f2fd
-    style Operation fill:***REMOVED***fff4e6
-    style Storage fill:***REMOVED***e8f5e9
-    style Network fill:***REMOVED***f3e5f5
-    style Retrieval fill:***REMOVED***fff3e0
-    style Update fill:***REMOVED***fce4ec
-    style Result fill:***REMOVED***e1f5ff
+    style User fill:#e3f2fd
+    style Operation fill:#fff4e6
+    style Storage fill:#e8f5e9
+    style Network fill:#f3e5f5
+    style Retrieval fill:#fff3e0
+    style Update fill:#fce4ec
+    style Result fill:#e1f5ff
 ```
 
-***REMOVED******REMOVED*** 架构说明
+## 架构说明
 
-***REMOVED******REMOVED******REMOVED*** 1. 操作接口层（OperationAdapter）
+### 1. 操作接口层（OperationAdapter）
 
 - **Retain**: 存储新记忆
 - **Recall**: 检索相关记忆
 - **Reflect**: 更新和优化记忆
 
-***REMOVED******REMOVED******REMOVED*** 2. 存储管理层（LayeredStorageAdapter + MemoryTypeAdapter）
+### 2. 存储管理层（LayeredStorageAdapter + MemoryTypeAdapter）
 
 - **FoA (Focus of Attention)**: 工作记忆，~100 tokens
 - **DA (Direct Access)**: 快速访问，~10K tokens
 - **LTM (Long-Term Memory)**: 长期存储，无限制
 - **多类型记忆**: 情景记忆、语义记忆、用户画像记忆
 
-***REMOVED******REMOVED******REMOVED*** 3. 网络组织层（GraphAdapter + AtomLinkAdapter）
+### 3. 网络组织层（GraphAdapter + AtomLinkAdapter）
 
 - **图结构**: 实体-关系建模，双层检索
 - **原子笔记网络**: 动态链接，记忆演化
 
-***REMOVED******REMOVED******REMOVED*** 4. 检索引擎层（RetrievalAdapter）
+### 4. 检索引擎层（RetrievalAdapter）
 
 - **多维检索**: 实体检索、抽象检索、语义检索、子图链接检索、时间检索
 - **RRF 融合**: Reciprocal Rank Fusion 算法
 - **重排序**: 提升检索准确性
 
-***REMOVED******REMOVED******REMOVED*** 5. 更新机制层（UpdateAdapter）
+### 5. 更新机制层（UpdateAdapter）
 
 - **涟漪效应**: 新记忆触发连锁更新
 - **睡眠更新**: 批量优化非关键节点
 
-***REMOVED******REMOVED*** 配置
+## 配置
 
-***REMOVED******REMOVED******REMOVED*** 环境变量
+### 环境变量
 
 ```bash
 export OPENAI_API_KEY="your-api-key"
@@ -526,7 +526,7 @@ export UNIMEM_GRAPH_BACKEND="neo4j"
 export UNIMEM_VECTOR_BACKEND="qdrant"
 ```
 
-***REMOVED******REMOVED******REMOVED*** 配置文件
+### 配置文件
 
 创建 `config.json`:
 
@@ -560,59 +560,59 @@ export UNIMEM_VECTOR_BACKEND="qdrant"
 }
 ```
 
-***REMOVED******REMOVED*** 目录结构
+## 目录结构
 
 ```
 unimem/
-├── __init__.py              ***REMOVED*** 主入口
-├── core.py                   ***REMOVED*** 核心实现（UniMem 类）
-├── types.py                  ***REMOVED*** 数据类型定义
-├── config.py                 ***REMOVED*** 配置管理
-├── chat.py                   ***REMOVED*** LLM 聊天接口
-├── adapters/                 ***REMOVED*** 功能适配器层
+├── __init__.py              # 主入口
+├── core.py                   # 核心实现（UniMem 类）
+├── types.py                  # 数据类型定义
+├── config.py                 # 配置管理
+├── chat.py                   # LLM 聊天接口
+├── adapters/                 # 功能适配器层
 │   ├── __init__.py
-│   ├── base.py               ***REMOVED*** 适配器基类
-│   ├── operation_adapter.py  ***REMOVED*** 操作接口适配器
-│   ├── layered_storage_adapter.py  ***REMOVED*** 分层存储适配器
-│   ├── memory_type_adapter.py  ***REMOVED*** 记忆分类适配器
-│   ├── graph_adapter.py      ***REMOVED*** 图结构适配器
-│   ├── atom_link_adapter.py  ***REMOVED*** 原子链接适配器
-│   ├── retrieval_adapter.py  ***REMOVED*** 检索引擎适配器
-│   ├── update_adapter.py    ***REMOVED*** 更新机制适配器
-│   ├── registry.py          ***REMOVED*** 适配器注册表
-│   └── README.md            ***REMOVED*** 适配器设计文档
-├── storage/                  ***REMOVED*** 存储管理模块
+│   ├── base.py               # 适配器基类
+│   ├── operation_adapter.py  # 操作接口适配器
+│   ├── layered_storage_adapter.py  # 分层存储适配器
+│   ├── memory_type_adapter.py  # 记忆分类适配器
+│   ├── graph_adapter.py      # 图结构适配器
+│   ├── atom_link_adapter.py  # 原子链接适配器
+│   ├── retrieval_adapter.py  # 检索引擎适配器
+│   ├── update_adapter.py    # 更新机制适配器
+│   ├── registry.py          # 适配器注册表
+│   └── README.md            # 适配器设计文档
+├── storage/                  # 存储管理模块
 │   ├── __init__.py
-│   └── storage_manager.py    ***REMOVED*** 存储管理器
-├── retrieval/               ***REMOVED*** 检索引擎模块
+│   └── storage_manager.py    # 存储管理器
+├── retrieval/               # 检索引擎模块
 │   ├── __init__.py
-│   └── retrieval_engine.py  ***REMOVED*** 检索引擎
-├── update/                  ***REMOVED*** 更新管理模块
+│   └── retrieval_engine.py  # 检索引擎
+├── update/                  # 更新管理模块
 │   ├── __init__.py
-│   ├── update_manager.py    ***REMOVED*** 更新管理器
-│   └── ripple_effect.py     ***REMOVED*** 涟漪效应实现
-├── orchestration/           ***REMOVED*** 编排管理模块
+│   ├── update_manager.py    # 更新管理器
+│   └── ripple_effect.py     # 涟漪效应实现
+├── orchestration/           # 编排管理模块
 │   ├── __init__.py
-│   ├── orchestrator.py      ***REMOVED*** 编排器
-│   ├── workflow.py          ***REMOVED*** 工作流定义
-│   └── examples.py          ***REMOVED*** 编排示例
-├── tests/                   ***REMOVED*** 测试模块
+│   ├── orchestrator.py      # 编排器
+│   ├── workflow.py          # 工作流定义
+│   └── examples.py          # 编排示例
+├── tests/                   # 测试模块
 │   ├── __init__.py
-│   ├── conftest.py          ***REMOVED*** 测试配置
-│   ├── test_atom_link_adapter.py  ***REMOVED*** 原子链接适配器测试
-│   └── README.md            ***REMOVED*** 测试文档
-├── examples/                ***REMOVED*** 使用示例
-│   └── basic_usage.py       ***REMOVED*** 基本使用示例
-├── requirements.txt        ***REMOVED*** 项目依赖
-├── README.md               ***REMOVED*** 本文档
-├── ARCHITECTURE.md         ***REMOVED*** 架构设计文档
-├── IMPLEMENTATION.md       ***REMOVED*** 实现文档
-└── IMPROVEMENTS.md         ***REMOVED*** 改进记录
+│   ├── conftest.py          # 测试配置
+│   ├── test_atom_link_adapter.py  # 原子链接适配器测试
+│   └── README.md            # 测试文档
+├── examples/                # 使用示例
+│   └── basic_usage.py       # 基本使用示例
+├── requirements.txt        # 项目依赖
+├── README.md               # 本文档
+├── ARCHITECTURE.md         # 架构设计文档
+├── IMPLEMENTATION.md       # 实现文档
+└── IMPROVEMENTS.md         # 改进记录
 ```
 
-***REMOVED******REMOVED*** 设计理念
+## 设计理念
 
-***REMOVED******REMOVED******REMOVED*** 适配器模式
+### 适配器模式
 
 适配器的主要目的是**从各大架构吸收精华，将思路实现到 UniMem**，而不是简单地照搬架构接口。
 
@@ -621,7 +621,7 @@ unimem/
 - **统一接口**：接口按照 UniMem 的需求定义
 - **易于扩展**：新增功能只需实现适配器
 
-***REMOVED******REMOVED******REMOVED*** 信息交互、操作、叠加
+### 信息交互、操作、叠加
 
 适配器之间可以按照整体架构进行：
 
@@ -629,26 +629,26 @@ unimem/
 2. **并行交互**：多个适配器并行执行，结果合并
 3. **叠加交互**：多个适配器操作叠加，形成完整流程
 
-***REMOVED******REMOVED*** 测试
+## 测试
 
 运行测试及**连接检查脚本**前需先激活 `seeme` 环境（Redis、Neo4j、Qdrant 等依赖在该环境中）：
 
 ```bash
 conda activate seeme
 
-***REMOVED*** 检查 Redis / Neo4j / Qdrant 连接状态
+# 检查 Redis / Neo4j / Qdrant 连接状态
 python unimem/scripts/check_connections.py
 
-***REMOVED*** 方式一：使用自动测试脚本
+# 方式一：使用自动测试脚本
 python tests/run_tests.py
 
-***REMOVED*** 方式二：手动运行 pytest
+# 方式二：手动运行 pytest
 python -m pytest tests/ -v
 ```
 
 或单条命令：`conda run -n seeme python unimem/scripts/check_connections.py`。更多测试信息请参考 [tests/README.md](tests/README.md)。
 
-***REMOVED******REMOVED*** 相关文档
+## 相关文档
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - 详细的架构设计文档
 - [IMPLEMENTATION.md](IMPLEMENTATION.md) - 实现细节和进度
@@ -656,7 +656,7 @@ python -m pytest tests/ -v
 - [adapters/README.md](adapters/README.md) - 适配器设计文档
 - [tests/README.md](tests/README.md) - 测试文档
 
-***REMOVED******REMOVED*** 后续工作
+## 后续工作
 
 1. **完善适配器实现**：集成各架构的实际 API
 2. **集成实际存储后端**：Redis、PostgreSQL、Neo4j、Qdrant

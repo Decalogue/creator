@@ -18,9 +18,9 @@ class EntityVote:
     """实体投票结果"""
     name: str
     type: EntityType
-    votes: int  ***REMOVED*** 投票数
-    descriptions: List[str]  ***REMOVED*** 各模型的描述
-    metadata_list: List[Dict[str, Any]]  ***REMOVED*** 各模型的元数据
+    votes: int  # 投票数
+    descriptions: List[str]  # 各模型的描述
+    metadata_list: List[Dict[str, Any]]  # 各模型的元数据
 
 
 class MultiModelEntityExtractor:
@@ -37,9 +37,9 @@ class MultiModelEntityExtractor:
     def __init__(
         self,
         llm_clients: List[Any],
-        vote_threshold: int = 2,  ***REMOVED*** 至少2个模型都提取到才保留
+        vote_threshold: int = 2,  # 至少2个模型都提取到才保留
         use_ner: bool = False,
-        primary_model_index: int = 0  ***REMOVED*** 主模型索引（优先保留该模型的所有结果）
+        primary_model_index: int = 0  # 主模型索引（优先保留该模型的所有结果）
     ):
         """
         初始化多模型实体提取器
@@ -75,7 +75,7 @@ class MultiModelEntityExtractor:
         Returns:
             提取的实体列表（经过投票筛选）
         """
-        ***REMOVED*** 1. 并行调用多个模型提取
+        # 1. 并行调用多个模型提取
         all_results = []
         for i, llm_client in enumerate(self.llm_clients):
             try:
@@ -86,7 +86,7 @@ class MultiModelEntityExtractor:
                 logger.warning(f"模型 {i} 提取失败: {e}")
                 all_results.append([])
         
-        ***REMOVED*** 2. 投票和合并
+        # 2. 投票和合并
         voted_entities = self._vote_and_merge(all_results, chapter_number)
         
         logger.info(
@@ -180,7 +180,7 @@ class MultiModelEntityExtractor:
             messages = [{"role": "user", "content": prompt}]
             response = llm_client(messages)
             
-            ***REMOVED*** 解析响应
+            # 解析响应
             import json
             if isinstance(response, tuple):
                 _, content = response
@@ -189,14 +189,14 @@ class MultiModelEntityExtractor:
             else:
                 content = str(response)
             
-            ***REMOVED*** 提取 JSON 部分
+            # 提取 JSON 部分
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
                 data = json.loads(json_match.group())
                 
                 entities = []
                 for e in data.get('entities', []):
-                    ***REMOVED*** 验证实体名称
+                    # 验证实体名称
                     entity_name = e.get('name', '').strip()
                     if self._is_valid_entity_name(entity_name):
                         entities.append({
@@ -227,7 +227,7 @@ class MultiModelEntityExtractor:
         if not name or len(name) < 2 or len(name) > 20:
             return False
         
-        ***REMOVED*** 过滤掉包含动词的片段
+        # 过滤掉包含动词的片段
         action_words = [
             '睁开', '看到', '听到', '说道', '走来', '跑去', '想起', '感到', '觉得',
             '知道', '发现', '决定', '开始', '结束', '完成', '进行', '执行',
@@ -236,21 +236,21 @@ class MultiModelEntityExtractor:
         if any(word in name for word in action_words):
             return False
         
-        ***REMOVED*** 过滤掉包含介词的片段
+        # 过滤掉包含介词的片段
         preposition_words = ['在', '从', '到', '向', '往', '的', '上', '下', '中', '里']
-        ***REMOVED*** 如果名称以介词开头或结尾，可能是位置描述
+        # 如果名称以介词开头或结尾，可能是位置描述
         if name.startswith(tuple(preposition_words)) or name.endswith(tuple(preposition_words)):
-            ***REMOVED*** 但允许"青阳镇"这样的地名
-            if len(name) <= 4:  ***REMOVED*** 短名称可能是地名
+            # 但允许"青阳镇"这样的地名
+            if len(name) <= 4:  # 短名称可能是地名
                 pass
             else:
                 return False
         
-        ***REMOVED*** 过滤掉明显的句子片段
+        # 过滤掉明显的句子片段
         if name.startswith(('但', '然而', '不过', '虽然', '因为', '所以')):
             return False
         
-        ***REMOVED*** 过滤掉包含标点的片段（除了允许的标点）
+        # 过滤掉包含标点的片段（除了允许的标点）
         if re.search(r'[，。！？；：]', name):
             return False
         
@@ -266,7 +266,7 @@ class MultiModelEntityExtractor:
         Returns:
             标准化后的名称
         """
-        ***REMOVED*** 移除空格和标点
+        # 移除空格和标点
         normalized = re.sub(r'[，。！？；：\s]', '', name)
         return normalized
     
@@ -285,7 +285,7 @@ class MultiModelEntityExtractor:
         Returns:
             合并后的实体列表
         """
-        ***REMOVED*** 1. 按标准化名称分组
+        # 1. 按标准化名称分组
         entity_votes: Dict[str, EntityVote] = {}
         
         for model_id, entities in enumerate(all_results):
@@ -293,14 +293,14 @@ class MultiModelEntityExtractor:
                 name = entity_dict['name']
                 normalized = self._normalize_entity_name(name)
                 
-                ***REMOVED*** 类型映射（扩展支持新类型）
+                # 类型映射（扩展支持新类型）
                 type_map = {
                     'character': EntityType.CHARACTER,
                     'organization': EntityType.ORGANIZATION,
                     'location': EntityType.LOCATION,
-                    'setting': EntityType.SETTING,  ***REMOVED*** 兼容旧格式
+                    'setting': EntityType.SETTING,  # 兼容旧格式
                     'item': EntityType.ITEM,
-                    'symbol': EntityType.SYMBOL,  ***REMOVED*** 兼容旧格式
+                    'symbol': EntityType.SYMBOL,  # 兼容旧格式
                     'creature': EntityType.CREATURE,
                     'concept': EntityType.CONCEPT,
                     'time': EntityType.TIME,
@@ -309,7 +309,7 @@ class MultiModelEntityExtractor:
                 
                 if normalized not in entity_votes:
                     entity_votes[normalized] = EntityVote(
-                        name=name,  ***REMOVED*** 使用第一个遇到的名称
+                        name=name,  # 使用第一个遇到的名称
                         type=entity_type,
                         votes=0,
                         descriptions=[],
@@ -321,32 +321,32 @@ class MultiModelEntityExtractor:
                 vote.descriptions.append(entity_dict.get('description', ''))
                 vote.metadata_list.append({'model_id': model_id})
         
-        ***REMOVED*** 2. 优先保留主模型结果，其他模型作为补充
+        # 2. 优先保留主模型结果，其他模型作为补充
         voted_entities = []
-        primary_model_entities = set()  ***REMOVED*** 主模型提取的实体（标准化名称）
+        primary_model_entities = set()  # 主模型提取的实体（标准化名称）
         
-        ***REMOVED*** 首先收集主模型提取的所有实体
+        # 首先收集主模型提取的所有实体
         if self.primary_model_index < len(all_results):
             for entity_dict in all_results[self.primary_model_index]:
                 normalized = self._normalize_entity_name(entity_dict['name'])
                 primary_model_entities.add(normalized)
         
-        ***REMOVED*** 保留实体：
-        ***REMOVED*** 1. 主模型提取的所有实体（优先保留）
-        ***REMOVED*** 2. 其他模型提取的实体，如果主模型没有提取到（作为补充）
-        ***REMOVED*** 3. 达到投票阈值的实体（多个模型都提取到，质量更高）
+        # 保留实体：
+        # 1. 主模型提取的所有实体（优先保留）
+        # 2. 其他模型提取的实体，如果主模型没有提取到（作为补充）
+        # 3. 达到投票阈值的实体（多个模型都提取到，质量更高）
         for normalized, vote in entity_votes.items():
             is_primary = normalized in primary_model_entities
             meets_threshold = vote.votes >= self.vote_threshold
             
-            ***REMOVED*** 保留条件：
-            ***REMOVED*** - 主模型提取的实体（优先保留）
-            ***REMOVED*** - 或者达到投票阈值（多个模型都提取到）
+            # 保留条件：
+            # - 主模型提取的实体（优先保留）
+            # - 或者达到投票阈值（多个模型都提取到）
             if is_primary or meets_threshold:
-                ***REMOVED*** 合并描述（优先使用主模型的描述，如果没有则取最长的）
+                # 合并描述（优先使用主模型的描述，如果没有则取最长的）
                 best_description = ""
                 if is_primary and vote.metadata_list:
-                    ***REMOVED*** 找到主模型的描述
+                    # 找到主模型的描述
                     primary_desc_idx = None
                     for i, meta in enumerate(vote.metadata_list):
                         if meta.get('model_id') == self.primary_model_index:

@@ -25,46 +25,46 @@ const FOOTER_LINKS = {
       { name: '介绍', href: '/' },
       { name: '创作助手', href: '/creator' },
       { name: 'AI 对话', href: '/ai' },
-      { name: '定价方案', href: '***REMOVED***pricing' },
-      { name: '更新日志', href: '***REMOVED***changelog' },
+      { name: '定价方案', href: '#pricing' },
+      { name: '更新日志', href: '#changelog' },
     ],
   },
   resources: {
     title: '资源',
     links: [
-      { name: '帮助中心', href: '***REMOVED***help' },
-      { name: '使用教程', href: '***REMOVED***tutorials' },
-      { name: 'API 文档', href: '***REMOVED***api' },
-      { name: '博客', href: '***REMOVED***blog' },
-      { name: '社区', href: '***REMOVED***community' },
+      { name: '帮助中心', href: '#help' },
+      { name: '使用教程', href: '#tutorials' },
+      { name: 'API 文档', href: '#api' },
+      { name: '博客', href: '#blog' },
+      { name: '社区', href: '#community' },
     ],
   },
   company: {
     title: '公司',
     links: [
-      { name: '关于我们', href: '***REMOVED***about' },
-      { name: '加入我们', href: '***REMOVED***careers' },
-      { name: '联系我们', href: '***REMOVED***contact' },
-      { name: '合作伙伴', href: '***REMOVED***partners' },
-      { name: '媒体资源', href: '***REMOVED***press' },
+      { name: '关于我们', href: '#about' },
+      { name: '加入我们', href: '#careers' },
+      { name: '联系我们', href: '#contact' },
+      { name: '合作伙伴', href: '#partners' },
+      { name: '媒体资源', href: '#press' },
     ],
   },
   legal: {
     title: '法律',
     links: [
-      { name: '隐私政策', href: '***REMOVED***privacy' },
-      { name: '服务条款', href: '***REMOVED***terms' },
-      { name: 'Cookie 政策', href: '***REMOVED***cookies' },
-      { name: '安全合规', href: '***REMOVED***security' },
+      { name: '隐私政策', href: '#privacy' },
+      { name: '服务条款', href: '#terms' },
+      { name: 'Cookie 政策', href: '#cookies' },
+      { name: '安全合规', href: '#security' },
     ],
   },
 } as const;
 
 const SOCIAL_LINKS = [
-  { icon: <TwitterOutlined />, href: '***REMOVED***', label: 'Twitter' },
-  { icon: <GithubOutlined />, href: '***REMOVED***', label: 'GitHub' },
-  { icon: <LinkedinOutlined />, href: '***REMOVED***', label: 'LinkedIn' },
-  { icon: <YoutubeOutlined />, href: '***REMOVED***', label: 'YouTube' },
+  { icon: <TwitterOutlined />, href: '#', label: 'Twitter' },
+  { icon: <GithubOutlined />, href: '#', label: 'GitHub' },
+  { icon: <LinkedinOutlined />, href: '#', label: 'LinkedIn' },
+  { icon: <YoutubeOutlined />, href: '#', label: 'YouTube' },
 ] as const;
 
 type Section = { title: string; links: readonly { name: string; href: string }[] };
@@ -73,8 +73,8 @@ export const IntroFooter: React.FC = () => (
   <footer
     className="intro-footer"
     style={{
-      background: '***REMOVED***0f0f0f',
-      color: '***REMOVED***fff',
+      background: '#0f0f0f',
+      color: '#fff',
       fontFamily: T.fontFamily,
     }}
   >
@@ -87,11 +87,11 @@ export const IntroFooter: React.FC = () => (
                 width: 40,
                 height: 40,
                 borderRadius: 12,
-                background: 'linear-gradient(135deg, ***REMOVED***ff4b2f 0%, ***REMOVED***ffa7a7 100%)',
+                background: 'linear-gradient(135deg, #ff4b2f 0%, #ffa7a7 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '***REMOVED***fff',
+                color: '#fff',
                 fontSize: 18,
               }}
             >
@@ -120,7 +120,7 @@ export const IntroFooter: React.FC = () => (
 
         {(Object.values(FOOTER_LINKS) as Section[]).map((section) => (
           <div key={section.title}>
-            <h4 style={{ fontSize: 14, fontWeight: T.fontWeightSemibold, color: '***REMOVED***fff', marginBottom: 16 }}>
+            <h4 style={{ fontSize: 14, fontWeight: T.fontWeightSemibold, color: '#fff', marginBottom: 16 }}>
               {section.title}
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -174,7 +174,7 @@ export const IntroFooter: React.FC = () => (
         className="intro-footer-newsletter"
       >
         <div className="intro-footer-newsletter-left" style={{ flex: '1 1 200px', minWidth: 0, textAlign: 'left' }}>
-          <h4 style={{ fontSize: 15, fontWeight: T.fontWeightSemibold, color: '***REMOVED***fff', marginBottom: 6 }}>
+          <h4 style={{ fontSize: 15, fontWeight: T.fontWeightSemibold, color: '#fff', marginBottom: 6 }}>
             订阅我们的新闻
           </h4>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>获取最新产品更新和创作技巧</p>
@@ -189,7 +189,7 @@ export const IntroFooter: React.FC = () => (
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: 10,
-              color: '***REMOVED***fff',
+              color: '#fff',
             }}
             className="intro-footer-email"
           />

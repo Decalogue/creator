@@ -1,10 +1,10 @@
-***REMOVED*** 全本质量检查 Agent 使用说明
+# 全本质量检查 Agent 使用说明
 
-***REMOVED******REMOVED*** 功能概述
+## 功能概述
 
 全本质量检查 Agent 可以对已完成的小说进行**全面的质量检查**，并**自动生成优化后的版本**。
 
-***REMOVED******REMOVED******REMOVED*** 主要功能
+### 主要功能
 
 1. **全本质量检查**：
    - 逐章质量检查（使用现有的 QualityChecker）
@@ -20,9 +20,9 @@
    - 生成优化后的完整小说
    - 保存优化对比报告
 
-***REMOVED******REMOVED*** 使用方法
+## 使用方法
 
-***REMOVED******REMOVED******REMOVED*** 基础检查（仅检查，不优化）
+### 基础检查（仅检查，不优化）
 
 ```bash
 cd /root/data/AI/creator/src/task/novel
@@ -31,7 +31,7 @@ python3 full_novel_quality_agent.py \
     --output outputs/完美之墙/full_quality_report.json
 ```
 
-***REMOVED******REMOVED******REMOVED*** 检查 + 自动优化
+### 检查 + 自动优化
 
 ```bash
 python3 full_novel_quality_agent.py \
@@ -40,9 +40,9 @@ python3 full_novel_quality_agent.py \
     --output outputs/完美之墙/full_quality_report.json
 ```
 
-***REMOVED******REMOVED*** 输出结果
+## 输出结果
 
-***REMOVED******REMOVED******REMOVED*** 1. 检查报告 (`full_quality_report.json`)
+### 1. 检查报告 (`full_quality_report.json`)
 
 包含完整的质量检查结果：
 
@@ -91,19 +91,19 @@ python3 full_novel_quality_agent.py \
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** 2. 优化后的章节（如果使用 `--optimize`）
+### 2. 优化后的章节（如果使用 `--optimize`）
 
 - **目录**：`outputs/完美之墙/optimized/chapters/`
 - **文件**：`chapter_001.txt`, `chapter_003.txt`, ...（仅优化的问题章节）
 
-***REMOVED******REMOVED******REMOVED*** 3. 优化后的完整小说（如果使用 `--optimize`）
+### 3. 优化后的完整小说（如果使用 `--optimize`）
 
 - **文件**：`outputs/完美之墙/optimized/完美之墙_优化版.txt`
 - **内容**：包含所有章节，优化后的章节使用新版本，未优化的章节使用原版本
 
-***REMOVED******REMOVED*** 检查维度详解
+## 检查维度详解
 
-***REMOVED******REMOVED******REMOVED*** 1. 逐章质量检查
+### 1. 逐章质量检查
 
 对每章使用 `QualityChecker` 进行全面检查：
 - 角色一致性
@@ -114,44 +114,44 @@ python3 full_novel_quality_agent.py \
 - 对话质量
 - 描写质量
 
-***REMOVED******REMOVED******REMOVED*** 2. 全本连贯性检查
+### 2. 全本连贯性检查
 
 - **角色连续性**：检查主要角色是否在相邻章节中连续出现
 - **情节衔接**：检查章节间的逻辑衔接
 - **时间线连贯**：检查时间顺序是否合理
 
-***REMOVED******REMOVED******REMOVED*** 3. 角色一致性深度检查
+### 3. 角色一致性深度检查
 
 - **名称一致性**：检查角色名称在全本中是否保持一致
 - **角色档案**：构建每个角色的完整档案（首次出现、出现章节等）
 - **特征一致性**：检查角色特征描述是否一致
 
-***REMOVED******REMOVED******REMOVED*** 4. 世界观一致性检查
+### 4. 世界观一致性检查
 
 - **设定统一性**：检查世界观设定是否在全本中保持一致
 - **规则一致性**：检查规则、法律等概念是否一致
 
-***REMOVED******REMOVED******REMOVED*** 5. 情节逻辑完整性检查
+### 5. 情节逻辑完整性检查
 
 - **关键节点**：检查大纲中的关键情节节点是否在对应章节出现
 - **伏笔回收**：检查伏笔是否得到回收（可扩展）
 - **逻辑矛盾**：检查是否有情节逻辑矛盾
 
-***REMOVED******REMOVED******REMOVED*** 6. 风格统一性检查
+### 6. 风格统一性检查
 
 - **对话占比**：统计每章对话占比，检查是否在合理范围（20-40%）
 - **描写风格**：检查描写风格是否统一
 - **节奏风格**：检查节奏是否统一
 
-***REMOVED******REMOVED*** 优化机制
+## 优化机制
 
-***REMOVED******REMOVED******REMOVED*** 优化触发条件
+### 优化触发条件
 
 章节满足以下条件之一会被优化：
 - **问题数 >= 3**
 - **存在高严重度问题**
 
-***REMOVED******REMOVED******REMOVED*** 优化流程
+### 优化流程
 
 1. **识别问题章节**：从检查报告中提取需要优化的章节
 2. **生成优化提示词**：
@@ -163,12 +163,12 @@ python3 full_novel_quality_agent.py \
    - 优化后的章节保存到 `optimized/chapters/`
    - 生成优化后的完整小说
 
-***REMOVED******REMOVED******REMOVED*** 优化限制
+### 优化限制
 
 - 一次最多优化 **10 章**（避免成本过高）
 - 每章最多处理 **3 个问题**（避免过度修改）
 
-***REMOVED******REMOVED*** 评分机制
+## 评分机制
 
 总体评分 = 
 - 连贯性得分 × 0.3
@@ -176,21 +176,21 @@ python3 full_novel_quality_agent.py \
 - 风格得分 × 0.2（基于风格问题数）
 - 角色一致性得分 × 0.1（基于角色问题数）
 
-***REMOVED******REMOVED*** 使用建议
+## 使用建议
 
-***REMOVED******REMOVED******REMOVED*** 场景 1：发布前检查
+### 场景 1：发布前检查
 
 ```bash
-***REMOVED*** 仅检查，查看报告
+# 仅检查，查看报告
 python3 full_novel_quality_agent.py --novel_dir outputs/完美之墙
 ```
 
 根据报告决定是否需要优化。
 
-***REMOVED******REMOVED******REMOVED*** 场景 2：自动优化
+### 场景 2：自动优化
 
 ```bash
-***REMOVED*** 检查 + 自动优化
+# 检查 + 自动优化
 python3 full_novel_quality_agent.py --novel_dir outputs/完美之墙 --optimize
 ```
 
@@ -199,21 +199,21 @@ python3 full_novel_quality_agent.py --novel_dir outputs/完美之墙 --optimize
 - 优化后的章节需要人工审核
 - 建议先检查报告，再决定是否优化
 
-***REMOVED******REMOVED******REMOVED*** 场景 3：批量优化
+### 场景 3：批量优化
 
 如果需要优化超过 10 章，可以：
 1. 运行一次优化（优化前 10 章）
 2. 手动修改代码中的限制
 3. 或分多次运行
 
-***REMOVED******REMOVED*** 注意事项
+## 注意事项
 
 1. **LLM 成本**：自动优化会消耗 LLM API 调用，请根据预算决定是否使用
 2. **优化质量**：优化后的章节需要人工审核，确保质量
 3. **备份原文件**：优化前建议备份原始章节文件
 4. **语义网格**：如果存在 `semantic_mesh.json`，会用于更深入的检查
 
-***REMOVED******REMOVED*** 扩展功能
+## 扩展功能
 
 可以进一步扩展：
 - 伏笔回收检查（需要更复杂的逻辑）
@@ -221,7 +221,7 @@ python3 full_novel_quality_agent.py --novel_dir outputs/完美之墙 --optimize
 - 风格统一性深度检查（使用 LLM 分析文风）
 - 批量优化所有问题章节（移除 10 章限制）
 
-***REMOVED******REMOVED*** 示例输出
+## 示例输出
 
 ```
 ============================================================

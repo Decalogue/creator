@@ -36,7 +36,7 @@ class UpdateAdapter(BaseAdapter):
         初始化睡眠队列和配置参数
         """
         self.sleep_queue: List[Memory] = []
-        self.sleep_interval: int = self.config.get("sleep_interval", 3600)  ***REMOVED*** 默认1小时
+        self.sleep_interval: int = self.config.get("sleep_interval", 3600)  # 默认1小时
         logger.info("Update adapter initialized (using LightMem + A-Mem principles)")
     
     def add_to_sleep_queue(self, memories: List[Memory]) -> bool:
@@ -99,13 +99,13 @@ class UpdateAdapter(BaseAdapter):
         try:
             logger.info(f"Running sleep update for {count} memories")
             
-            ***REMOVED*** TODO: 实现批量优化逻辑
-            ***REMOVED*** 参考 LightMem 的优化方法：
-            ***REMOVED*** 1. 压缩记忆（去除冗余信息）
-            ***REMOVED*** 2. 去重（合并重复记忆）
-            ***REMOVED*** 3. 合并（整合相似记忆）
+            # TODO: 实现批量优化逻辑
+            # 参考 LightMem 的优化方法：
+            # 1. 压缩记忆（去除冗余信息）
+            # 2. 去重（合并重复记忆）
+            # 3. 合并（整合相似记忆）
             
-            ***REMOVED*** 当前实现：清空队列（实际应该处理记忆）
+            # 当前实现：清空队列（实际应该处理记忆）
             processed_count = count
             self.sleep_queue.clear()
             
@@ -114,7 +114,7 @@ class UpdateAdapter(BaseAdapter):
             
         except Exception as e:
             logger.error(f"Error running sleep update: {e}", exc_info=True)
-            ***REMOVED*** 即使出错也清空队列，避免重复处理
+            # 即使出错也清空队列，避免重复处理
             self.sleep_queue.clear()
             return 0
     

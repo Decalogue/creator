@@ -1,4 +1,4 @@
-***REMOVED*** Creator 研发路线图
+# Creator 研发路线图
 
 > **目标**：按顶级产品打造；持续去冗余、高复用/可扩展/清晰。主线：**模块优化、去冗余、通用沉淀**。
 
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 一、当前状态
+## 一、当前状态
 
 **主路径（已打通）**：`api_flask` → `api/creator_handlers`、`api/memory_handlers` → **task.novel**（react_novel_creator）+ **context**（semantic_mesh）。创作 API（run/stream）、记忆/图谱 API、前端、编排可观测（orchestration_events + stream）均已打通。编排层 **orchestrator/react**（ReAct）；工具层 **tools**（search_tool_docs、read_tool_doc）、**skills**（创作相关、无内置示例）。
 
@@ -16,7 +16,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 二、阶段规划
+## 二、阶段规划
 
 | 阶段 | 任务 | 要点 |
 |------|------|------|
@@ -40,7 +40,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 三、运行与验证
+## 三、运行与验证
 
 - **环境**：`conda activate seeme`，在 `src` 下 `python api_flask.py`（默认 5200）。
 - **验证**：`cd src && conda run -n seeme python -c "from api_flask import _CREATOR_MEMORY_AVAILABLE; print('Creator/Memory:', _CREATOR_MEMORY_AVAILABLE)"`。

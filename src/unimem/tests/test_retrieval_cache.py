@@ -65,10 +65,10 @@ class TestRetrievalCache(unittest.TestCase):
         result = RetrievalResult(memory=memory, score=0.9, retrieval_method="test")
         results = [result]
         
-        ***REMOVED*** 设置缓存
+        # 设置缓存
         self.cache.set("test query", results)
         
-        ***REMOVED*** 获取缓存
+        # 获取缓存
         cached = self.cache.get("test query")
         self.assertIsNotNone(cached)
         self.assertEqual(len(cached), 1)
@@ -81,7 +81,7 @@ class TestRetrievalCache(unittest.TestCase):
     
     def test_cache_ttl_expiry(self):
         """测试 TTL 过期"""
-        cache = RetrievalCache(max_size=10, ttl_seconds=1)  ***REMOVED*** 1秒过期
+        cache = RetrievalCache(max_size=10, ttl_seconds=1)  # 1秒过期
         
         memory = Memory(
             id="test_1",
@@ -93,16 +93,16 @@ class TestRetrievalCache(unittest.TestCase):
         
         cache.set("test query", [result])
         
-        ***REMOVED*** 立即获取应该命中
+        # 立即获取应该命中
         cached = cache.get("test query")
         self.assertIsNotNone(cached)
         
-        ***REMOVED*** 等待过期（这里简化处理，实际测试中可以用 time.sleep）
-        ***REMOVED*** 或者直接修改 created_at 时间
+        # 等待过期（这里简化处理，实际测试中可以用 time.sleep）
+        # 或者直接修改 created_at 时间
         import time
         time.sleep(1.1)
         
-        ***REMOVED*** 过期后应该未命中
+        # 过期后应该未命中
         cached = cache.get("test query")
         self.assertIsNone(cached)
     
@@ -110,7 +110,7 @@ class TestRetrievalCache(unittest.TestCase):
         """测试 LRU 淘汰"""
         cache = RetrievalCache(max_size=2, enable_lru=True)
         
-        ***REMOVED*** 添加两个条目
+        # 添加两个条目
         for i in range(2):
             memory = Memory(
                 id=f"test_{i}",
@@ -121,7 +121,7 @@ class TestRetrievalCache(unittest.TestCase):
             result = RetrievalResult(memory=memory, score=0.9, retrieval_method="test")
             cache.set(f"query_{i}", [result])
         
-        ***REMOVED*** 添加第三个条目，应该淘汰最旧的
+        # 添加第三个条目，应该淘汰最旧的
         memory = Memory(
             id="test_2",
             content="Test 2",
@@ -131,7 +131,7 @@ class TestRetrievalCache(unittest.TestCase):
         result = RetrievalResult(memory=memory, score=0.9, retrieval_method="test")
         cache.set("query_2", [result])
         
-        ***REMOVED*** 第一个应该被淘汰
+        # 第一个应该被淘汰
         cached = cache.get("query_0")
         self.assertIsNone(cached)
     
@@ -161,11 +161,11 @@ class TestRetrievalCache(unittest.TestCase):
         )
         result = RetrievalResult(memory=memory, score=0.9, retrieval_method="test")
         
-        ***REMOVED*** 设置并获取（命中）
+        # 设置并获取（命中）
         self.cache.set("test query", [result])
         self.cache.get("test query")
         
-        ***REMOVED*** 获取不存在的（未命中）
+        # 获取不存在的（未命中）
         self.cache.get("nonexistent")
         
         stats = self.cache.get_stats()

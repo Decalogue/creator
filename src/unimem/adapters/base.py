@@ -22,7 +22,7 @@ from contextlib import contextmanager
 logger = logging.getLogger(__name__)
 
 
-***REMOVED*** ==================== 自定义异常类 ====================
+# ==================== 自定义异常类 ====================
 
 class AdapterError(Exception):
     """适配器基础异常类"""
@@ -98,7 +98,7 @@ class BaseAdapter(ABC):
     ```python
     class MyAdapter(BaseAdapter):
         def _do_initialize(self) -> None:
-            ***REMOVED*** 实现具体的初始化逻辑
+            # 实现具体的初始化逻辑
             pass
     ```
     """
@@ -120,7 +120,7 @@ class BaseAdapter(ABC):
         self.config: Dict[str, Any] = config or {}
         self._initialized: bool = False
         self._available: bool = False
-        ***REMOVED*** 线程安全锁（使用 RLock 支持嵌套锁）
+        # 线程安全锁（使用 RLock 支持嵌套锁）
         self._lock = threading.RLock()
     
     def initialize(self) -> None:
@@ -147,7 +147,7 @@ class BaseAdapter(ABC):
                     self._available = True
                     logger.info(f"{self.__class__.__name__} initialized successfully")
                 except AdapterConfigurationError:
-                    ***REMOVED*** 配置错误需要重新抛出，让调用者知道
+                    # 配置错误需要重新抛出，让调用者知道
                     raise
                 except Exception as e:
                     logger.error(
@@ -156,7 +156,7 @@ class BaseAdapter(ABC):
                     )
                     self._available = False
                     self._initialized = True
-                    ***REMOVED*** 即使初始化失败，也标记为已初始化，避免重复尝试
+                    # 即使初始化失败，也标记为已初始化，避免重复尝试
     
     @abstractmethod
     def _do_initialize(self) -> None:
@@ -195,10 +195,10 @@ class BaseAdapter(ABC):
                 try:
                     self.initialize()
                 except AdapterConfigurationError:
-                    ***REMOVED*** 配置错误：标记为不可用但不抛出异常
+                    # 配置错误：标记为不可用但不抛出异常
                     return False
                 except Exception:
-                    ***REMOVED*** 其他初始化错误已在 initialize() 中处理
+                    # 其他初始化错误已在 initialize() 中处理
                     return False
             return self._available
     
@@ -238,8 +238,8 @@ class BaseAdapter(ABC):
         Example:
             ```python
             status = adapter.health_check()
-            print(status.adapter)  ***REMOVED*** "AtomLinkAdapter"
-            print(status.available)  ***REMOVED*** True
+            print(status.adapter)  # "AtomLinkAdapter"
+            print(status.available)  # True
             ```
         """
         with self._lock:
@@ -326,7 +326,7 @@ class BaseAdapter(ABC):
         Example:
             ```python
             with self._operation_context("search"):
-                ***REMOVED*** 执行搜索操作
+                # 执行搜索操作
                 pass
             ```
         """

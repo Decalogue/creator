@@ -46,7 +46,7 @@ class ReActAgent:
         self.max_new_tokens = max_new_tokens
         self.llm_client = llm_client
 
-        ***REMOVED*** 可观测性（可选）
+        # 可观测性（可选）
         self.enable_observability = enable_observability
         if enable_observability:
             try:
@@ -66,7 +66,7 @@ class ReActAgent:
         discovery = get_discovery()
         index_layer = discovery.get_index_layer()
 
-        ***REMOVED*** 添加分层行动空间描述
+        # 添加分层行动空间描述
         las = self.layered_action_space
         layered_desc = f"""
 {las.get_l1_functions_description()}
@@ -90,7 +90,7 @@ class ReActAgent:
         Action: read_tool_doc
         Action Input: {"tool_name": "search_tool_docs"}
         """
-        ***REMOVED*** 尝试匹配 Action: xxx 和 Action Input: xxx 格式
+        # 尝试匹配 Action: xxx 和 Action Input: xxx 格式
         action_pattern = r'Action:\s*(\w+)'
         input_pattern = r'Action Input:\s*(.+)'
 
@@ -101,9 +101,9 @@ class ReActAgent:
             action_name = action_match.group(1).strip()
             action_input_str = input_match.group(1).strip()
 
-            ***REMOVED*** 尝试解析 JSON
+            # 尝试解析 JSON
             try:
-                ***REMOVED*** 移除可能的代码块标记
+                # 移除可能的代码块标记
                 action_input_str = action_input_str.strip('`').strip()
                 if action_input_str.startswith('json'):
                     action_input_str = action_input_str[4:].strip()
@@ -111,10 +111,10 @@ class ReActAgent:
                 action_input = json.loads(action_input_str)
                 return action_name, action_input
             except json.JSONDecodeError:
-                ***REMOVED*** 如果不是 JSON，尝试提取引号内的内容
+                # 如果不是 JSON，尝试提取引号内的内容
                 quoted_match = re.search(r'["\'](.+?)["\']', action_input_str)
                 if quoted_match:
-                    ***REMOVED*** 简单处理：如果是单个字符串参数
+                    # 简单处理：如果是单个字符串参数
                     return action_name, {"query": quoted_match.group(1)}
 
         return None
@@ -128,13 +128,13 @@ class ReActAgent:
             result = self.tools.execute_tool(action_name, action_input)
             result_str = str(result)
 
-            ***REMOVED*** 如果启用 Context Offloading 且结果过长，写入文件
+            # 如果启用 Context Offloading 且结果过长，写入文件
             if self.enable_context_offloading and self.context_manager:
                 offloaded_result, file_path = self.context_manager.offload_tool_result(
                     tool_name=action_name,
                     tool_input=action_input,
                     tool_output=result_str,
-                    max_length=500  ***REMOVED*** 超过500字符则写入文件
+                    max_length=500  # 超过500字符则写入文件
                 )
                 return offloaded_result
 
@@ -170,7 +170,7 @@ class ReActAgent:
             tool_latency = time.time() - tool_start_time
             tools_called += 1
 
-            ***REMOVED*** 记录工具调用成功
+            # 记录工具调用成功
             if self.enable_observability and self.observability:
                 self.observability.record_tool_call(
                     tool_name=tool_name,
@@ -182,7 +182,7 @@ class ReActAgent:
             tool_latency = time.time() - tool_start_time
             tools_called += 1
 
-            ***REMOVED*** 记录工具调用失败
+            # 记录工具调用失败
             if self.enable_observability and self.observability:
                 self.observability.record_tool_call(
                     tool_name=tool_name,
@@ -190,7 +190,7 @@ class ReActAgent:
                     latency=tool_latency,
                     error_type=type(e).__name__
                 )
-            raise  ***REMOVED*** 重新抛出异常
+            raise  # 重新抛出异常
 
     def _extract_final_answer(self, content: str) -> Optional[str]:
         """从内容中提取最终答案"""
@@ -263,7 +263,7 @@ Final Answer: [最终答案]
         """
         import uuid
 
-        ***REMOVED*** 生成查询ID用于追踪
+        # 生成查询ID用于追踪
         query_id = str(uuid.uuid4())[:8]
         start_time = time.time()
         iterations = 0
@@ -272,7 +272,7 @@ Final Answer: [最终答案]
         error_type = None
         error_message = None
 
-        ***REMOVED*** 初始化对话历史
+        # 初始化对话历史
         self.conversation_history = [
             {"role": "system", "content": self._build_system_prompt()},
             {"role": "user", "content": query}
@@ -282,32 +282,32 @@ Final Answer: [最终答案]
             print(f"问题: {query}\n")
             print("=" * 60)
 
-        ***REMOVED*** ReAct 循环
+        # ReAct 循环
         for iteration in range(self.max_iterations):
             if verbose:
                 print(f"\n[迭代 {iteration + 1}/{self.max_iterations}]")
 
-            ***REMOVED*** 检查上下文长度，如果接近限制则卸载历史（Context Offloading）
+            # 检查上下文长度，如果接近限制则卸载历史（Context Offloading）
             if self.enable_context_offloading and self.context_manager:
                 estimated_tokens, needs_reduction = self.context_manager.estimate_context_length(
                     self.conversation_history,
-                    threshold=128000  ***REMOVED*** Pre-rot threshold: 128K tokens
+                    threshold=128000  # Pre-rot threshold: 128K tokens
                 )
 
-                if needs_reduction and iteration > 0:  ***REMOVED*** 至少执行一次迭代后再缩减
+                if needs_reduction and iteration > 0:  # 至少执行一次迭代后再缩减
                     if verbose:
                         print(f"⚠️  上下文长度: {estimated_tokens} tokens，触发上下文缩减...")
 
-                    ***REMOVED*** 第一步：Compaction（紧凑化）- 无损、可逆
+                    # 第一步：Compaction（紧凑化）- 无损、可逆
                     compacted_history, removed_records = self.context_manager.compact_conversation_history(
                         self.conversation_history,
-                        keep_recent=3  ***REMOVED*** 保留最近3条作为 Few-shot Examples
+                        keep_recent=3  # 保留最近3条作为 Few-shot Examples
                     )
 
                     if verbose and removed_records:
                         print(f"  ✓ Compaction: 紧凑化了 {len(removed_records)} 条记录")
 
-                    ***REMOVED*** 如果 Compaction 后仍然超过阈值，进行 Summarization
+                    # 如果 Compaction 后仍然超过阈值，进行 Summarization
                     compacted_tokens, still_needs_reduction = self.context_manager.estimate_context_length(
                         compacted_history,
                         threshold=self.context_manager.pre_rot_threshold
@@ -317,7 +317,7 @@ Final Answer: [最终答案]
                         if verbose:
                             print(f"  ⚠️  Compaction 后仍超过阈值 ({compacted_tokens} tokens)，进行 Summarization...")
 
-                        ***REMOVED*** 第二步：Summarization（摘要化）- 有损但带保险
+                        # 第二步：Summarization（摘要化）- 有损但带保险
                         summary_ref, dump_file, recent_history = self.context_manager.summarize_with_dump(
                             self.conversation_history,
                             keep_recent=3
@@ -326,32 +326,32 @@ Final Answer: [最终答案]
                         if verbose:
                             print(f"  ✓ Summarization: 完整上下文已转储到 {dump_file}")
 
-                        ***REMOVED*** 替换对话历史为摘要+文件引用+最近记录
+                        # 替换对话历史为摘要+文件引用+最近记录
                         self.conversation_history = [
                             {"role": "system", "content": self._build_system_prompt()},
                             {"role": "user", "content": f"之前的对话历史摘要:\n{summary_ref}"},
                         ] + recent_history
                     else:
-                        ***REMOVED*** 只进行 Compaction，不进行 Summarization
+                        # 只进行 Compaction，不进行 Summarization
                         self.conversation_history = compacted_history
                         if verbose:
                             print(f"  ✓ 仅 Compaction 已足够，当前 tokens: {compacted_tokens}")
 
-            ***REMOVED*** 获取工具定义
+            # 获取工具定义
             tools = self.tools.get_all_functions()
 
-            ***REMOVED*** 调用 LLM 进行推理（尝试使用 Function Calling）
+            # 调用 LLM 进行推理（尝试使用 Function Calling）
             try:
-                ***REMOVED*** 如果提供了自定义LLM客户端函数，使用它
+                # 如果提供了自定义LLM客户端函数，使用它
                 if self.llm_client is not None:
-                    ***REMOVED*** 使用自定义LLM函数（如gemini_3_flash、deepseek_v3_2）
+                    # 使用自定义LLM函数（如gemini_3_flash、deepseek_v3_2）
                     max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
                     reasoning_content, content = self.llm_client(self.conversation_history, max_new_tokens=max_tokens)
-                    tool_calls = None  ***REMOVED*** 自定义LLM函数可能不支持Function Calling
+                    tool_calls = None  # 自定义LLM函数可能不支持Function Calling
                 else:
-                    ***REMOVED*** 使用默认的 OpenAI Function Calling API
+                    # 使用默认的 OpenAI Function Calling API
                     model_name = os.getenv("REACT_MODEL", "ep-20251209150604-gxb42")
-                    ***REMOVED*** 使用 max_new_tokens 如果设置了，否则使用默认值 8192
+                    # 使用 max_new_tokens 如果设置了，否则使用默认值 8192
                     max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
                     response = client.chat.completions.create(
                         model=model_name,
@@ -366,7 +366,7 @@ Final Answer: [最终答案]
                     content = message.content or ""
                     tool_calls = message.tool_calls
 
-                ***REMOVED*** 添加到对话历史
+                # 添加到对话历史
                 assistant_message = {"role": "assistant", "content": content}
                 if tool_calls:
                     assistant_message["tool_calls"] = [
@@ -388,7 +388,7 @@ Final Answer: [最终答案]
                     if tool_calls:
                         print(f"检测到 {len(tool_calls)} 个工具调用\n")
 
-                ***REMOVED*** 如果有工具调用，执行它们
+                # 如果有工具调用，执行它们
                 if tool_calls:
                     for tool_call in tool_calls:
                         func_name = tool_call.function.name
@@ -403,7 +403,7 @@ Final Answer: [最终答案]
                             print(f"执行行动: {func_name}")
                             print(f"行动参数: {func_args}")
 
-                        ***REMOVED*** 执行行动（带指标收集）- 使用提取的方法简化嵌套
+                        # 执行行动（带指标收集）- 使用提取的方法简化嵌套
                         try:
                             observation, tools_called = self._execute_tool_with_metrics(
                                 tool_name=func_name,
@@ -412,12 +412,12 @@ Final Answer: [最终答案]
                             )
                         except Exception as e:
                             observation = f"错误: {str(e)}"
-                            raise  ***REMOVED*** 重新抛出异常
+                            raise  # 重新抛出异常
 
                         if verbose:
                             print(f"观察结果: {observation}\n")
 
-                        ***REMOVED*** 将观察结果添加到对话历史
+                        # 将观察结果添加到对话历史
                         self.conversation_history.append({
                             "role": "tool",
                             "tool_call_id": tool_call.id,
@@ -425,17 +425,17 @@ Final Answer: [最终答案]
                             "content": observation
                         })
 
-                    ***REMOVED*** 继续循环，让模型基于工具结果生成回复
+                    # 继续循环，让模型基于工具结果生成回复
                     continue
 
-                ***REMOVED*** 如果没有工具调用，检查是否有最终答案
+                # 如果没有工具调用，检查是否有最终答案
                 final_answer = self._extract_final_answer(content)
                 if final_answer:
                     if verbose:
                         print("=" * 60)
                         print(f"\n最终答案: {final_answer}")
 
-                    ***REMOVED*** 记录指标
+                    # 记录指标
                     latency = time.time() - start_time
                     if self.enable_observability and self.observability:
                         self.observability.record_query(
@@ -449,12 +449,12 @@ Final Answer: [最终答案]
 
                     return final_answer
 
-                ***REMOVED*** 如果只有内容没有工具调用，可能是最终答案
+                # 如果只有内容没有工具调用，可能是最终答案
                 if content and not tool_calls:
                     if verbose:
                         print("模型返回了最终答案")
 
-                    ***REMOVED*** 记录指标
+                    # 记录指标
                     latency = time.time() - start_time
                     if self.enable_observability and self.observability:
                         self.observability.record_query(
@@ -469,11 +469,11 @@ Final Answer: [最终答案]
                     return content
 
             except Exception as e:
-                ***REMOVED*** 如果 Function Calling 失败，回退到文本解析模式
+                # 如果 Function Calling 失败，回退到文本解析模式
                 if verbose:
                     print(f"Function Calling 失败，使用文本解析模式: {e}\n")
 
-                ***REMOVED*** 调用 LLM 进行推理（文本模式）
+                # 调用 LLM 进行推理（文本模式）
                 if self.max_new_tokens is not None:
                     reasoning_content, content = deepseek_v3_2(self.conversation_history, max_new_tokens=self.max_new_tokens)
                 else:
@@ -482,13 +482,13 @@ Final Answer: [最终答案]
                 if verbose:
                     print(f"模型输出:\n{content}\n")
 
-                ***REMOVED*** 添加到对话历史
+                # 添加到对话历史
                 self.conversation_history.append({
                     "role": "assistant",
                     "content": content
                 })
 
-                ***REMOVED*** 检查是否有最终答案
+                # 检查是否有最终答案
                 if "Final Answer:" in content or "最终答案:" in content:
                     final_answer_match = re.search(
                         r'(?:Final Answer|最终答案):\s*(.+)',
@@ -501,7 +501,7 @@ Final Answer: [最终答案]
                             print("=" * 60)
                             print(f"\n最终答案: {final_answer}")
 
-                        ***REMOVED*** 记录指标
+                        # 记录指标
                         latency = time.time() - start_time
                         if self.enable_observability and self.observability:
                             self.observability.record_query(
@@ -515,11 +515,11 @@ Final Answer: [最终答案]
 
                         return final_answer
 
-                ***REMOVED*** 解析行动
+                # 解析行动
                 action_info = self._parse_action(content)
 
                 if action_info is None:
-                    ***REMOVED*** 如果没有解析到行动，可能是模型在思考
+                    # 如果没有解析到行动，可能是模型在思考
                     if verbose:
                         print("未检测到行动，继续推理...")
                     continue
@@ -530,7 +530,7 @@ Final Answer: [最终答案]
                     print(f"执行行动: {action_name}")
                     print(f"行动参数: {action_input}")
 
-                ***REMOVED*** 执行行动（带指标收集）- 使用提取的方法简化嵌套
+                # 执行行动（带指标收集）- 使用提取的方法简化嵌套
                 try:
                     observation, tools_called = self._execute_tool_with_metrics(
                         tool_name=action_name,
@@ -539,23 +539,23 @@ Final Answer: [最终答案]
                     )
                 except Exception as e:
                     observation = f"错误: {str(e)}"
-                    raise  ***REMOVED*** 重新抛出异常
+                    raise  # 重新抛出异常
 
                 if verbose:
                     print(f"观察结果: {observation}")
 
-                ***REMOVED*** 将观察结果添加到对话历史
+                # 将观察结果添加到对话历史
                 observation_text = f"Action: {action_name}\nAction Input: {json.dumps(action_input, ensure_ascii=False)}\nObservation: {observation}"
                 self.conversation_history.append({
                     "role": "user",
                     "content": observation_text
                 })
 
-        ***REMOVED*** 如果达到最大迭代次数
+        # 如果达到最大迭代次数
         if verbose:
             print("\n达到最大迭代次数，返回最后的内容")
 
-        ***REMOVED*** 记录指标（失败）
+        # 记录指标（失败）
         latency = time.time() - start_time
         if self.enable_observability and self.observability:
             self.observability.record_query(
@@ -569,7 +569,7 @@ Final Answer: [最终答案]
                 error_message="达到最大迭代次数"
             )
 
-        ***REMOVED*** 尝试从最后一条消息中提取内容
+        # 尝试从最后一条消息中提取内容
         if self.conversation_history:
             last_message = self.conversation_history[-1]
             if isinstance(last_message, dict) and "content" in last_message:
@@ -623,7 +623,7 @@ def example_4_time_query():
 
 
 if __name__ == "__main__":
-    ***REMOVED*** 运行示例
+    # 运行示例
     print("ReAct 推理示例")
     print("=" * 60)
 

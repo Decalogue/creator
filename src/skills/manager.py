@@ -23,7 +23,7 @@ class SkillManager:
             skills_dir: Skills 目录路径，默认为当前模块目录下的 skills 子目录
         """
         if skills_dir is None:
-            ***REMOVED*** 默认使用当前文件所在目录
+            # 默认使用当前文件所在目录
             current_dir = Path(__file__).parent
             skills_dir = current_dir
         
@@ -31,7 +31,7 @@ class SkillManager:
         self._skills: Dict[str, Skill] = {}
         self._metadata_cache: Dict[str, SkillMetadata] = {}
         
-        ***REMOVED*** 扫描并加载所有 Skills
+        # 扫描并加载所有 Skills
         self.scan_skills()
     
     def scan_skills(self) -> None:
@@ -42,7 +42,7 @@ class SkillManager:
         self._skills.clear()
         self._metadata_cache.clear()
         
-        ***REMOVED*** 遍历所有子目录
+        # 遍历所有子目录
         for item in self.skills_dir.iterdir():
             if item.is_dir() and not item.name.startswith('_'):
                 skill_md = item / "SKILL.md"
@@ -87,31 +87,31 @@ class SkillManager:
         for skill in self._skills.values():
             score = 0
             
-            ***REMOVED*** 检查触发词
+            # 检查触发词
             for trigger in skill.metadata.triggers:
                 if trigger.lower() in query_lower:
                     score += 10
             
-            ***REMOVED*** 检查标签
+            # 检查标签
             for tag in skill.metadata.tags:
                 if tag.lower() in query_lower:
                     score += 5
             
-            ***REMOVED*** 检查描述
+            # 检查描述
             if skill.metadata.description.lower() in query_lower:
                 score += 3
             
-            ***REMOVED*** 检查名称
+            # 检查名称
             if skill.metadata.name.lower() in query_lower:
                 score += 2
             
             if score > 0:
                 scored_skills.append((score, skill))
         
-        ***REMOVED*** 按分数排序
+        # 按分数排序
         scored_skills.sort(key=lambda x: x[0], reverse=True)
         
-        ***REMOVED*** 返回前 max_skills 个
+        # 返回前 max_skills 个
         return [skill for _, skill in scored_skills[:max_skills]]
     
     def get_context_for_query(self, query: str, level: int = 2) -> str:
@@ -137,7 +137,7 @@ class SkillManager:
             skill_context = skill.get_context(level)
             skill_tokens = skill.estimate_tokens(level)
             
-            ***REMOVED*** 粗略限制：如果超过 10k tokens，只加载元数据
+            # 粗略限制：如果超过 10k tokens，只加载元数据
             if total_tokens + skill_tokens > 10000 and level > 1:
                 skill_context = skill.get_context(1)
                 skill_tokens = skill.estimate_tokens(1)
@@ -160,5 +160,5 @@ class SkillManager:
                 print(f"Warning: Failed to reload skill {name}: {e}")
 
 
-***REMOVED*** 全局 Skill Manager 实例
+# 全局 Skill Manager 实例
 default_manager = SkillManager()

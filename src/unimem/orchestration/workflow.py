@@ -55,11 +55,11 @@ class Step:
     id: str
     name: str
     step_type: StepType
-    func: Callable  ***REMOVED*** 执行函数
-    dependencies: List[str] = field(default_factory=list)  ***REMOVED*** 依赖的步骤ID
-    condition: Optional[Callable] = None  ***REMOVED*** 执行条件
-    retry_count: int = 0  ***REMOVED*** 重试次数
-    timeout: Optional[float] = None  ***REMOVED*** 超时时间（秒）
+    func: Callable  # 执行函数
+    dependencies: List[str] = field(default_factory=list)  # 依赖的步骤ID
+    condition: Optional[Callable] = None  # 执行条件
+    retry_count: int = 0  # 重试次数
+    timeout: Optional[float] = None  # 超时时间（秒）
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
@@ -144,7 +144,7 @@ class Workflow:
         
         ready = []
         for step in self.steps:
-            ***REMOVED*** 检查所有依赖是否都已完成
+            # 检查所有依赖是否都已完成
             if all(dep in completed_steps for dep in step.dependencies):
                 ready.append(step)
         return ready
@@ -158,10 +158,10 @@ class Workflow:
         Returns:
             如果存在循环，返回循环路径；否则返回 None
         """
-        ***REMOVED*** 构建依赖图
+        # 构建依赖图
         graph: Dict[str, List[str]] = {step.id: step.dependencies for step in self.steps}
         
-        ***REMOVED*** DFS 检测循环
+        # DFS 检测循环
         visited: Set[str] = set()
         rec_stack: Set[str] = set()
         path: List[str] = []
@@ -180,7 +180,7 @@ class Workflow:
                     if dfs(dep):
                         return True
                 elif dep in rec_stack:
-                    ***REMOVED*** 找到循环：从循环起点到当前节点
+                    # 找到循环：从循环起点到当前节点
                     cycle_start = path.index(dep)
                     cycle_path = path[cycle_start:] + [dep]
                     return True
@@ -217,20 +217,20 @@ class Workflow:
         if not self.steps:
             return False, "工作流必须包含至少一个步骤"
         
-        ***REMOVED*** 检查步骤ID唯一性
+        # 检查步骤ID唯一性
         step_ids = [step.id for step in self.steps]
         if len(step_ids) != len(set(step_ids)):
             duplicates = [sid for sid in step_ids if step_ids.count(sid) > 1]
             return False, f"步骤ID必须唯一，发现重复: {set(duplicates)}"
         
-        ***REMOVED*** 检查依赖是否存在
+        # 检查依赖是否存在
         step_ids_set = set(step_ids)
         for step in self.steps:
             for dep_id in step.dependencies:
                 if dep_id not in step_ids_set:
                     return False, f"步骤 {step.id} 的依赖 {dep_id} 不存在"
         
-        ***REMOVED*** 检查循环依赖
+        # 检查循环依赖
         cycle = self._detect_cycles()
         if cycle:
             return False, f"检测到循环依赖: {' -> '.join(cycle)}"

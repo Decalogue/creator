@@ -1,8 +1,8 @@
-***REMOVED*** UniMem HTTP Service
+# UniMem HTTP Service
 
 UniMem HTTP 服务，提供 REST API 接口，允许外部系统通过 HTTP 调用 UniMem 功能。
 
-***REMOVED******REMOVED*** 功能特性
+## 功能特性
 
 - ✅ REST API 接口（FastAPI）
 - ✅ 三个核心操作：retain（存储）、recall（检索）、reflect（优化）
@@ -12,17 +12,17 @@ UniMem HTTP 服务，提供 REST API 接口，允许外部系统通过 HTTP 调�
 - ✅ 类型安全的请求/响应模型（Pydantic）
 - ✅ 完善的错误处理
 
-***REMOVED******REMOVED*** 快速开始
+## 快速开始
 
-***REMOVED******REMOVED******REMOVED*** 1. 安装依赖
+### 1. 安装依赖
 
 ```bash
-***REMOVED*** 默认工作目录为 src
+# 默认工作目录为 src
 cd /root/data/AI/creator/src
 pip install -r unimem/requirements.txt
 ```
 
-***REMOVED******REMOVED******REMOVED*** 2. 配置环境变量（可选）
+### 2. 配置环境变量（可选）
 
 ```bash
 export UNIMEM_HOST="0.0.0.0"
@@ -34,30 +34,30 @@ export UNIMEM_VECTOR_BACKEND="qdrant"
 export OPENAI_API_KEY="your-api-key"
 ```
 
-***REMOVED******REMOVED******REMOVED*** 3. 启动服务
+### 3. 启动服务
 
 ```bash
-***REMOVED*** 方式1：使用启动脚本（默认工作目录为 src）
+# 方式1：使用启动脚本（默认工作目录为 src）
 cd /root/data/AI/creator/src
 ./unimem/scripts/start_unimem_service.sh
 
-***REMOVED*** 方式2：直接运行 Python 模块（默认工作目录为 src）
+# 方式2：直接运行 Python 模块（默认工作目录为 src）
 cd /root/data/AI/creator/src
 python -m unimem.service.server
 
-***REMOVED*** 方式3：指定参数
+# 方式3：指定参数
 python -m unimem.service.server --host 0.0.0.0 --port 9622 --config unimem/config/unimem_service.json
 ```
 
-***REMOVED******REMOVED******REMOVED*** 4. 访问服务
+### 4. 访问服务
 
 - API 文档（Swagger UI）：http://localhost:9622/docs
 - API 文档（ReDoc）：http://localhost:9622/redoc
 - 健康检查：http://localhost:9622/unimem/health
 
-***REMOVED******REMOVED*** API 端点
+## API 端点
 
-***REMOVED******REMOVED******REMOVED*** POST /unimem/retain
+### POST /unimem/retain
 
 存储新记忆
 
@@ -94,7 +94,7 @@ python -m unimem.service.server --host 0.0.0.0 --port 9622 --config unimem/confi
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** POST /unimem/recall
+### POST /unimem/recall
 
 检索记忆
 
@@ -126,7 +126,7 @@ python -m unimem.service.server --host 0.0.0.0 --port 9622 --config unimem/confi
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** POST /unimem/reflect
+### POST /unimem/reflect
 
 优化记忆
 
@@ -166,7 +166,7 @@ python -m unimem.service.server --host 0.0.0.0 --port 9622 --config unimem/confi
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** GET /unimem/health
+### GET /unimem/health
 
 健康检查
 
@@ -179,7 +179,7 @@ python -m unimem.service.server --host 0.0.0.0 --port 9622 --config unimem/confi
 }
 ```
 
-***REMOVED******REMOVED*** 开发模式
+## 开发模式
 
 启动开发模式（代码变更时自动重载）：
 
@@ -187,7 +187,7 @@ python -m unimem.service.server --host 0.0.0.0 --port 9622 --config unimem/confi
 python -m src.unimem.service.server --reload
 ```
 
-***REMOVED******REMOVED*** 配置
+## 配置
 
 服务支持通过以下方式配置：
 
@@ -202,11 +202,11 @@ python -m src.unimem.service.server --reload
 - 配置文件位于 `unimem/config/` 目录下
 - 启动服务前请确保在 `src` 目录下运行命令
 
-***REMOVED******REMOVED*** 集成到 Puppeteer
+## 集成到 Puppeteer
 
 服务设计为独立运行，可以轻松集成到 Puppeteer 或其他系统中。参考 `unimem/docs/集成指南.md` 了解集成方案。
 
-***REMOVED******REMOVED*** 注意事项
+## 注意事项
 
 1. 确保后端服务（Redis、Neo4j、Qdrant）已启动
 2. 确保已配置 LLM API Key（OpenAI API Key）

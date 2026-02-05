@@ -36,7 +36,7 @@ class AdapterRegistry:
     
     _adapters: Dict[str, Type[BaseAdapter]] = {}
     _instances: Dict[str, BaseAdapter] = {}
-    _lock = threading.RLock()  ***REMOVED*** 使用 RLock 支持嵌套锁
+    _lock = threading.RLock()  # 使用 RLock 支持嵌套锁
     
     @classmethod
     def register(cls, name: str, adapter_class: Type[BaseAdapter]) -> None:
@@ -106,8 +106,8 @@ class AdapterRegistry:
             logger.warning(f"Adapter '{name}' not found in registry")
             return None
         
-        ***REMOVED*** 检查是否已有实例（基于配置的 ID）
-        ***REMOVED*** 注意：这不是完美的缓存策略，但对于大多数场景足够
+        # 检查是否已有实例（基于配置的 ID）
+        # 注意：这不是完美的缓存策略，但对于大多数场景足够
         instance_key = f"{name}_{id(config) if config else 'default'}"
         
         with cls._lock:
@@ -115,18 +115,18 @@ class AdapterRegistry:
                 logger.debug(f"Returning cached adapter instance: {name}")
                 return cls._instances[instance_key]
         
-        ***REMOVED*** 创建新实例（在锁外创建，避免长时间锁定）
+        # 创建新实例（在锁外创建，避免长时间锁定）
         try:
             instance = adapter_class(config=config or {})
             instance.initialize()
             
             with cls._lock:
-                ***REMOVED*** 双重检查，避免重复创建
+                # 双重检查，避免重复创建
                 if instance_key not in cls._instances:
                     cls._instances[instance_key] = instance
                     logger.debug(f"Created new adapter instance: {name}")
                 else:
-                    ***REMOVED*** 另一个线程已经创建了实例，使用已存在的实例
+                    # 另一个线程已经创建了实例，使用已存在的实例
                     logger.debug(f"Adapter instance already created by another thread: {name}")
                     instance = cls._instances[instance_key]
             
@@ -173,7 +173,7 @@ class AdapterRegistry:
         
         try:
             health_status = adapter.health_check()
-            ***REMOVED*** 转换为字典格式（向后兼容）
+            # 转换为字典格式（向后兼容）
             return adapter.get_health_dict() if hasattr(adapter, 'get_health_dict') else {
                 "adapter": health_status.adapter,
                 "initialized": health_status.initialized,
@@ -198,7 +198,7 @@ class AdapterRegistry:
             logger.info(f"Cleared {count} adapter instances from cache")
 
 
-***REMOVED*** 自动注册所有适配器
+# 自动注册所有适配器
 def _auto_register() -> None:
     """
     自动注册所有功能适配器
@@ -253,5 +253,5 @@ def _auto_register() -> None:
     
     logger.info(f"Adapter registration completed: {len(AdapterRegistry.list_adapters())} adapters registered")
 
-***REMOVED*** 执行自动注册
+# 执行自动注册
 _auto_register()

@@ -47,13 +47,13 @@ class UniMemConfig:
     def _load_default_config(self) -> Dict[str, Any]:
         """加载默认配置"""
         return {
-            ***REMOVED*** 存储后端配置
+            # 存储后端配置
             "storage": {
                 "foa_backend": "redis",
                 "da_backend": "redis",
                 "ltm_backend": "neo4j",
             },
-            ***REMOVED*** 图数据库配置
+            # 图数据库配置
             "graph": {
                 "backend": "neo4j",
                 "workspace": "./lightrag_workspace",
@@ -61,29 +61,29 @@ class UniMemConfig:
                 "llm_model": "deepseek-v3-2",
                 "embedding_model": "text-embedding-3-small",
             },
-            ***REMOVED*** 向量数据库配置
+            # 向量数据库配置
             "vector": {
                 "backend": "qdrant",
             },
-            ***REMOVED*** 功能适配器配置（按照功能模块组织）
+            # 功能适配器配置（按照功能模块组织）
             "operation": {
                 "llm_provider": "ark_deepseek",
                 "llm_model": "deepseek-v3-2",
-                "llm_func": "ark_deepseek_v3_2",  ***REMOVED*** 使用 chat.py 中的函数
+                "llm_func": "ark_deepseek_v3_2",  # 使用 chat.py 中的函数
             },
             "layered_storage": {
-                ***REMOVED*** CogMem 相关配置
+                # CogMem 相关配置
             },
             "memory_type": {
-                ***REMOVED*** MemMachine 相关配置
+                # MemMachine 相关配置
             },
             "network": {
-                ***REMOVED*** A-Mem 相关配置
+                # A-Mem 相关配置
                 "model_name": "all-MiniLM-L6-v2",
-                "local_model_path": "/root/data/AI/pretrain/all-MiniLM-L6-v2",  ***REMOVED*** 本地模型路径
+                "local_model_path": "/root/data/AI/pretrain/all-MiniLM-L6-v2",  # 本地模型路径
                 "llm_provider": "ark_deepseek",
                 "llm_model": "deepseek-v3-2",
-                "llm_func": "ark_deepseek_v3_2",  ***REMOVED*** 使用 chat.py 中的函数
+                "llm_func": "ark_deepseek_v3_2",  # 使用 chat.py 中的函数
                 "qdrant_host": "localhost",
                 "qdrant_port": 6333,
                 "collection_name": "unimem_memories",
@@ -91,14 +91,14 @@ class UniMemConfig:
             "retrieval": {
                 "top_k": 10,
                 "rrf_k": 60,
-                ***REMOVED*** 记忆重要性评分（用于 recall 重排序）
-                "importance_weight": 0.3,   ***REMOVED*** 与检索分数融合时重要性权重，0=仅检索分，1=仅重要性
-                "importance_decay_days": 30, ***REMOVED*** 时间衰减：超过 N 天未访问的记忆重要性衰减
+                # 记忆重要性评分（用于 recall 重排序）
+                "importance_weight": 0.3,   # 与检索分数融合时重要性权重，0=仅检索分，1=仅重要性
+                "importance_decay_days": 30, # 时间衰减：超过 N 天未访问的记忆重要性衰减
             },
             "update": {
-                "sleep_interval": 3600,  ***REMOVED*** 1小时
+                "sleep_interval": 3600,  # 1小时
             },
-            ***REMOVED*** 涟漪效应配置
+            # 涟漪效应配置
             "ripple": {
                 "max_depth": 3,
                 "decay_factor": 0.5,
@@ -117,43 +117,43 @@ class UniMemConfig:
     
     def _load_from_env(self):
         """从环境变量加载配置"""
-        ***REMOVED*** LLM 配置 - 使用 ARK API（deepseek）
+        # LLM 配置 - 使用 ARK API（deepseek）
         if os.getenv("ARK_API_KEY"):
             self.config["operation"]["api_key"] = os.getenv("ARK_API_KEY")
             self.config["network"]["api_key"] = os.getenv("ARK_API_KEY")
             self.config["graph"]["api_key"] = os.getenv("ARK_API_KEY")
         elif os.getenv("OPENAI_API_KEY"):
-            ***REMOVED*** 向后兼容，但建议使用 ARK_API_KEY
+            # 向后兼容，但建议使用 ARK_API_KEY
             self.config["operation"]["api_key"] = os.getenv("OPENAI_API_KEY")
             self.config["network"]["api_key"] = os.getenv("OPENAI_API_KEY")
             self.config["graph"]["api_key"] = os.getenv("OPENAI_API_KEY")
         
-        ***REMOVED*** Neo4j 配置
+        # Neo4j 配置
         if os.getenv("NEO4J_URI"):
             self.config["graph"]["neo4j_uri"] = os.getenv("NEO4J_URI")
         else:
-            ***REMOVED*** 默认配置
+            # 默认配置
             self.config["graph"]["neo4j_uri"] = "bolt://localhost:7680"
         
         if os.getenv("NEO4J_USER"):
             self.config["graph"]["neo4j_user"] = os.getenv("NEO4J_USER")
         else:
-            ***REMOVED*** 默认用户
+            # 默认用户
             self.config["graph"]["neo4j_user"] = "neo4j"
         
         if os.getenv("NEO4J_PASSWORD"):
             self.config["graph"]["neo4j_password"] = os.getenv("NEO4J_PASSWORD")
         else:
-            ***REMOVED*** 默认密码
+            # 默认密码
             self.config["graph"]["neo4j_password"] = "seeme_db"
         
-        ***REMOVED*** Neo4j 数据库名称
+        # Neo4j 数据库名称
         if os.getenv("NEO4J_DATABASE"):
             self.config["graph"]["neo4j_database"] = os.getenv("NEO4J_DATABASE")
         else:
             self.config["graph"]["neo4j_database"] = "neo4j"
         
-        ***REMOVED*** 存储后端
+        # 存储后端
         if os.getenv("UNIMEM_STORAGE_BACKEND"):
             self.config["storage"]["foa_backend"] = os.getenv("UNIMEM_STORAGE_BACKEND")
             self.config["storage"]["da_backend"] = os.getenv("UNIMEM_STORAGE_BACKEND")
@@ -161,15 +161,15 @@ class UniMemConfig:
         if os.getenv("UNIMEM_LTM_BACKEND"):
             self.config["storage"]["ltm_backend"] = os.getenv("UNIMEM_LTM_BACKEND")
         
-        ***REMOVED*** 图数据库
+        # 图数据库
         if os.getenv("UNIMEM_GRAPH_BACKEND"):
             self.config["graph"]["backend"] = os.getenv("UNIMEM_GRAPH_BACKEND")
         
-        ***REMOVED*** 向量数据库
+        # 向量数据库
         if os.getenv("UNIMEM_VECTOR_BACKEND"):
             self.config["vector"]["backend"] = os.getenv("UNIMEM_VECTOR_BACKEND")
         
-        ***REMOVED*** Qdrant 配置
+        # Qdrant 配置
         if os.getenv("QDRANT_HOST"):
             self.config["network"]["qdrant_host"] = os.getenv("QDRANT_HOST")
         if os.getenv("QDRANT_PORT"):
@@ -212,48 +212,48 @@ class UniMemConfig:
         """
         errors: List[str] = []
         
-        ***REMOVED*** 验证必需配置
+        # 验证必需配置
         required_sections = ["graph", "vector"]
         for section in required_sections:
             if section not in self.config:
                 errors.append(f"Missing required config section: {section}")
         
-        ***REMOVED*** 验证 graph 配置
+        # 验证 graph 配置
         if "graph" in self.config:
             graph_config = self.config["graph"]
             valid_backends = ["neo4j", "networkx"]
             if graph_config.get("backend") not in valid_backends:
                 errors.append(f"Invalid graph backend: {graph_config.get('backend')}. Must be one of {valid_backends}")
             
-            ***REMOVED*** Neo4j 配置验证
+            # Neo4j 配置验证
             if graph_config.get("backend") == "neo4j":
                 if "neo4j_uri" in graph_config:
                     uri = graph_config["neo4j_uri"]
                     if not isinstance(uri, str) or not uri.startswith(("bolt://", "neo4j://")):
                         errors.append(f"Invalid neo4j_uri format: {uri}. Must start with 'bolt://' or 'neo4j://'")
         
-        ***REMOVED*** 验证 vector 配置
+        # 验证 vector 配置
         if "vector" in self.config:
             vector_config = self.config["vector"]
             valid_backends = ["qdrant", "faiss", "milvus"]
             if vector_config.get("backend") not in valid_backends:
                 errors.append(f"Invalid vector backend: {vector_config.get('backend')}. Must be one of {valid_backends}")
         
-        ***REMOVED*** 验证 network 配置
+        # 验证 network 配置
         if "network" in self.config:
             network_config = self.config["network"]
-            ***REMOVED*** 验证 Qdrant 端口
+            # 验证 Qdrant 端口
             if "qdrant_port" in network_config:
                 port = network_config["qdrant_port"]
                 if not isinstance(port, int) or not (1 <= port <= 65535):
                     errors.append(f"Invalid qdrant_port: {port}. Must be an integer between 1 and 65535")
-            ***REMOVED*** 验证 Qdrant 主机
+            # 验证 Qdrant 主机
             if "qdrant_host" in network_config:
                 host = network_config["qdrant_host"]
                 if not isinstance(host, str) or not host.strip():
                     errors.append(f"Invalid qdrant_host: {host}. Must be a non-empty string")
         
-        ***REMOVED*** 验证 update 配置
+        # 验证 update 配置
         if "update" in self.config:
             update_config = self.config["update"]
             if "sleep_interval" in update_config:
@@ -261,7 +261,7 @@ class UniMemConfig:
                 if not isinstance(interval, (int, float)) or interval <= 0:
                     errors.append(f"Invalid sleep_interval: {interval}. Must be a positive number")
         
-        ***REMOVED*** 验证 retrieval 配置
+        # 验证 retrieval 配置
         if "retrieval" in self.config:
             retrieval_config = self.config["retrieval"]
             if "top_k" in retrieval_config:
@@ -281,7 +281,7 @@ class UniMemConfig:
                 if not isinstance(d, (int, float)) or d <= 0:
                     errors.append(f"Invalid importance_decay_days: {d}. Must be positive")
         
-        ***REMOVED*** 验证 ripple 配置
+        # 验证 ripple 配置
         if "ripple" in self.config:
             ripple_config = self.config["ripple"]
             if "max_depth" in ripple_config:

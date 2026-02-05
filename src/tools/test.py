@@ -11,7 +11,7 @@ def test_discovery_tools():
     """测试工具发现相关工具"""
     print("测试工具发现相关工具...")
 
-    ***REMOVED*** search_tool_docs
+    # search_tool_docs
     try:
         discovery = get_discovery()
         result = discovery.search_tool_docs("工具", max_results=3)
@@ -19,7 +19,7 @@ def test_discovery_tools():
     except Exception as e:
         print(f"  ✗ search_tool_docs -> 错误: {e}")
 
-    ***REMOVED*** read_tool_doc（read_tool_doc 工具）
+    # read_tool_doc（read_tool_doc 工具）
     try:
         doc = default_registry.execute_tool("read_tool_doc", {"tool_name": "search_tool_docs"})
         print(f"  ✓ read_tool_doc('search_tool_docs') -> 长度 {len(doc)}")

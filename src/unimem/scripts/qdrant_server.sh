@@ -1,32 +1,32 @@
-***REMOVED***!/bin/bash
+#!/bin/bash
 
-***REMOVED*** Qdrant 服务管理脚本
-***REMOVED*** 用于启动、停止、重启和检查 Qdrant 向量数据库服务
-***REMOVED*** 默认工作目录为 src
+# Qdrant 服务管理脚本
+# 用于启动、停止、重启和检查 Qdrant 向量数据库服务
+# 默认工作目录为 src
 
 set -e
 
-***REMOVED*** 切换到 src 目录（脚本在 unimem/scripts/，需要回到 src）
+# 切换到 src 目录（脚本在 unimem/scripts/，需要回到 src）
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UNIMEM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SRC_DIR="$(cd "$UNIMEM_DIR/.." && pwd)"
 cd "$SRC_DIR"
 
-***REMOVED*** 配置
+# 配置
 CONTAINER_NAME="qdrant_unimem"
 HOST_PORT_HTTP=6333
 HOST_PORT_GRPC=6334
-***REMOVED*** 存储路径：项目根下 local_storage/qdrant（旧路径 src/memory/unimem/qdrant_storage 或 src/unimem/qdrant_storage 需手动迁移到此目录）
+# 存储路径：项目根下 local_storage/qdrant（旧路径 src/memory/unimem/qdrant_storage 或 src/unimem/qdrant_storage 需手动迁移到此目录）
 STORAGE_PATH="../local_storage/qdrant"
 IMAGE_NAME="qdrant/qdrant"
 
-***REMOVED*** 颜色输出
+# 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' ***REMOVED*** No Color
+NC='\033[0m' # No Color
 
-***REMOVED*** 打印带颜色的消息
+# 打印带颜色的消息
 print_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
@@ -39,7 +39,7 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-***REMOVED*** 检查 Docker 是否安装
+# 检查 Docker 是否安装
 check_docker() {
     if ! command -v docker &> /dev/null; then
         print_error "Docker 未安装，请先安装 Docker"
@@ -60,13 +60,13 @@ check_docker() {
         echo
         echo "安装后，可能需要将当前用户添加到 docker 组:"
         echo "     sudo usermod -aG docker $USER"
-        echo "     ***REMOVED*** 然后重新登录或执行: newgrp docker"
+        echo "     # 然后重新登录或执行: newgrp docker"
         echo
         echo "详细安装指南: https://docs.docker.com/get-docker/"
         exit 1
     fi
     
-    ***REMOVED*** 检查 Docker 服务是否运行
+    # 检查 Docker 服务是否运行
     if ! docker info &> /dev/null; then
         print_warn "Docker 已安装但服务未运行"
         echo "尝试启动 Docker 服务..."
@@ -79,17 +79,17 @@ check_docker() {
     print_info "Docker 已安装: $(docker --version)"
 }
 
-***REMOVED*** 检查容器是否运行
+# 检查容器是否运行
 is_running() {
     docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"
 }
 
-***REMOVED*** 检查容器是否存在（包括已停止的）
+# 检查容器是否存在（包括已停止的）
 container_exists() {
     docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"
 }
 
-***REMOVED*** 启动 Qdrant 服务
+# 启动 Qdrant 服务
 start() {
     print_info "启动 Qdrant 服务..."
     
@@ -100,7 +100,7 @@ start() {
         return 0
     fi
     
-    ***REMOVED*** 如果容器存在但未运行，启动它
+    # 如果容器存在但未运行，启动它
     if container_exists; then
         print_info "发现已存在的容器，启动中..."
         docker start ${CONTAINER_NAME}
@@ -108,10 +108,10 @@ start() {
         return 0
     fi
     
-    ***REMOVED*** 创建存储目录
+    # 创建存储目录
     mkdir -p ${STORAGE_PATH}
     
-    ***REMOVED*** 检查镜像是否存在，不存在则拉取
+    # 检查镜像是否存在，不存在则拉取
     print_info "检查 Qdrant 镜像..."
     if ! docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${IMAGE_NAME}:latest$"; then
         print_info "镜像不存在，开始拉取 ${IMAGE_NAME}..."
@@ -146,7 +146,7 @@ start() {
         print_info "镜像已存在"
     fi
     
-    ***REMOVED*** 启动新容器
+    # 启动新容器
     print_info "创建并启动新的 Qdrant 容器..."
     if ! docker run -d \
         --name ${CONTAINER_NAME} \
@@ -159,11 +159,11 @@ start() {
         exit 1
     fi
     
-    ***REMOVED*** 等待服务就绪
+    # 等待服务就绪
     print_info "等待 Qdrant 服务就绪..."
     sleep 3
     
-    ***REMOVED*** 检查服务健康状态
+    # 检查服务健康状态
     if check_health; then
         print_info "Qdrant 服务启动成功！"
         print_info "HTTP API: http://localhost:${HOST_PORT_HTTP}"
@@ -176,7 +176,7 @@ start() {
     fi
 }
 
-***REMOVED*** 停止 Qdrant 服务
+# 停止 Qdrant 服务
 stop() {
     print_info "停止 Qdrant 服务..."
     
@@ -193,7 +193,7 @@ stop() {
     fi
 }
 
-***REMOVED*** 重启 Qdrant 服务
+# 重启 Qdrant 服务
 restart() {
     print_info "重启 Qdrant 服务..."
     stop
@@ -201,7 +201,7 @@ restart() {
     start
 }
 
-***REMOVED*** 删除容器（保留数据）
+# 删除容器（保留数据）
 remove() {
     print_info "删除 Qdrant 容器..."
     
@@ -218,7 +218,7 @@ remove() {
     print_info "容器已删除（数据保留在 ${STORAGE_PATH}）"
 }
 
-***REMOVED*** 删除容器和数据
+# 删除容器和数据
 clean() {
     print_warn "这将删除容器和所有数据！"
     read -p "确认删除? (y/N): " -n 1 -r
@@ -232,18 +232,18 @@ clean() {
     fi
 }
 
-***REMOVED*** 检查服务健康状态
+# 检查服务健康状态
 check_health() {
     if ! is_running; then
         return 1
     fi
     
-    ***REMOVED*** 检查 HTTP 端点（Qdrant 使用根路径或 /collections 作为健康检查）
+    # 检查 HTTP 端点（Qdrant 使用根路径或 /collections 作为健康检查）
     response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${HOST_PORT_HTTP}/collections || echo "000")
     if [ "$response" = "200" ]; then
         return 0
     else
-        ***REMOVED*** 尝试根路径
+        # 尝试根路径
         response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${HOST_PORT_HTTP}/ || echo "000")
         if [ "$response" = "200" ]; then
             return 0
@@ -253,7 +253,7 @@ check_health() {
     fi
 }
 
-***REMOVED*** 显示服务状态
+# 显示服务状态
 status() {
     print_info "检查 Qdrant 服务状态..."
     
@@ -273,7 +273,7 @@ status() {
             print_warn "服务健康: 异常"
         fi
         
-        ***REMOVED*** 显示容器信息
+        # 显示容器信息
         echo
         print_info "容器信息:"
         docker ps --filter "name=${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
@@ -283,7 +283,7 @@ status() {
     fi
 }
 
-***REMOVED*** 显示日志
+# 显示日志
 logs() {
     if ! container_exists; then
         print_error "容器不存在: ${CONTAINER_NAME}"
@@ -293,7 +293,7 @@ logs() {
     docker logs -f ${CONTAINER_NAME}
 }
 
-***REMOVED*** 显示使用说明
+# 显示使用说明
 usage() {
     cat << EOF
 Qdrant 服务管理脚本
@@ -311,10 +311,10 @@ Qdrant 服务管理脚本
     help        显示此帮助信息
 
 示例:
-    $0 start          ***REMOVED*** 启动服务
-    $0 status          ***REMOVED*** 查看状态
-    $0 logs            ***REMOVED*** 查看日志
-    $0 stop            ***REMOVED*** 停止服务
+    $0 start          # 启动服务
+    $0 status          # 查看状态
+    $0 logs            # 查看日志
+    $0 stop            # 停止服务
 
 配置:
     容器名称: ${CONTAINER_NAME}
@@ -326,7 +326,7 @@ Qdrant 服务管理脚本
 EOF
 }
 
-***REMOVED*** 主函数
+# 主函数
 main() {
     case "${1:-}" in
         start)
@@ -366,6 +366,6 @@ main() {
     esac
 }
 
-***REMOVED*** 执行主函数
+# 执行主函数
 main "$@"
 

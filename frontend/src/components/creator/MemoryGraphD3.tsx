@@ -19,7 +19,7 @@ type SimLink = d3.SimulationLinkDatum<SimNode> & { source: string; target: strin
 const COLORS: Record<string, string> = {
   entity: T.accent,
   fact: T.brandLight,
-  atom: '***REMOVED***f59e0b',
+  atom: '#f59e0b',
 };
 
 export const MemoryGraphD3: React.FC<MemoryGraphD3Props> = ({

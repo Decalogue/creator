@@ -19,10 +19,10 @@
 
 .custom-placeholder input::placeholder,
 .custom-placeholder input::-webkit-input-placeholder {
-  color: ***REMOVED***bfbfbf;
+  color: #bfbfbf;
   opacity: 1;
 }
 .custom-placeholder input[type='password']::placeholder {
-  color: ***REMOVED***bfbfbf;
+  color: #bfbfbf;
   opacity: 1;
 }

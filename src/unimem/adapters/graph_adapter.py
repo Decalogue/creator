@@ -115,7 +115,7 @@ class GraphAdapter(BaseAdapter):
             self._available = False
             return
         
-        ***REMOVED*** API 配置：api_base_url 为空时表示不启用 LightRAG，不做任何请求（避免连 localhost:9621）
+        # API 配置：api_base_url 为空时表示不启用 LightRAG，不做任何请求（避免连 localhost:9621）
         raw_url = self.config.get("api_base_url")
         if raw_url is not None and isinstance(raw_url, str):
             api_base_url = raw_url.strip()
@@ -137,7 +137,7 @@ class GraphAdapter(BaseAdapter):
             return
 
         api_timeout = float(self.config.get("api_timeout", 30.0))
-        api_key = self.config.get("api_key")  ***REMOVED*** 可选，用于认证
+        api_key = self.config.get("api_key")  # 可选，用于认证
         if api_timeout <= 0:
             raise AdapterConfigurationError(
                 f"api_timeout must be positive, got {api_timeout}",
@@ -148,7 +148,7 @@ class GraphAdapter(BaseAdapter):
         self.api_timeout = api_timeout
         self.api_key = api_key
 
-        ***REMOVED*** 初始化连接池（Session）
+        # 初始化连接池（Session）
         self._session = requests.Session()
         if self.api_key:
             self._session.headers.update({
@@ -158,14 +158,14 @@ class GraphAdapter(BaseAdapter):
             "Content-Type": "application/json"
         })
 
-        ***REMOVED*** 重试配置
+        # 重试配置
         self.max_retries = int(self.config.get("max_retries", 3))
         self.retry_delay = float(self.config.get("retry_delay", 1.0))
 
-        ***REMOVED*** 初始化请求指标
+        # 初始化请求指标
         self.metrics = RequestMetrics()
 
-        ***REMOVED*** 健康检查
+        # 健康检查
         try:
             health_url = f"{self.api_base_url}/health"
             response = self._session.get(health_url, timeout=5.0)
@@ -212,7 +212,7 @@ class GraphAdapter(BaseAdapter):
         self.metrics.total_requests += 1
         
         try:
-            ***REMOVED*** 使用连接池发送请求
+            # 使用连接池发送请求
             if method.upper() == "GET":
                 response = self._session.get(
                     url, params=params, timeout=self.api_timeout
@@ -235,7 +235,7 @@ class GraphAdapter(BaseAdapter):
             response.raise_for_status()
             result = response.json() if response.content else {}
             
-            ***REMOVED*** 记录成功
+            # 记录成功
             latency = time.time() - start_time
             self.metrics.successful_requests += 1
             self.metrics.total_latency += latency
@@ -267,7 +267,7 @@ class GraphAdapter(BaseAdapter):
                 f"API HTTP error: {method} {endpoint} - {e.response.status_code}",
                 exc_info=True
             )
-            ***REMOVED*** HTTP 错误（如 4xx, 5xx）通常不重试，除非是 5xx
+            # HTTP 错误（如 4xx, 5xx）通常不重试，除非是 5xx
             if retry_on_failure and e.response.status_code >= 500:
                 if TENACITY_AVAILABLE:
                     return self._retry_api_request(method, endpoint, data, params)
@@ -342,8 +342,8 @@ class GraphAdapter(BaseAdapter):
             return [], []
         
         try:
-            ***REMOVED*** 调用 LightRAG API 的提取端点
-            ***REMOVED*** 注意：具体端点名称可能需要根据实际 API 文档调整
+            # 调用 LightRAG API 的提取端点
+            # 注意：具体端点名称可能需要根据实际 API 文档调整
             response = self._make_api_request(
                 method="POST",
                 endpoint="/extract",
@@ -353,7 +353,7 @@ class GraphAdapter(BaseAdapter):
             if not response:
                 return [], []
             
-            ***REMOVED*** 解析响应并转换为 UniMem 类型
+            # 解析响应并转换为 UniMem 类型
             entities = self._parse_entities_from_api(response)
             relations = self._parse_relations_from_api(response)
             
@@ -381,13 +381,13 @@ class GraphAdapter(BaseAdapter):
         
         if not entities:
             logger.warning("Empty entities list provided")
-            return True  ***REMOVED*** 空列表视为成功
+            return True  # 空列表视为成功
         
         try:
-            ***REMOVED*** 转换为 API 格式
+            # 转换为 API 格式
             entities_data = [self._entity_to_api_format(entity) for entity in entities]
             
-            ***REMOVED*** 调用 LightRAG API
+            # 调用 LightRAG API
             response = self._make_api_request(
                 method="POST",
                 endpoint="/entities",
@@ -421,13 +421,13 @@ class GraphAdapter(BaseAdapter):
         
         if not relations:
             logger.warning("Empty relations list provided")
-            return True  ***REMOVED*** 空列表视为成功
+            return True  # 空列表视为成功
         
         try:
-            ***REMOVED*** 转换为 API 格式
+            # 转换为 API 格式
             relations_data = [self._relation_to_api_format(relation) for relation in relations]
             
-            ***REMOVED*** 调用 LightRAG API
+            # 调用 LightRAG API
             response = self._make_api_request(
                 method="POST",
                 endpoint="/relations",
@@ -466,13 +466,13 @@ class GraphAdapter(BaseAdapter):
             return []
         
         try:
-            ***REMOVED*** 调用 LightRAG API 的查询端点，使用 entity 模式
+            # 调用 LightRAG API 的查询端点，使用 entity 模式
             response = self._make_api_request(
                 method="POST",
                 endpoint="/query",
                 data={
                     "query": query,
-                    "mode": "entity",  ***REMOVED*** 实体级检索（低级别）
+                    "mode": "entity",  # 实体级检索（低级别）
                     "top_k": top_k
                 }
             )
@@ -480,7 +480,7 @@ class GraphAdapter(BaseAdapter):
             if not response:
                 return []
             
-            ***REMOVED*** 解析响应并转换为 Memory 列表
+            # 解析响应并转换为 Memory 列表
             memories = self._parse_memories_from_query_response(response, query)
             
             logger.debug(f"Entity retrieval returned {len(memories)} memories")
@@ -512,13 +512,13 @@ class GraphAdapter(BaseAdapter):
             return []
         
         try:
-            ***REMOVED*** 调用 LightRAG API 的查询端点，使用 abstract 模式
+            # 调用 LightRAG API 的查询端点，使用 abstract 模式
             response = self._make_api_request(
                 method="POST",
                 endpoint="/query",
                 data={
                     "query": query,
-                    "mode": "abstract",  ***REMOVED*** 抽象概念检索（高级别）
+                    "mode": "abstract",  # 抽象概念检索（高级别）
                     "top_k": top_k
                 }
             )
@@ -526,7 +526,7 @@ class GraphAdapter(BaseAdapter):
             if not response:
                 return []
             
-            ***REMOVED*** 解析响应并转换为 Memory 列表
+            # 解析响应并转换为 Memory 列表
             memories = self._parse_memories_from_query_response(response, query)
             
             logger.debug(f"Abstract retrieval returned {len(memories)} memories")
@@ -556,7 +556,7 @@ class GraphAdapter(BaseAdapter):
             return []
         
         try:
-            ***REMOVED*** 调用 LightRAG API 查询关联实体
+            # 调用 LightRAG API 查询关联实体
             response = self._make_api_request(
                 method="GET",
                 endpoint=f"/memories/{memory_id}/entities"
@@ -565,7 +565,7 @@ class GraphAdapter(BaseAdapter):
             if not response:
                 return []
             
-            ***REMOVED*** 解析响应并转换为 Entity 列表
+            # 解析响应并转换为 Entity 列表
             entities = self._parse_entities_from_api(response)
             
             logger.debug(f"Found {len(entities)} entities for memory {memory_id}")
@@ -600,7 +600,7 @@ class GraphAdapter(BaseAdapter):
             return False
         
         try:
-            ***REMOVED*** 调用 LightRAG API 更新实体
+            # 调用 LightRAG API 更新实体
             response = self._make_api_request(
                 method="PUT",
                 endpoint=f"/entities/{entity_id}",
@@ -617,7 +617,7 @@ class GraphAdapter(BaseAdapter):
             logger.error(f"Error updating entity description: {e}", exc_info=True)
             return False
     
-    ***REMOVED*** ==================== 类型转换辅助方法 ====================
+    # ==================== 类型转换辅助方法 ====================
     
     def _entity_to_api_format(self, entity: Entity) -> Dict[str, Any]:
         """
@@ -670,7 +670,7 @@ class GraphAdapter(BaseAdapter):
         """
         entities = []
         
-        ***REMOVED*** 支持多种响应格式
+        # 支持多种响应格式
         entities_data = api_response.get("entities") or api_response.get("data", {}).get("entities") or []
         
         if not isinstance(entities_data, list):
@@ -708,7 +708,7 @@ class GraphAdapter(BaseAdapter):
         """
         relations = []
         
-        ***REMOVED*** 支持多种响应格式
+        # 支持多种响应格式
         relations_data = api_response.get("relations") or api_response.get("data", {}).get("relations") or []
         
         if not isinstance(relations_data, list):
@@ -750,7 +750,7 @@ class GraphAdapter(BaseAdapter):
         """
         memories = []
         
-        ***REMOVED*** 支持多种响应格式
+        # 支持多种响应格式
         results = api_response.get("results") or api_response.get("data", {}).get("results") or []
         
         if not isinstance(results, list):
@@ -759,16 +759,16 @@ class GraphAdapter(BaseAdapter):
         
         for idx, result_data in enumerate(results):
             try:
-                ***REMOVED*** 从结果中提取内容
+                # 从结果中提取内容
                 content = result_data.get("text") or result_data.get("content") or result_data.get("description") or ""
                 if not content:
                     continue
                 
-                ***REMOVED*** 创建 Memory 对象
+                # 创建 Memory 对象
                 memory = Memory(
                     id=result_data.get("id", f"graph_mem_{datetime.now().timestamp()}_{idx}"),
                     content=content,
-                    timestamp=datetime.now(),  ***REMOVED*** API 可能不提供时间戳
+                    timestamp=datetime.now(),  # API 可能不提供时间戳
                     context=f"Graph retrieval result for query: {query[:50]}",
                     metadata={
                         "source": "graph_retrieval",
@@ -796,7 +796,7 @@ class GraphAdapter(BaseAdapter):
         """
         base_status = super().health_check()
         
-        ***REMOVED*** 添加请求指标详情
+        # 添加请求指标详情
         details = {
             "api_base_url": self.api_base_url,
             "request_metrics": {

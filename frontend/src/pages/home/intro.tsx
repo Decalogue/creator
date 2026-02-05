@@ -31,7 +31,7 @@ const workflowSteps = [
     subtitle: 'Ideation',
     description: 'AI 助手协助头脑风暴，生成创意与大纲。从关键词到完整故事线，灵感持续输出。',
     icon: <BulbOutlined />,
-    color: '***REMOVED***3b82f6',
+    color: '#3b82f6',
     features: ['智能头脑风暴', '主题研究', '大纲生成'],
   },
   {
@@ -40,7 +40,7 @@ const workflowSteps = [
     subtitle: 'Creation',
     description: '多智能体协同写作，语义记忆与渐进式大纲加持，一键生成章节与长篇。',
     icon: <EditOutlined />,
-    color: '***REMOVED***10b981',
+    color: '#10b981',
     features: ['章节续写', '记忆召回', '风格一致'],
   },
   {
@@ -49,7 +49,7 @@ const workflowSteps = [
     subtitle: 'Optimization',
     description: '全本质检、角色一致性、情节逻辑与文风优化，让作品达到可发布水准。',
     icon: <RiseOutlined />,
-    color: '***REMOVED***f59e0b',
+    color: '#f59e0b',
     features: ['质检优化', '可读性', '发布就绪'],
   },
 ];
@@ -151,7 +151,7 @@ export default function IntroPage() {
           75%, 100% { transform: scale(1.8); opacity: 0; }
         }
         .intro-page .intro-text-gradient {
-          background: linear-gradient(135deg, ***REMOVED***ff4b2f 0%, ***REMOVED***ffa7a7 100%);
+          background: linear-gradient(135deg, #ff4b2f 0%, #ffa7a7 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -190,17 +190,17 @@ export default function IntroPage() {
           }
         }
         .intro-page .intro-footer-link:hover {
-          color: ***REMOVED***fff !important;
+          color: #fff !important;
         }
         .intro-page .intro-footer-social:hover {
-          background: ***REMOVED***ff4b2f !important;
-          color: ***REMOVED***fff !important;
+          background: #ff4b2f !important;
+          color: #fff !important;
         }
         .intro-page .intro-footer-email input.ant-input::placeholder {
           color: rgba(255,255,255,0.4);
         }
         .intro-page .intro-footer-email input.ant-input {
-          color: ***REMOVED***fff;
+          color: #fff;
           background: transparent;
         }
         .intro-page .intro-footer-email.ant-input-affix-wrapper,
@@ -211,7 +211,7 @@ export default function IntroPage() {
         .intro-page .intro-footer-email.ant-input:focus,
         .intro-page .intro-footer-email.ant-input-focused,
         .intro-page .intro-footer-email.ant-input-affix-wrapper-focused {
-          border-color: ***REMOVED***ff4b2f !important;
+          border-color: #ff4b2f !important;
           box-shadow: 0 0 0 2px rgba(255,75,47,0.2);
         }
         .intro-page .intro-footer-newsletter {
@@ -454,9 +454,9 @@ export default function IntroPage() {
           >
             {[
               { icon: <ApiOutlined />, value: '24/7', label: '全天候运行', color: T.accent },
-              { icon: <ThunderboltOutlined />, value: '< 2s', label: '平均响应', color: '***REMOVED***10b981' },
-              { icon: <CheckCircleOutlined />, value: '99.9%', label: '任务成功', color: '***REMOVED***3b82f6' },
-              { icon: <RocketOutlined />, value: '10x', label: '效率提升', color: '***REMOVED***f59e0b' },
+              { icon: <ThunderboltOutlined />, value: '< 2s', label: '平均响应', color: '#10b981' },
+              { icon: <CheckCircleOutlined />, value: '99.9%', label: '任务成功', color: '#3b82f6' },
+              { icon: <RocketOutlined />, value: '10x', label: '效率提升', color: '#f59e0b' },
             ].map((s, i) => (
               <div
                 key={i}
@@ -590,7 +590,7 @@ export default function IntroPage() {
                         height: 56,
                         borderRadius: T.radiusMd,
                         background: isActive ? step.color : `${step.color}18`,
-                        color: isActive ? '***REMOVED***fff' : step.color,
+                        color: isActive ? '#fff' : step.color,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -663,7 +663,7 @@ export default function IntroPage() {
       <section
         style={{
           padding: '120px 40px 140px',
-          background: 'linear-gradient(180deg, ***REMOVED***0a0a0a 0%, ***REMOVED***0f0f1a 40%, ***REMOVED***1a1a2e 100%)',
+          background: 'linear-gradient(180deg, #0a0a0a 0%, #0f0f1a 40%, #1a1a2e 100%)',
           position: 'relative',
           overflow: 'hidden',
           minHeight: 'min(100vh, 920px)',
@@ -677,7 +677,7 @@ export default function IntroPage() {
             inset: 0,
             opacity: 0.08,
             pointerEvents: 'none',
-            backgroundImage: 'linear-gradient(to right, ***REMOVED***ff4b2f 1px, transparent 1px), linear-gradient(to bottom, ***REMOVED***ff4b2f 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(to right, #ff4b2f 1px, transparent 1px), linear-gradient(to bottom, #ff4b2f 1px, transparent 1px)',
             backgroundSize: '48px 48px',
           }}
         />
@@ -704,9 +704,9 @@ export default function IntroPage() {
             >
               <DatabaseOutlined style={{ color: T.accent, fontSize: 14 }} />
               <span style={{ fontSize: 13, fontWeight: T.fontWeightBold, color: T.accent, letterSpacing: '0.04em' }}>AI 记忆系统</span>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '***REMOVED***22c55e' }} />
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
             </div>
-            <Title level={2} style={{ color: '***REMOVED***fafafa', fontWeight: T.fontWeightBold, marginBottom: 12, fontSize: 32 }}>
+            <Title level={2} style={{ color: '#fafafa', fontWeight: T.fontWeightBold, marginBottom: 12, fontSize: 32 }}>
               探索你的 <span className="intro-text-gradient">记忆网络</span>
             </Title>
             <Paragraph style={{ color: 'rgba(255,255,255,0.55)', fontSize: 18, maxWidth: 672, margin: '0 auto' }}>

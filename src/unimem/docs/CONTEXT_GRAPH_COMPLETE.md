@@ -1,60 +1,60 @@
-***REMOVED*** Context Graph 完整实施总结
+# Context Graph 完整实施总结
 
-***REMOVED******REMOVED*** 实施完成时间
+## 实施完成时间
 2026-01-09
 
-***REMOVED******REMOVED*** 改进背景
+## 改进背景
 
 基于文章《AI的万亿美元机遇: Context Graph》的理念，我们完成了对UniMem系统的全面增强，使其成为一个真正的Context Graph系统。
 
-***REMOVED******REMOVED*** ✅ 完成的改进
+## ✅ 完成的改进
 
-***REMOVED******REMOVED******REMOVED*** P0优先级 - 基础增强 ✅
+### P0优先级 - 基础增强 ✅
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1. Memory类增强
+#### 1. Memory类增强
 - ✅ 添加 `reasoning` 字段：存储"为什么"（决策理由）
 - ✅ 添加 `decision_trace` 字段：存储决策痕迹（输入-规则-异常-审批-输出）
 - ✅ 更新序列化/反序列化方法
 - ✅ 添加字段验证逻辑
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 2. REFLECT提示词增强
+#### 2. REFLECT提示词增强
 - ✅ 明确要求LLM提取"为什么"
 - ✅ 新增 `_extract_reasoning_from_text` 方法：自动提取决策理由
 - ✅ 经验提取时自动提取并存储reasoning
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 3. Neo4j存储增强
+#### 3. Neo4j存储增强
 - ✅ `create_memory`: 支持存储reasoning和decision_trace
 - ✅ `update_memory`: 支持更新这两个字段
 - ✅ `get_memory`: 支持读取这两个字段
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 4. RETAIN方法增强
+#### 4. RETAIN方法增强
 - ✅ 从 `context.metadata` 自动捕获决策痕迹
 - ✅ 构建完整的decision_trace
 - ✅ 提取并存储reasoning
 
-***REMOVED******REMOVED******REMOVED*** P1优先级 - 核心功能 ✅
+### P1优先级 - 核心功能 ✅
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5. 先例搜索功能
+#### 5. 先例搜索功能
 - ✅ 实现 `search_precedents` 方法
 - ✅ 基于决策上下文（inputs, rules, exceptions）搜索相似先例
 - ✅ 使用向量检索 + 精确匹配的混合方法
 - ✅ 评分排序机制（规则0.4 + 异常0.3 + 输入0.3 + reasoning+0.1）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 6. 决策事件节点
+#### 6. 决策事件节点
 - ✅ 实现 `create_decision_event` 函数
 - ✅ 实现 `update_decision_event` 函数
 - ✅ 实现 `get_decision_events_for_memory` 函数
 - ✅ 自动在RETAIN时创建DecisionEvent节点
 - ✅ 连接到Memory和Entity节点，形成决策图谱
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 7. 跨系统决策上下文支持
+#### 7. 跨系统决策上下文支持
 - ✅ 实现 `capture_cross_system_decision` 方法
 - ✅ 统一记录来自不同系统的决策
 - ✅ 增强VideoAdapter的存储方法，包含完整决策上下文
 
-***REMOVED******REMOVED*** 核心价值实现
+## 核心价值实现
 
-***REMOVED******REMOVED******REMOVED*** 1. "为什么"作为一等公民数据 ✅
+### 1. "为什么"作为一等公民数据 ✅
 
 **实现方式**:
 - `reasoning` 字段专门存储决策理由
@@ -67,7 +67,7 @@
 - 可以回答"为什么这么做？"
 - 支持决策审计和调试
 
-***REMOVED******REMOVED******REMOVED*** 2. 完整决策痕迹捕获 ✅
+### 2. 完整决策痕迹捕获 ✅
 
 **实现方式**:
 - `decision_trace` 字段记录：inputs, rules_applied, exceptions, approvals
@@ -79,7 +79,7 @@
 - 形成可回放的决策历史
 - 支持先例搜索和复用
 
-***REMOVED******REMOVED******REMOVED*** 3. 先例搜索和复用 ✅
+### 3. 先例搜索和复用 ✅
 
 **实现方式**:
 - `search_precedents` 方法基于决策上下文搜索
@@ -91,7 +91,7 @@
 - 回答"类似情况下我们是怎么做的？"
 - 支持基于先例的决策
 
-***REMOVED******REMOVED******REMOVED*** 4. 决策图谱形成 ✅
+### 4. 决策图谱形成 ✅
 
 **实现方式**:
 - DecisionEvent节点连接Memory和Entity
@@ -103,7 +103,7 @@
 - 追踪决策的完整链路
 - 支持决策分析和优化
 
-***REMOVED******REMOVED******REMOVED*** 5. 跨系统决策记录 ✅
+### 5. 跨系统决策记录 ✅
 
 **实现方式**:
 - `capture_cross_system_decision` 统一接口
@@ -115,9 +115,9 @@
 - 跨系统的经验共享
 - 完整的组织记忆图谱
 
-***REMOVED******REMOVED*** 使用示例
+## 使用示例
 
-***REMOVED******REMOVED******REMOVED*** 示例1: 完整决策流程
+### 示例1: 完整决策流程
 
 ```python
 from unimem import UniMem
@@ -126,7 +126,7 @@ from datetime import datetime
 
 unimem = UniMem(config)
 
-***REMOVED*** 1. 存储决策
+# 1. 存储决策
 experience = Experience(
     content="生成视频脚本：电商口红推广",
     timestamp=datetime.now()
@@ -144,10 +144,10 @@ context = Context(
 )
 
 memory = unimem.retain(experience, context)
-***REMOVED*** ✅ 自动创建DecisionEvent节点
-***REMOVED*** ✅ reasoning和decision_trace已存储
+# ✅ 自动创建DecisionEvent节点
+# ✅ reasoning和decision_trace已存储
 
-***REMOVED*** 2. 搜索相似先例
+# 2. 搜索相似先例
 precedents = unimem.search_precedents(
     inputs=["用户需求", "历史脚本"],
     rules=["3秒原则", "转化率要求"],
@@ -159,16 +159,16 @@ if precedents:
     print(f"找到先例: {precedent.content}")
     print(f"决策理由: {precedent.reasoning}")
 
-***REMOVED*** 3. 查询决策历史
+# 3. 查询决策历史
 from unimem.neo4j import get_decision_events_for_memory
 events = get_decision_events_for_memory(memory.id)
 print(f"决策事件数: {len(events)}")
 ```
 
-***REMOVED******REMOVED******REMOVED*** 示例2: 跨系统决策记录
+### 示例2: 跨系统决策记录
 
 ```python
-***REMOVED*** 记录来自CRM系统的决策
+# 记录来自CRM系统的决策
 memory = unimem.capture_cross_system_decision(
     system="CRM",
     action="订单审批",
@@ -182,7 +182,7 @@ memory = unimem.capture_cross_system_decision(
 )
 ```
 
-***REMOVED******REMOVED*** 架构图
+## 架构图
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -216,24 +216,24 @@ memory = unimem.capture_cross_system_decision(
 └─────────────────────────────────────────────────────────┘
 ```
 
-***REMOVED******REMOVED*** 技术指标
+## 技术指标
 
-***REMOVED******REMOVED******REMOVED*** 数据完整性
+### 数据完整性
 - ✅ reasoning字段: 100%支持
 - ✅ decision_trace字段: 100%支持
 - ✅ DecisionEvent节点: 自动创建
 
-***REMOVED******REMOVED******REMOVED*** 功能完整性
+### 功能完整性
 - ✅ 先例搜索: 已实现
 - ✅ 决策图谱: 已建立
 - ✅ 跨系统支持: 已实现
 
-***REMOVED******REMOVED******REMOVED*** 性能指标
+### 性能指标
 - 先例搜索: 向量检索 + 精确匹配，响应时间 < 1秒
 - DecisionEvent创建: 自动创建，不影响主流程
 - 存储效率: 决策痕迹以JSON格式存储，查询高效
 
-***REMOVED******REMOVED*** 修改的文件清单
+## 修改的文件清单
 
 1. **memory_types.py** - Memory类定义
    - 添加reasoning和decision_trace字段
@@ -259,7 +259,7 @@ memory = unimem.capture_cross_system_decision(
 6. **generate_video_script.py** - 脚本生成
    - 增强反馈存储，包含决策上下文
 
-***REMOVED******REMOVED*** 测试状态
+## 测试状态
 
 - ✅ Memory类字段测试通过
 - ✅ 序列化/反序列化测试通过
@@ -269,7 +269,7 @@ memory = unimem.capture_cross_system_decision(
 - ✅ 所有代码无语法错误
 - ✅ 所有文件通过linter检查
 
-***REMOVED******REMOVED*** 与文章理念的对应
+## 与文章理念的对应
 
 | 文章理念 | UniMem实现 | 状态 |
 |---------|-----------|------|
@@ -281,7 +281,7 @@ memory = unimem.capture_cross_system_decision(
 | 可搜索、可复用 | 向量检索 + 精确匹配 | ✅ |
 | 决策审计和调试 | DecisionEvent查询 | ✅ |
 
-***REMOVED******REMOVED*** 总结
+## 总结
 
 UniMem现在完全实现了Context Graph的理念：
 

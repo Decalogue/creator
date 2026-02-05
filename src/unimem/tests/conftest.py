@@ -20,7 +20,7 @@ def pytest_configure(config: Any) -> None:
     Args:
         config: Pytest 配置对象
     """
-    ***REMOVED*** 检查环境
+    # 检查环境
     conda_env = os.environ.get("CONDA_DEFAULT_ENV")
     if conda_env != "myswift":
         print("\n" + "="*60)
@@ -28,7 +28,7 @@ def pytest_configure(config: Any) -> None:
         print(f"当前环境: {conda_env or '未设置'}")
         print("请先运行: conda activate myswift")
         print("="*60 + "\n")
-        ***REMOVED*** 不强制退出，允许继续运行（某些测试可能不需要环境）
+        # 不强制退出，允许继续运行（某些测试可能不需要环境）
 
 
 @pytest.fixture(scope="session")
@@ -73,6 +73,6 @@ def mock_embedding_model() -> Any:
     """
     from unittest.mock import MagicMock
     model = MagicMock()
-    model.encode.return_value = [[0.1] * 384]  ***REMOVED*** all-MiniLM-L6-v2 维度
+    model.encode.return_value = [[0.1] * 384]  # all-MiniLM-L6-v2 维度
     return model
 

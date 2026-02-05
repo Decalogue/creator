@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class UtilityMetrics:
     """记忆效用指标"""
-    retrieval_count: int = 0  ***REMOVED*** 检索次数 f(E)
-    utility_score: float = 0.0  ***REMOVED*** 效用分数 u(E)
+    retrieval_count: int = 0  # 检索次数 f(E)
+    utility_score: float = 0.0  # 效用分数 u(E)
     last_retrieved: Optional[datetime] = None
     last_utility_update: Optional[datetime] = None
     
@@ -56,7 +56,7 @@ class UtilityTracker:
         self.alpha = alpha
         self.beta = beta
         
-        ***REMOVED*** 内存中的效用指标（实际应该持久化到存储）
+        # 内存中的效用指标（实际应该持久化到存储）
         self._metrics: Dict[str, UtilityMetrics] = {}
         
         logger.info(f"UtilityTracker initialized (alpha={alpha}, beta={beta})")
@@ -97,7 +97,7 @@ class UtilityTracker:
                 f"utility={metrics.utility_score} (task succeeded)"
             )
         else:
-            ***REMOVED*** 失败时不增加效用（甚至可以减少，但这里先保持简单）
+            # 失败时不增加效用（甚至可以减少，但这里先保持简单）
             logger.debug(
                 f"Memory {memory_id} used but task failed, "
                 f"utility unchanged: {metrics.utility_score}"
@@ -126,7 +126,7 @@ class UtilityTracker:
         f = metrics.retrieval_count
         u = metrics.utility_score
         
-        ***REMOVED*** φ_remove(E) 逻辑
+        # φ_remove(E) 逻辑
         if f >= self.alpha:
             utility_ratio = metrics.utility_ratio
             if utility_ratio <= self.beta:
@@ -165,7 +165,7 @@ class UtilityTracker:
             1 for m in self._metrics.values()
             if m.retrieval_count > 0 and m.utility_ratio > 0.5
         )
-        ***REMOVED*** 计算低效用记忆（需要 memory_id，这里简化处理）
+        # 计算低效用记忆（需要 memory_id，这里简化处理）
         low_utility = len(self.get_all_candidates_for_removal())
         
         return {
@@ -220,7 +220,7 @@ class UtilityBasedMemoryManager:
         """记忆被检索时的回调"""
         self.tracker.track_retrieval(memory.id)
         
-        ***REMOVED*** 更新记忆的元数据
+        # 更新记忆的元数据
         if not memory.metadata:
             memory.metadata = {}
         memory.metadata["retrieval_count"] = self.tracker.get_metrics(memory.id).retrieval_count
@@ -249,7 +249,7 @@ class UtilityBasedMemoryManager:
     
     def cleanup_low_utility_memories(
         self,
-        storage_manager,  ***REMOVED*** StorageManager 类型（避免循环导入）
+        storage_manager,  # StorageManager 类型（避免循环导入）
         dry_run: bool = True
     ) -> Dict[str, int]:
         """
@@ -268,14 +268,14 @@ class UtilityBasedMemoryManager:
             logger.info(f"Dry run: would remove {len(candidates)} memories")
             return {"removed": 0, "candidates": len(candidates)}
         
-        ***REMOVED*** 实际删除
+        # 实际删除
         removed_count = 0
         for memory_id in candidates:
             try:
-                ***REMOVED*** 从存储中删除（需要实现 StorageManager 的删除方法）
+                # 从存储中删除（需要实现 StorageManager 的删除方法）
                 if hasattr(storage_manager, "remove_memory"):
                     if storage_manager.remove_memory(memory_id):
-                        ***REMOVED*** 从追踪器中移除
+                        # 从追踪器中移除
                         if memory_id in self.tracker._metrics:
                             del self.tracker._metrics[memory_id]
                         removed_count += 1

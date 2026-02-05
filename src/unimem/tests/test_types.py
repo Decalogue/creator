@@ -48,7 +48,7 @@ class TestExperience(unittest.TestCase):
         self.assertIn("content", data)
         self.assertIn("timestamp", data)
         
-        ***REMOVED*** 测试反序列化
+        # 测试反序列化
         exp2 = Experience.from_dict(data)
         self.assertEqual(exp2.content, exp.content)
 
@@ -103,7 +103,7 @@ class TestMemory(unittest.TestCase):
         self.assertIn("memory_type", data)
         self.assertIn("layer", data)
         
-        ***REMOVED*** 测试反序列化
+        # 测试反序列化
         memory2 = Memory.from_dict(data)
         self.assertEqual(memory2.id, memory.id)
         self.assertEqual(memory2.memory_type, memory.memory_type)
@@ -194,7 +194,7 @@ class TestRetrievalResult(unittest.TestCase):
             timestamp=datetime.now(),
             memory_type=MemoryType.EXPERIENCE
         )
-        ***REMOVED*** 允许负数分数（可能是相关性分数）
+        # 允许负数分数（可能是相关性分数）
         result = RetrievalResult(
             memory=memory,
             score=-0.5,
@@ -245,7 +245,7 @@ class TestRelation(unittest.TestCase):
                 source="e1",
                 target="e2",
                 relation_type="type",
-                strength=1.5  ***REMOVED*** 超出范围 [0, 1]
+                strength=1.5  # 超出范围 [0, 1]
             )
     
     def test_relation_validation_empty_source(self):

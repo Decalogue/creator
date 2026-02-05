@@ -33,7 +33,7 @@ class CrossLevelRetrieval:
         """
         self.storage = hierarchical_storage
         
-        ***REMOVED*** 默认层级权重（可以根据需求调整）
+        # 默认层级权重（可以根据需求调整）
         self.level_weights = {
             ContentLevel.WORK: 1.0,
             ContentLevel.OUTLINE: 0.8,
@@ -66,30 +66,30 @@ class CrossLevelRetrieval:
             logger.warning("Empty query provided")
             return []
         
-        ***REMOVED*** 使用默认层级或指定层级
+        # 使用默认层级或指定层级
         if levels is None:
             levels = list(ContentLevel)
         
-        ***REMOVED*** 使用默认权重或指定权重
+        # 使用默认权重或指定权重
         weights = level_weights if level_weights else self.level_weights
         
         try:
-            ***REMOVED*** 1. 从各层级检索
+            # 1. 从各层级检索
             all_results = []
             for level in levels:
                 memories = self.storage.retrieve(query, level, top_k=top_k * 2)
                 weight = weights.get(level, 0.5)
                 
-                ***REMOVED*** 为每个记忆添加层级权重
+                # 为每个记忆添加层级权重
                 for memory in memories:
-                    ***REMOVED*** 在元数据中记录权重
+                    # 在元数据中记录权重
                     if not memory.metadata:
                         memory.metadata = {}
                     memory.metadata["_retrieval_weight"] = weight
                     memory.metadata["_retrieval_level"] = level.value
                     all_results.append((memory, weight))
             
-            ***REMOVED*** 2. 去重（基于记忆ID）
+            # 2. 去重（基于记忆ID）
             seen_ids = set()
             unique_results = []
             for memory, weight in all_results:
@@ -97,11 +97,11 @@ class CrossLevelRetrieval:
                     seen_ids.add(memory.id)
                     unique_results.append((memory, weight))
             
-            ***REMOVED*** 3. 按权重和相关性排序（简化：仅按权重）
-            ***REMOVED*** 实际应该结合向量相似度等
+            # 3. 按权重和相关性排序（简化：仅按权重）
+            # 实际应该结合向量相似度等
             unique_results.sort(key=lambda x: x[1], reverse=True)
             
-            ***REMOVED*** 4. 返回Top-K
+            # 4. 返回Top-K
             result_memories = [mem for mem, _ in unique_results[:top_k]]
             
             logger.debug(f"Cross-level retrieval: {len(result_memories)} memories from {len(levels)} levels")
@@ -136,18 +136,18 @@ class CrossLevelRetrieval:
         """
         levels_to_search = [start_level]
         
-        ***REMOVED*** 添加父层级
+        # 添加父层级
         if include_parent:
             parent_level = self.storage.index_manager.get_parent_level(start_level)
             if parent_level:
                 levels_to_search.append(parent_level)
         
-        ***REMOVED*** 添加子层级
+        # 添加子层级
         if include_children:
             child_levels = self.storage.index_manager.get_child_levels(start_level)
             levels_to_search.extend(child_levels)
         
-        ***REMOVED*** 执行跨层级检索
+        # 执行跨层级检索
         results = {}
         for level in levels_to_search:
             memories = self.storage.retrieve(query, level, top_k=top_k)

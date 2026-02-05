@@ -1,11 +1,11 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 测试工具发现系统
 """
 import sys
 from pathlib import Path
 
-***REMOVED*** 添加项目根目录到路径
+# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -24,7 +24,7 @@ def test_index_layer():
     print(index_content)
     print()
     
-    ***REMOVED*** 统计 Token 数量（粗略估算：1 token ≈ 4 字符）
+    # 统计 Token 数量（粗略估算：1 token ≈ 4 字符）
     token_count = len(index_content) // 4
     print(f"Index Layer Token 数量（估算）: {token_count}")
     print()
@@ -38,12 +38,12 @@ def test_discovery_layer():
     
     discovery = get_discovery()
     
-    ***REMOVED*** 列出所有文档
+    # 列出所有文档
     docs = discovery.list_tool_docs()
     print(f"已同步 {len(docs)} 个工具文档: {docs}")
     print()
     
-    ***REMOVED*** 测试搜索（创作相关：工具、文档）
+    # 测试搜索（创作相关：工具、文档）
     print("【搜索测试 1: '工具'】")
     result = discovery.search_tool_docs("工具", max_results=3)
     print(result)
@@ -54,7 +54,7 @@ def test_discovery_layer():
     print(result)
     print()
 
-    ***REMOVED*** 测试读取完整文档（当前内置：search_tool_docs, read_tool_doc）
+    # 测试读取完整文档（当前内置：search_tool_docs, read_tool_doc）
     print("【读取完整文档: search_tool_docs】")
     doc = discovery.get_tool_doc("search_tool_docs")
     if doc:
@@ -72,11 +72,11 @@ def test_token_savings():
     
     discovery = get_discovery()
     
-    ***REMOVED*** Index Layer（新方式）
+    # Index Layer（新方式）
     index_content = discovery.get_index_layer()
     index_tokens = len(index_content) // 4
     
-    ***REMOVED*** 旧方式：所有工具详细描述
+    # 旧方式：所有工具详细描述
     tools = default_registry.get_all_functions()
     old_content_parts = []
     for tool in tools:

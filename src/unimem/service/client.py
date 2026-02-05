@@ -32,7 +32,7 @@ class UniMemServiceClient:
         self.recall_url = f"{self.base_url}/unimem/recall"
         self.reflect_url = f"{self.base_url}/unimem/reflect"
         
-        ***REMOVED*** 检查服务是否可用
+        # 检查服务是否可用
         if not self.check_health():
             raise ConnectionError(f"UniMem service not available at {self.base_url}")
         
@@ -214,7 +214,7 @@ class UniMemServiceClient:
         """将字典转换为 Memory 对象"""
         from ..memory_types import MemoryLayer
         
-        ***REMOVED*** 解析时间戳
+        # 解析时间戳
         timestamp = None
         if data.get("timestamp"):
             if isinstance(data["timestamp"], str):
@@ -229,7 +229,7 @@ class UniMemServiceClient:
             else:
                 last_accessed = data["last_accessed"]
         
-        ***REMOVED*** 解析枚举类型
+        # 解析枚举类型
         memory_type = None
         if data.get("memory_type"):
             try:

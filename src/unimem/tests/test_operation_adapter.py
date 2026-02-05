@@ -44,7 +44,7 @@ class TestOperationAdapter(unittest.TestCase):
         )
         context = Context()
         
-        ***REMOVED*** Mock LLM 调用（如果使用）
+        # Mock LLM 调用（如果使用）
         memory = self.adapter.retain(experience, context)
         self.assertIsNotNone(memory)
         self.assertEqual(memory.content, experience.content)
@@ -66,7 +66,7 @@ class TestOperationAdapter(unittest.TestCase):
     @patch('unimem.adapters.operation_adapter.ark_deepseek_v3_2')
     def test_recall_success(self, mock_llm):
         """测试成功检索"""
-        ***REMOVED*** Mock LLM 响应
+        # Mock LLM 响应
         mock_llm.return_value = "Mocked recall results"
         
         results = self.adapter.recall(
@@ -106,7 +106,7 @@ class TestOperationAdapter(unittest.TestCase):
             context="Context"
         )
         
-        ***REMOVED*** Mock LLM 响应
+        # Mock LLM 响应
         mock_llm.return_value = "Reflected content"
         
         updated_memories = self.adapter.reflect([memory], task, Context())

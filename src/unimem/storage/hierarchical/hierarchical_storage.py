@@ -74,14 +74,14 @@ class HierarchicalStorage:
         self.storage_manager = storage_manager
         self.index_manager = LevelIndexManager()
         
-        ***REMOVED*** 线程安全锁
+        # 线程安全锁
         self._lock = threading.RLock()
         self._cache_lock = threading.Lock()
         
-        ***REMOVED*** 层级记忆缓存（memory_id -> Memory）- 线程安全
+        # 层级记忆缓存（memory_id -> Memory）- 线程安全
         self._memory_cache: Dict[str, Memory] = {}
         
-        ***REMOVED*** 性能统计
+        # 性能统计
         self._operation_stats: Dict[str, Dict[str, float]] = {
             "store": {"count": 0, "total_time": 0.0},
             "retrieve": {"count": 0, "total_time": 0.0},
@@ -121,7 +121,7 @@ class HierarchicalStorage:
         
         with self._lock:
             try:
-                ***REMOVED*** 1. 存储到底层存储管理器
+                # 1. 存储到底层存储管理器
                 if self.storage_manager:
                     if not self.storage_manager.add_memory(memory):
                         raise AdapterError(
@@ -129,18 +129,18 @@ class HierarchicalStorage:
                             adapter_name="HierarchicalStorage"
                         )
                 
-                ***REMOVED*** 2. 添加到层级索引
+                # 2. 添加到层级索引
                 if not self.index_manager.add_memory(memory.id, level):
                     raise AdapterError(
                         f"Failed to add memory {memory.id} to {level.value} index",
                         adapter_name="HierarchicalStorage"
                     )
                 
-                ***REMOVED*** 3. 更新缓存（线程安全）
+                # 3. 更新缓存（线程安全）
                 with self._cache_lock:
                     self._memory_cache[memory.id] = memory
                 
-                ***REMOVED*** 4. 更新记忆元数据，记录层级信息
+                # 4. 更新记忆元数据，记录层级信息
                 if not memory.metadata:
                     memory.metadata = {}
                 memory.metadata["content_level"] = level.value
@@ -193,25 +193,25 @@ class HierarchicalStorage:
         
         with self._lock:
             try:
-                ***REMOVED*** 1. 获取该层级的所有记忆ID
+                # 1. 获取该层级的所有记忆ID
                 memory_ids = self.index_manager.get_memories_at_level(level)
                 
                 if not memory_ids:
                     logger.debug(f"No memories found at {level.value} level")
                     return []
                 
-                ***REMOVED*** 2. 从缓存获取记忆对象（线程安全）
+                # 2. 从缓存获取记忆对象（线程安全）
                 memories = []
                 with self._cache_lock:
                     for memory_id in memory_ids:
                         if memory_id in self._memory_cache:
                             memories.append(self._memory_cache[memory_id])
                 
-                ***REMOVED*** TODO: 如果缓存未命中，应该从存储管理器检索（需要存储管理器提供检索接口）
-                ***REMOVED*** 目前简化实现，只使用缓存
+                # TODO: 如果缓存未命中，应该从存储管理器检索（需要存储管理器提供检索接口）
+                # 目前简化实现，只使用缓存
                 
-                ***REMOVED*** 3. 简单的文本匹配（实际应该使用向量检索）
-                ***REMOVED*** 这里简化实现，实际应该调用检索引擎
+                # 3. 简单的文本匹配（实际应该使用向量检索）
+                # 这里简化实现，实际应该调用检索引擎
                 matched_memories = []
                 query_lower = query.lower()
                 
@@ -219,7 +219,7 @@ class HierarchicalStorage:
                     if query_lower in memory.content.lower():
                         matched_memories.append(memory)
                 
-                ***REMOVED*** 4. 返回Top-K
+                # 4. 返回Top-K
                 results = matched_memories[:top_k]
                 
                 duration = time.time() - start_time
@@ -296,22 +296,22 @@ class HierarchicalStorage:
         details = {}
         
         try:
-            ***REMOVED*** 1. 获取该层级的所有记忆
+            # 1. 获取该层级的所有记忆
             memory_ids = self.index_manager.get_memories_at_level(level)
             details["memory_count"] = len(memory_ids)
             
-            ***REMOVED*** 2. 检查父层级一致性
+            # 2. 检查父层级一致性
             parent_level = self.index_manager.get_parent_level(level)
             if parent_level:
                 parent_memory_ids = self.index_manager.get_memories_at_level(parent_level)
                 details["parent_level"] = parent_level.value
                 details["parent_memory_count"] = len(parent_memory_ids)
                 
-                ***REMOVED*** 简化检查：如果子层级有记忆但父层级没有，可能存在问题
+                # 简化检查：如果子层级有记忆但父层级没有，可能存在问题
                 if memory_ids and not parent_memory_ids:
                     issues.append(f"Level {level.value} has memories but parent level {parent_level.value} is empty")
             
-            ***REMOVED*** 3. 检查子层级一致性
+            # 3. 检查子层级一致性
             child_levels = self.index_manager.get_child_levels(level)
             if child_levels:
                 child_details = {}
@@ -320,7 +320,7 @@ class HierarchicalStorage:
                     child_details[child_level.value] = len(child_memory_ids)
                 details["child_levels"] = child_details
             
-            ***REMOVED*** 4. 简化的一致性检查（实际应该更复杂）
+            # 4. 简化的一致性检查（实际应该更复杂）
             is_consistent = len(issues) == 0
             
             report = ConsistencyReport(
@@ -359,9 +359,9 @@ class HierarchicalStorage:
         
         with self._lock:
             try:
-                ***REMOVED*** 从索引中移除
+                # 从索引中移除
                 if self.index_manager.remove_memory(memory_id, level):
-                    ***REMOVED*** 从缓存中移除（线程安全）
+                    # 从缓存中移除（线程安全）
                     with self._cache_lock:
                         if memory_id in self._memory_cache:
                             del self._memory_cache[memory_id]
@@ -379,7 +379,7 @@ class HierarchicalStorage:
             with self._cache_lock:
                 stats["cached_memories"] = len(self._memory_cache)
             
-            ***REMOVED*** 添加操作统计
+            # 添加操作统计
             with self._stats_lock:
                 stats["operations"] = {}
                 for op, op_stats in self._operation_stats.items():

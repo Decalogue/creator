@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 
 class GrowthArcStage(Enum):
     """成长线阶段"""
-    EARLY = "early"      ***REMOVED*** 前期状态
-    MID = "mid"          ***REMOVED*** 中期冲突
-    LATE = "late"        ***REMOVED*** 后期结果
+    EARLY = "early"      # 前期状态
+    MID = "mid"          # 中期冲突
+    LATE = "late"        # 后期结果
 
 
 @dataclass
@@ -42,12 +42,12 @@ class GrowthArc:
     character_id: str
     character_name: str
     
-    ***REMOVED*** 三句话骨架
-    early_state: str      ***REMOVED*** 前期状态
-    mid_conflict: str     ***REMOVED*** 中期冲突
-    late_outcome: str     ***REMOVED*** 后期结果
+    # 三句话骨架
+    early_state: str      # 前期状态
+    mid_conflict: str     # 中期冲突
+    late_outcome: str     # 后期结果
     
-    ***REMOVED*** 元数据
+    # 元数据
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -77,7 +77,7 @@ class GrowthArc:
             id=f"growth_arc_{self.character_id}",
             content=content,
             timestamp=self.created_at,
-            memory_type=MemoryType.EXPERIENCE,  ***REMOVED*** 人物经历
+            memory_type=MemoryType.EXPERIENCE,  # 人物经历
             keywords=["成长线", "人物", self.character_name],
             tags=["growth_arc", "core"],
             context=f"人物成长线：{self.character_name}",
@@ -87,7 +87,7 @@ class GrowthArc:
                 "early_state": self.early_state,
                 "mid_conflict": self.mid_conflict,
                 "late_outcome": self.late_outcome,
-                "is_core": True,  ***REMOVED*** 标记为核心记忆
+                "is_core": True,  # 标记为核心记忆
                 **self.metadata
             }
         )
@@ -111,10 +111,10 @@ class CharacterGrowthArcManager:
         """
         self.storage_manager = storage_manager
         
-        ***REMOVED*** 线程安全锁
+        # 线程安全锁
         self._lock = threading.RLock()
         
-        ***REMOVED*** 成长线缓存（character_id -> GrowthArc）- 线程安全
+        # 成长线缓存（character_id -> GrowthArc）- 线程安全
         self._growth_arcs: Dict[str, GrowthArc] = {}
         
         logger.info("CharacterGrowthArcManager initialized")
@@ -170,17 +170,17 @@ class CharacterGrowthArcManager:
             metadata=metadata or {}
         )
         
-        ***REMOVED*** 缓存（线程安全）
+        # 缓存（线程安全）
         with self._lock:
             self._growth_arcs[character_id] = growth_arc
         
-        ***REMOVED*** 存储到存储管理器（作为核心记忆）
+        # 存储到存储管理器（作为核心记忆）
         if self.storage_manager:
             try:
                 memory = growth_arc.to_memory()
-                ***REMOVED*** 标记为核心记忆，存储到 LTM
+                # 标记为核心记忆，存储到 LTM
                 if hasattr(self.storage_manager, 'storage_adapter'):
-                    ***REMOVED*** 使用分层存储存储核心记忆
+                    # 使用分层存储存储核心记忆
                     if hasattr(self.storage_manager, 'hierarchical_storage'):
                         from ..storage.hierarchical.hierarchical_storage import ContentLevel
                         self.storage_manager.hierarchical_storage.store_core(
@@ -213,17 +213,17 @@ class CharacterGrowthArcManager:
         if not character_id or not isinstance(character_id, str) or not character_id.strip():
             raise AdapterError("character_id cannot be empty", adapter_name="CharacterGrowthArcManager")
         
-        ***REMOVED*** 先从缓存获取（线程安全）
+        # 先从缓存获取（线程安全）
         with self._lock:
             if character_id in self._growth_arcs:
                 return self._growth_arcs[character_id]
         
-        ***REMOVED*** 从存储管理器检索
+        # 从存储管理器检索
         if self.storage_manager:
             try:
                 memory_id = f"growth_arc_{character_id}"
-                ***REMOVED*** 这里简化处理，实际应该通过检索接口获取
-                ***REMOVED*** 暂时返回 None，需要存储管理器提供检索接口
+                # 这里简化处理，实际应该通过检索接口获取
+                # 暂时返回 None，需要存储管理器提供检索接口
                 pass
             except Exception as e:
                 logger.warning(f"Failed to retrieve growth arc from storage: {e}")
@@ -256,7 +256,7 @@ class CharacterGrowthArcManager:
             logger.warning(f"Growth arc not found for character {character_id}")
             return False
         
-        ***REMOVED*** 更新字段
+        # 更新字段
         if early_state:
             growth_arc.early_state = early_state
         if mid_conflict:
@@ -268,7 +268,7 @@ class CharacterGrowthArcManager:
         
         growth_arc.updated_at = datetime.now()
         
-        ***REMOVED*** 更新存储
+        # 更新存储
         if self.storage_manager:
             try:
                 memory = growth_arc.to_memory()
@@ -302,13 +302,13 @@ class CharacterGrowthArcManager:
             logger.warning(f"Growth arc not found for character {character_id}")
             return None
         
-        ***REMOVED*** 创建适配后的成长线（保持核心不变，只调整外壳相关的描述）
+        # 创建适配后的成长线（保持核心不变，只调整外壳相关的描述）
         adapted_arc = GrowthArc(
             character_id=growth_arc.character_id,
             character_name=growth_arc.character_name,
-            early_state=growth_arc.early_state,  ***REMOVED*** 核心不变
-            mid_conflict=growth_arc.mid_conflict,  ***REMOVED*** 核心不变
-            late_outcome=growth_arc.late_outcome,  ***REMOVED*** 核心不变
+            early_state=growth_arc.early_state,  # 核心不变
+            mid_conflict=growth_arc.mid_conflict,  # 核心不变
+            late_outcome=growth_arc.late_outcome,  # 核心不变
             metadata={
                 **growth_arc.metadata,
                 "adapted_shell": shell_type,

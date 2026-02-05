@@ -74,7 +74,7 @@ class VideoAdapter(AtomLinkAdapter):
         """
         super().__init__(config)
         self.unimem = unimem_instance
-        self.last_script_memory_id = None  ***REMOVED*** 保存最近存储的脚本memory_id
+        self.last_script_memory_id = None  # 保存最近存储的脚本memory_id
         if self.unimem:
             logger.info("Video adapter initialized with UniMem integration")
         else:
@@ -134,11 +134,11 @@ class VideoAdapter(AtomLinkAdapter):
         }
         
         try:
-            ***REMOVED*** 1. 从任务记忆构建查询，检索相关的历史创作
-            task_query = " ".join(task_memories[:3])  ***REMOVED*** 使用前3个任务记忆作为查询
+            # 1. 从任务记忆构建查询，检索相关的历史创作
+            task_query = " ".join(task_memories[:3])  # 使用前3个任务记忆作为查询
             if task_query:
-                ***REMOVED*** 使用 UniMem 的语义检索
-                ***REMOVED*** 检查是否是 HTTP 服务客户端（不需要 context 参数）
+                # 使用 UniMem 的语义检索
+                # 检查是否是 HTTP 服务客户端（不需要 context 参数）
                 if hasattr(self.unimem, 'base_url'):
                     recall_results = self.unimem.recall(
                         query=f"{video_type} {task_query}",
@@ -153,17 +153,17 @@ class VideoAdapter(AtomLinkAdapter):
                 
                 for result in recall_results:
                     if result.memory:
-                        ***REMOVED*** 筛选视频相关的记忆
+                        # 筛选视频相关的记忆
                         content = result.memory.content
                         if any(keyword in content.lower() for keyword in 
                                ["视频", "脚本", "文案", "镜头", "剪辑", "video", "script"]):
                             enriched["historical_scripts"].append({
-                                "content": content[:200],  ***REMOVED*** 截取前200字符
+                                "content": content[:200],  # 截取前200字符
                                 "score": result.score,
                                 "metadata": result.memory.metadata
                             })
             
-            ***REMOVED*** 2. 检索成功的创作模式（通过标签或元数据）
+            # 2. 检索成功的创作模式（通过标签或元数据）
             if video_type:
                 if hasattr(self.unimem, 'base_url'):
                     pattern_results = self.unimem.recall(
@@ -176,14 +176,14 @@ class VideoAdapter(AtomLinkAdapter):
                         context=Context(),
                         top_k=top_k
                     )
-                for result in pattern_results[:5]:  ***REMOVED*** 只取前5个
+                for result in pattern_results[:5]:  # 只取前5个
                     if result.memory:
                         enriched["successful_patterns"].append({
                             "pattern": result.memory.content[:150],
                             "score": result.score
                         })
             
-            ***REMOVED*** 3. 检索用户风格偏好（通过通用记忆）
+            # 3. 检索用户风格偏好（通过通用记忆）
             if hasattr(self.unimem, 'base_url'):
                 style_results = self.unimem.recall(
                     query="用户 风格 偏好 语气 表达方式",
@@ -237,11 +237,11 @@ class VideoAdapter(AtomLinkAdapter):
             return None
         
         try:
-            ***REMOVED*** 构建记忆内容
+            # 构建记忆内容
             script_summary = script_data.get("summary", {})
             script_content = script_data.get("script", "")
             
-            ***REMOVED*** 创建 Experience 对象
+            # 创建 Experience 对象
             experience_content = f"""
 视频类型：{video_type}
 平台：{platform}
@@ -255,28 +255,28 @@ class VideoAdapter(AtomLinkAdapter):
                 timestamp=datetime.now()
             )
             
-            ***REMOVED*** 创建 Context 对象
-            ***REMOVED*** 构建决策上下文（Context Graph增强）
+            # 创建 Context 对象
+            # 构建决策上下文（Context Graph增强）
             context = Context(
                 metadata={
-                    "source": "video_script",  ***REMOVED*** 明确标识来源
+                    "source": "video_script",  # 明确标识来源
                     "task_description": f"生成{video_type}类型短视频脚本",
                     "video_type": video_type,
                     "platform": platform,
                     "segments_count": len(script_data.get("segments", [])),
                     "duration": script_data.get("editing_script", {}).get("total_duration", 0),
-                    ***REMOVED*** 决策痕迹（Context Graph增强）
-                    "inputs": task_memories[:5] if task_memories else [],  ***REMOVED*** 使用的任务记忆
+                    # 决策痕迹（Context Graph增强）
+                    "inputs": task_memories[:5] if task_memories else [],  # 使用的任务记忆
                     "rules": [
                         f"{platform}平台规则",
                         f"{video_type}类型脚本规范",
                         "3秒原则（前3秒抓住注意力）",
                         "转化率优化要求"
                     ],
-                    "exceptions": [],  ***REMOVED*** 可以在这里添加异常情况
-                    "approvals": [],  ***REMOVED*** 可以在这里添加审批流程
+                    "exceptions": [],  # 可以在这里添加异常情况
+                    "approvals": [],  # 可以在这里添加审批流程
                     "reasoning": f"基于{len(task_memories) if task_memories else 0}条任务记忆，生成{video_type}类型脚本，适配{platform}平台特点",
-                    ***REMOVED*** 确保decision_trace字段被正确设置
+                    # 确保decision_trace字段被正确设置
                     "decision_trace": {
                         "inputs": task_memories[:5] if task_memories else [],
                         "rules_applied": [
@@ -292,10 +292,10 @@ class VideoAdapter(AtomLinkAdapter):
                 }
             )
             
-            ***REMOVED*** 使用 UniMem 的 RETAIN 操作存储
+            # 使用 UniMem 的 RETAIN 操作存储
             memory = self.unimem.retain(experience, context)
             
-            ***REMOVED*** 保存memory_id到adapter实例，以便后续使用
+            # 保存memory_id到adapter实例，以便后续使用
             self.last_script_memory_id = memory.id
             
             logger.info(f"Stored script to UniMem: memory_id={memory.id}")
@@ -345,21 +345,21 @@ class VideoAdapter(AtomLinkAdapter):
             
             doc = Document()
             
-            ***REMOVED*** 标题
+            # 标题
             title = doc.add_heading('短视频创作需求模板', 0)
             title.alignment = WD_ALIGN_PARAGRAPH.CENTER
             
-            ***REMOVED*** 说明
+            # 说明
             doc.add_paragraph('请根据以下说明填写相应内容，所有内容都是可选的，根据需要填写即可。')
             
-            ***REMOVED*** 智能提示说明
+            # 智能提示说明
             if auto_fill_from_memory and self.unimem:
                 doc.add_paragraph('💡 提示：系统已根据您的历史偏好自动填充了部分建议内容，您可以直接使用或修改。')
             else:
                 doc.add_paragraph('💡 提示：建议填写尽可能详细的信息，以便生成更符合您需求的视频剧本。')
             doc.add_paragraph()
             
-            ***REMOVED*** 1. 视频基本信息
+            # 1. 视频基本信息
             doc.add_heading('一、视频基本信息', level=1)
             doc.add_paragraph('视频类型（必填，从以下选项选择其一）：')
             doc.add_paragraph('  - ecommerce（电商推广）', style='List Bullet')
@@ -381,7 +381,7 @@ class VideoAdapter(AtomLinkAdapter):
             doc.add_paragraph('目标时长（秒，可选，默认60秒）: [请填写数字，例如：60]')
             doc.add_paragraph()
             
-            ***REMOVED*** 2. 当前任务需求
+            # 2. 当前任务需求
             doc.add_heading('二、当前任务需求', level=1)
             doc.add_paragraph('请详细描述本次视频创作的具体需求，每行一条：')
             doc.add_paragraph('[例如：推广新品手机]')
@@ -389,18 +389,18 @@ class VideoAdapter(AtomLinkAdapter):
             doc.add_paragraph('[例如：目标受众：年轻人]')
             doc.add_paragraph()
             
-            ***REMOVED*** 3. 修改需求（可选）
+            # 3. 修改需求（可选）
             doc.add_heading('三、修改需求（可选）', level=1)
             doc.add_paragraph('如果在已有脚本基础上进行修改，请填写修改要求：')
             doc.add_paragraph('[例如：增加情感共鸣]')
             doc.add_paragraph('[例如：调整语气更轻松]')
             doc.add_paragraph()
             
-            ***REMOVED*** 4. 通用记忆总结（可选）
+            # 4. 通用记忆总结（可选）
             doc.add_heading('四、通用记忆总结（可选）', level=1)
             doc.add_paragraph('跨任务的用户偏好和通用风格偏好，这些会应用到所有视频创作：')
             
-            ***REMOVED*** 尝试从历史记忆中自动填充通用偏好
+            # 尝试从历史记忆中自动填充通用偏好
             auto_filled_general_memories = []
             if auto_fill_from_memory and self.unimem:
                 try:
@@ -419,11 +419,11 @@ class VideoAdapter(AtomLinkAdapter):
                 doc.add_paragraph('[例如：偏好真实体验分享]')
                 doc.add_paragraph()
             
-            ***REMOVED*** 5. 用户偏好设置
+            # 5. 用户偏好设置
             doc.add_heading('五、用户偏好设置（可选）', level=1)
             doc.add_paragraph('请使用"键: 值"的格式填写，例如：')
             
-            ***REMOVED*** 尝试从历史记忆中自动填充用户偏好
+            # 尝试从历史记忆中自动填充用户偏好
             auto_filled_preferences = {}
             if auto_fill_from_memory and self.unimem:
                 try:
@@ -443,7 +443,7 @@ class VideoAdapter(AtomLinkAdapter):
                 doc.add_paragraph('[请在此填写您的偏好设置]')
                 doc.add_paragraph()
             
-            ***REMOVED*** 6. 商品信息（仅电商题材需要）
+            # 6. 商品信息（仅电商题材需要）
             doc.add_heading('六、商品信息（仅电商题材需要）', level=1)
             doc.add_paragraph('请使用"键: 值"的格式填写，例如：')
             doc.add_paragraph('产品名称: 新品手机')
@@ -452,12 +452,12 @@ class VideoAdapter(AtomLinkAdapter):
             doc.add_paragraph('[请在此填写商品信息]')
             doc.add_paragraph()
             
-            ***REMOVED*** 7. 镜头素材
+            # 7. 镜头素材
             doc.add_heading('七、镜头素材', level=1)
             doc.add_paragraph('请描述可用的镜头素材，每行一个镜头，使用"键: 值"格式或直接描述：')
             doc.add_paragraph('💡 提示：镜头素材越详细，生成的剧本越精准。建议包括：产品展示、使用场景、细节特写、对比效果等。')
             
-            ***REMOVED*** 尝试从历史记忆中自动填充镜头素材建议
+            # 尝试从历史记忆中自动填充镜头素材建议
             auto_filled_shots = []
             if auto_fill_from_memory and self.unimem:
                 try:
@@ -476,7 +476,7 @@ class VideoAdapter(AtomLinkAdapter):
                 doc.add_paragraph('[请在此填写镜头素材]')
                 doc.add_paragraph()
             
-            ***REMOVED*** 保存文档
+            # 保存文档
             doc.save(output_path)
             logger.info(f"Word template created: {output_path} (auto_fill: {auto_fill_from_memory})")
             return output_path
@@ -498,10 +498,10 @@ class VideoAdapter(AtomLinkAdapter):
             return []
         
         try:
-            ***REMOVED*** 检索通用记忆和风格偏好
+            # 检索通用记忆和风格偏好
             results = self.unimem.recall(
                 query="用户风格偏好 通用记忆 创作偏好",
-                memory_type=MemoryType.OPINION,  ***REMOVED*** 偏好通常是OPINION类型
+                memory_type=MemoryType.OPINION,  # 偏好通常是OPINION类型
                 top_k=5
             )
             
@@ -509,7 +509,7 @@ class VideoAdapter(AtomLinkAdapter):
             for result in results:
                 if result.memory and result.memory.content:
                     content = result.memory.content
-                    ***REMOVED*** 提取关键偏好信息（过滤掉太长的内容）
+                    # 提取关键偏好信息（过滤掉太长的内容）
                     if len(content) < 200:
                         memories.append(content)
             
@@ -529,7 +529,7 @@ class VideoAdapter(AtomLinkAdapter):
             return {}
         
         try:
-            ***REMOVED*** 检索用户偏好记忆
+            # 检索用户偏好记忆
             results = self.unimem.recall(
                 query="用户偏好设置 风格偏好 语气偏好 平台偏好",
                 top_k=10
@@ -539,7 +539,7 @@ class VideoAdapter(AtomLinkAdapter):
             for result in results:
                 if result.memory and result.memory.metadata:
                     metadata = result.memory.metadata
-                    ***REMOVED*** 从metadata中提取偏好信息
+                    # 从metadata中提取偏好信息
                     for key in ["style_preference", "tone_preference", "platform_preference", "风格偏好", "语气偏好", "平台偏好"]:
                         if key in metadata and metadata[key]:
                             pref_key = key.replace("_preference", "").replace("偏好", "")
@@ -562,7 +562,7 @@ class VideoAdapter(AtomLinkAdapter):
             return []
         
         try:
-            ***REMOVED*** 检索历史脚本中的镜头信息
+            # 检索历史脚本中的镜头信息
             results = self.unimem.recall(
                 query="镜头素材 画面描述 视频脚本 镜头",
                 top_k=5
@@ -571,18 +571,18 @@ class VideoAdapter(AtomLinkAdapter):
             shots = []
             for result in results:
                 if result.memory:
-                    ***REMOVED*** 从metadata中提取镜头信息
+                    # 从metadata中提取镜头信息
                     metadata = result.memory.get("metadata", {}) if isinstance(result.memory, dict) else getattr(result.memory, "metadata", {})
                     if isinstance(metadata, dict):
                         script_segments = metadata.get("script_segments", [])
                         if script_segments:
-                            for segment in script_segments[:3]:  ***REMOVED*** 每个脚本取前3个镜头
+                            for segment in script_segments[:3]:  # 每个脚本取前3个镜头
                                 if isinstance(segment, dict):
                                     shot_desc = segment.get("画面", segment.get("shot_description", ""))
                                     if shot_desc and shot_desc not in shots:
                                         shots.append(shot_desc)
             
-            ***REMOVED*** 如果没有找到，返回通用的镜头建议
+            # 如果没有找到，返回通用的镜头建议
             if not shots:
                 shots = [
                     "产品整体展示（全景，展示产品全貌）",
@@ -650,17 +650,17 @@ class VideoAdapter(AtomLinkAdapter):
         try:
             doc = Document(doc_path)
             
-            ***REMOVED*** 解析文档内容
+            # 解析文档内容
             full_text = []
             for paragraph in doc.paragraphs:
                 text = paragraph.text.strip()
                 if text:
                     full_text.append(text)
             
-            ***REMOVED*** 将文档内容合并为文本
+            # 将文档内容合并为文本
             document_text = "\n".join(full_text)
             
-            ***REMOVED*** 如果文档为空，返回默认值
+            # 如果文档为空，返回默认值
             if not document_text.strip():
                 logger.warning("Document is empty, returning default values")
                 return {
@@ -675,7 +675,7 @@ class VideoAdapter(AtomLinkAdapter):
                     "duration_seconds": 60
             }
             
-            ***REMOVED*** 使用 LLM API 提取参数
+            # 使用 LLM API 提取参数
             try:
                 prompt = f"""请从以下 Word 文档内容中提取短视频剧本生成所需的所有参数。
 
@@ -768,7 +768,7 @@ class VideoAdapter(AtomLinkAdapter):
                 result = self._parse_json_response(response_text)
                 
                 if result:
-                    ***REMOVED*** 验证和规范化结果
+                    # 验证和规范化结果
                     parsed_result = {
                         "task_memories": result.get("task_memories", []),
                         "modification_memories": result.get("modification_memories", []),
@@ -781,19 +781,19 @@ class VideoAdapter(AtomLinkAdapter):
                         "duration_seconds": result.get("duration_seconds", 60)
                     }
                     
-                    ***REMOVED*** 验证 video_type
+                    # 验证 video_type
                     valid_video_types = ["ecommerce", "ip_building", "knowledge", "vlog", "media"]
                     if parsed_result["video_type"] not in valid_video_types:
                         logger.warning(f"Invalid video_type '{parsed_result['video_type']}', using default 'ecommerce'")
                         parsed_result["video_type"] = "ecommerce"
                     
-                    ***REMOVED*** 验证 platform
+                    # 验证 platform
                     valid_platforms = ["douyin", "xiaohongshu", "tiktok", "youtube"]
                     if parsed_result["platform"] not in valid_platforms:
                         logger.warning(f"Invalid platform '{parsed_result['platform']}', using default 'douyin'")
                         parsed_result["platform"] = "douyin"
                     
-                    ***REMOVED*** 验证 duration_seconds
+                    # 验证 duration_seconds
                     try:
                         parsed_result["duration_seconds"] = int(parsed_result["duration_seconds"])
                         if parsed_result["duration_seconds"] <= 0:
@@ -802,12 +802,12 @@ class VideoAdapter(AtomLinkAdapter):
                         logger.warning(f"Invalid duration_seconds '{parsed_result['duration_seconds']}', using default 60")
                         parsed_result["duration_seconds"] = 60
                     
-                    ***REMOVED*** 确保列表类型
+                    # 确保列表类型
                     for key in ["task_memories", "modification_memories", "general_memories", "shot_materials"]:
                         if not isinstance(parsed_result[key], list):
                             parsed_result[key] = []
                     
-                    ***REMOVED*** 确保字典类型
+                    # 确保字典类型
                     for key in ["user_preferences", "product_info"]:
                         if not isinstance(parsed_result[key], dict):
                             parsed_result[key] = {}
@@ -828,7 +828,7 @@ class VideoAdapter(AtomLinkAdapter):
                     
             except Exception as llm_error:
                 logger.warning(f"LLM parsing failed: {llm_error}, using default values")
-                ***REMOVED*** 如果 LLM 解析失败，返回默认值
+                # 如果 LLM 解析失败，返回默认值
                 return {
                     "task_memories": [],
                     "modification_memories": [],
@@ -906,7 +906,7 @@ class VideoAdapter(AtomLinkAdapter):
             logger.warning("VideoAdapter not available, cannot perform generate_video_script")
             return {}
         
-        ***REMOVED*** 支持多种视频类型
+        # 支持多种视频类型
         valid_video_types = ["ecommerce", "ip_building", "knowledge", "vlog", "media"]
         if video_type not in valid_video_types:
             raise AdapterError(
@@ -926,9 +926,9 @@ class VideoAdapter(AtomLinkAdapter):
                 adapter_name="VideoAdapter"
             )
         
-        ***REMOVED*** 根据时长自动计算 script_len（如果未提供）
+        # 根据时长自动计算 script_len（如果未提供）
         if script_len is None:
-            ***REMOVED*** 平均每段 8-12 秒
+            # 平均每段 8-12 秒
             script_len = max(5, min(30, duration_seconds // 8))
         
         if script_len <= 0:
@@ -938,8 +938,8 @@ class VideoAdapter(AtomLinkAdapter):
             )
         
         try:
-            ***REMOVED*** ========== UniMem 优势利用 ==========
-            ***REMOVED*** 1. 从 UniMem 中检索相关历史记忆（如果启用）
+            # ========== UniMem 优势利用 ==========
+            # 1. 从 UniMem 中检索相关历史记忆（如果启用）
             enriched_memories = {}
             if use_unimem_retrieval and self.unimem and task_memories:
                 enriched_memories = self.enrich_memories_from_unimem(
@@ -948,46 +948,46 @@ class VideoAdapter(AtomLinkAdapter):
                     top_k=10
                 )
             
-            ***REMOVED*** 构建上下文信息（深度融合用户记忆和 UniMem 检索结果）
+            # 构建上下文信息（深度融合用户记忆和 UniMem 检索结果）
             context_parts = []
             
-            ***REMOVED*** 1. 当前任务记忆（最高优先级）
+            # 1. 当前任务记忆（最高优先级）
             if task_memories:
                 context_parts.append("【当前任务需求】")
                 for mem in task_memories[:15]:
                     context_parts.append(f"- {mem}")
             
-            ***REMOVED*** 2. 修改需求记忆（重要，需要优先应用）
+            # 2. 修改需求记忆（重要，需要优先应用）
             if modification_memories:
                 context_parts.append("\n【最新修改需求】（必须严格执行）")
                 for mem in modification_memories[:10]:
                     context_parts.append(f"- {mem}")
             
-            ***REMOVED*** 3. 通用记忆总结（风格和偏好基础）
+            # 3. 通用记忆总结（风格和偏好基础）
             if general_memories:
                 context_parts.append("\n【用户通用偏好和风格】")
                 for mem in general_memories[:15]:
                     context_parts.append(f"- {mem}")
             
-            ***REMOVED*** 4. UniMem 检索的历史相关创作（如果有）
+            # 4. UniMem 检索的历史相关创作（如果有）
             if enriched_memories.get("historical_scripts"):
                 context_parts.append("\n【历史相关创作】（来自 UniMem 检索）")
                 for script in enriched_memories["historical_scripts"][:5]:
                     context_parts.append(f"- [相似度: {script['score']:.2f}] {script['content']}")
             
-            ***REMOVED*** 5. UniMem 检索的成功模式（如果有）
+            # 5. UniMem 检索的成功模式（如果有）
             if enriched_memories.get("successful_patterns"):
                 context_parts.append("\n【成功创作模式】（来自 UniMem 经验）")
                 for pattern in enriched_memories["successful_patterns"][:3]:
                     context_parts.append(f"- {pattern['pattern']}")
             
-            ***REMOVED*** 6. UniMem 检索的用户风格偏好（如果有）
+            # 6. UniMem 检索的用户风格偏好（如果有）
             if enriched_memories.get("user_style_preferences"):
                 context_parts.append("\n【用户风格偏好】（来自 UniMem 历史记忆）")
                 for pref in enriched_memories["user_style_preferences"][:3]:
                     context_parts.append(f"- {pref['preference']}")
             
-            ***REMOVED*** 7. 用户偏好（结构化偏好信息）
+            # 7. 用户偏好（结构化偏好信息）
             if user_preferences:
                 context_parts.append("\n【用户偏好设置】")
                 for key, value in list(user_preferences.items())[:10]:
@@ -996,10 +996,10 @@ class VideoAdapter(AtomLinkAdapter):
                     else:
                         context_parts.append(f"- {key}: {value}")
             
-            ***REMOVED*** 8. 商品信息
+            # 8. 商品信息
             if product_info:
                 context_parts.append("\n商品信息：")
-                for key, value in list(product_info.items())[:10]:  ***REMOVED*** 限制数量
+                for key, value in list(product_info.items())[:10]:  # 限制数量
                     if isinstance(value, list):
                         context_parts.append(f"- {key}: {', '.join(value[:3])}")
                     else:
@@ -1007,13 +1007,13 @@ class VideoAdapter(AtomLinkAdapter):
             
             if shot_materials:
                 context_parts.append("\n可用镜头素材：")
-                for i, shot in enumerate(shot_materials[:15], 1):  ***REMOVED*** 限制数量
+                for i, shot in enumerate(shot_materials[:15], 1):  # 限制数量
                     shot_desc = shot.get("description", shot.get("label", f"镜头{i}"))
                     context_parts.append(f"- 镜头{i}: {shot_desc}")
             
             context_text = "\n".join(context_parts)
             
-            ***REMOVED*** 根据平台选择风格要求
+            # 根据平台选择风格要求
             platform_styles = {
                 "douyin": "节奏快、梗多、互动性强",
                 "xiaohongshu": "精致感强、生活化、分享感强",
@@ -1031,8 +1031,8 @@ class VideoAdapter(AtomLinkAdapter):
             platform_style = platform_styles.get(platform, platform_styles["douyin"])
             platform_visual = platform_visuals.get(platform, platform_visuals["douyin"])
             
-            ***REMOVED*** 通用 prompt 模板（题材特定需求从用户记忆获取）
-            ***REMOVED*** 根据视频类型添加基础说明
+            # 通用 prompt 模板（题材特定需求从用户记忆获取）
+            # 根据视频类型添加基础说明
             video_type_descriptions = {
                 "ecommerce": "电商推广视频（卖点、转化等需求请在任务记忆中提供）",
                 "ip_building": "个人IP打造视频（人设、风格等需求请在任务记忆中提供）",
@@ -1043,7 +1043,7 @@ class VideoAdapter(AtomLinkAdapter):
             
             video_type_desc = video_type_descriptions.get(video_type, "短视频内容")
             
-            ***REMOVED*** 统一的 prompt（通用需求，题材特定需求从用户记忆获取）
+            # 统一的 prompt（通用需求，题材特定需求从用户记忆获取）
             prompt = f"""请根据以下信息生成一个优质的短视频文案和剪辑脚本。
 
 **重要说明**：
@@ -1156,7 +1156,7 @@ class VideoAdapter(AtomLinkAdapter):
                 logger.info(f"Generated video script: {len(result.get('segments', []))} segments, "
                            f"target duration: {duration_seconds}s")
                 
-                ***REMOVED*** ========== UniMem 优势利用：存储生成的脚本 ==========
+                # ========== UniMem 优势利用：存储生成的脚本 ==========
                 if store_to_unimem and self.unimem:
                     memory_id = self.store_script_to_unimem(
                         script_data=result,
@@ -1217,8 +1217,8 @@ class VideoAdapter(AtomLinkAdapter):
                 if not script_text:
                     continue
                 
-                ***REMOVED*** 使用语义检索匹配镜头
-                ***REMOVED*** 将镜头描述转换为查询列表
+                # 使用语义检索匹配镜头
+                # 将镜头描述转换为查询列表
                 shot_descriptions = []
                 for shot in available_shots:
                     desc = shot.get("description", shot.get("label", ""))
@@ -1233,8 +1233,8 @@ class VideoAdapter(AtomLinkAdapter):
                     })
                     continue
                 
-                ***REMOVED*** 使用语义检索找到最相关的镜头
-                ***REMOVED*** 简化实现：使用关键词匹配和相似度计算
+                # 使用语义检索找到最相关的镜头
+                # 简化实现：使用关键词匹配和相似度计算
                 recommended_shots = []
                 match_scores = []
                 
@@ -1243,19 +1243,19 @@ class VideoAdapter(AtomLinkAdapter):
                     if not shot_desc:
                         continue
                     
-                    ***REMOVED*** 简单的相似度计算（可以后续优化为向量相似度）
+                    # 简单的相似度计算（可以后续优化为向量相似度）
                     score = self._calculate_text_similarity(script_text, shot_desc)
                     recommended_shots.append(shot)
                     match_scores.append(score)
                 
-                ***REMOVED*** 按分数排序
+                # 按分数排序
                 sorted_pairs = sorted(
                     zip(recommended_shots, match_scores),
                     key=lambda x: x[1],
                     reverse=True
                 )
                 
-                recommended_shots = [shot for shot, _ in sorted_pairs[:5]]  ***REMOVED*** 取前5个
+                recommended_shots = [shot for shot, _ in sorted_pairs[:5]]  # 取前5个
                 match_scores = [score for _, score in sorted_pairs[:5]]
                 
                 results.append({
@@ -1301,7 +1301,7 @@ class VideoAdapter(AtomLinkAdapter):
             return []
         
         try:
-            ***REMOVED*** 构建已有修改需求的上下文（如果有）
+            # 构建已有修改需求的上下文（如果有）
             existing_context = ""
             if existing_modifications:
                 existing_context = f"""
@@ -1394,20 +1394,20 @@ class VideoAdapter(AtomLinkAdapter):
         
         if not self.is_available():
             logger.warning("VideoAdapter not available, cannot link general memories")
-            return existing_general_memories[:10]  ***REMOVED*** 返回前10个作为默认
+            return existing_general_memories[:10]  # 返回前10个作为默认
         
         try:
-            ***REMOVED*** 使用语义相似度筛选相关的通用记忆
-            task_text = " ".join(task_memories[:5])  ***REMOVED*** 使用前5个任务记忆作为查询
+            # 使用语义相似度筛选相关的通用记忆
+            task_text = " ".join(task_memories[:5])  # 使用前5个任务记忆作为查询
             
             relevant_memories = []
             for gen_mem in existing_general_memories:
-                ***REMOVED*** 简单的关键词匹配（可以后续优化为向量相似度）
+                # 简单的关键词匹配（可以后续优化为向量相似度）
                 similarity = self._calculate_text_similarity(task_text, gen_mem)
-                if similarity > 0.1:  ***REMOVED*** 阈值可以调整
+                if similarity > 0.1:  # 阈值可以调整
                     relevant_memories.append((gen_mem, similarity))
             
-            ***REMOVED*** 按相似度排序，取前15个
+            # 按相似度排序，取前15个
             relevant_memories.sort(key=lambda x: x[1], reverse=True)
             result = [mem for mem, _ in relevant_memories[:15]]
             
@@ -1415,7 +1415,7 @@ class VideoAdapter(AtomLinkAdapter):
             return result
         except Exception as e:
             logger.error(f"Error linking general memories: {e}", exc_info=True)
-            return existing_general_memories[:10]  ***REMOVED*** 降级返回
+            return existing_general_memories[:10]  # 降级返回
     
     def _calculate_text_similarity(self, text1: str, text2: str) -> float:
         """
@@ -1431,7 +1431,7 @@ class VideoAdapter(AtomLinkAdapter):
         if not text1 or not text2:
             return 0.0
         
-        ***REMOVED*** 简单的关键词匹配相似度
+        # 简单的关键词匹配相似度
         words1 = set(text1.lower().split())
         words2 = set(text2.lower().split())
         
@@ -1471,7 +1471,7 @@ class VideoAdapter(AtomLinkAdapter):
             raise AdapterError("script_data must be a non-empty dict", adapter_name="VideoAdapter")
         
         try:
-            ***REMOVED*** 使用 LLM 优化脚本
+            # 使用 LLM 优化脚本
             prompt = f"""请优化以下短视频脚本，使其更符合剪辑流程和最佳实践。
 
 原始脚本：

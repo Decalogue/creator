@@ -106,7 +106,7 @@ class RippleEffectUpdater:
         logger.info(f"Triggering ripple effect for memory {center.id}")
         
         try:
-            ***REMOVED*** 第一层涟漪：直接相关节点（高优先级，实时更新）
+            # 第一层涟漪：直接相关节点（高优先级，实时更新）
             wave1 = self._get_direct_related(center, entities or [], links or set())
             if wave1:
                 self._update_wave(wave1, priority='high')
@@ -114,7 +114,7 @@ class RippleEffectUpdater:
             else:
                 logger.debug("Wave 1: No direct related nodes found")
             
-            ***REMOVED*** 第二层涟漪：间接相关节点（中优先级，实时更新）
+            # 第二层涟漪：间接相关节点（中优先级，实时更新）
             if wave1 and self.max_depth >= 2:
                 wave2 = self._get_indirect_related(wave1, max_hops=2)
                 if wave2:
@@ -125,7 +125,7 @@ class RippleEffectUpdater:
             else:
                 wave2 = []
             
-            ***REMOVED*** 第三层涟漪：弱相关节点（低优先级，异步处理）
+            # 第三层涟漪：弱相关节点（低优先级，异步处理）
             if wave2 and self.max_depth >= 3:
                 wave3 = self._get_weak_related(wave2, max_hops=3)
                 if wave3:
@@ -162,13 +162,13 @@ class RippleEffectUpdater:
             直接相关的记忆列表
         """
         related: List[Memory] = []
-        seen_ids: Set[str] = {center.id}  ***REMOVED*** 避免重复添加中心记忆
+        seen_ids: Set[str] = {center.id}  # 避免重复添加中心记忆
         
-        ***REMOVED*** 1. 通过网络链接适配器找到相关记忆（参考 A-Mem）
+        # 1. 通过网络链接适配器找到相关记忆（参考 A-Mem）
         if self.atom_link_adapter and links:
             try:
-                ***REMOVED*** 使用 find_related_memories 方法找到相关记忆
-                ***REMOVED*** 注意：这里使用中心记忆的链接来查找相关记忆
+                # 使用 find_related_memories 方法找到相关记忆
+                # 注意：这里使用中心记忆的链接来查找相关记忆
                 related_memories = self.atom_link_adapter.find_related_memories(center, top_k=20)
                 for memory in related_memories:
                     if memory.id not in seen_ids:
@@ -177,17 +177,17 @@ class RippleEffectUpdater:
             except Exception as e:
                 logger.warning(f"Error finding related memories via links: {e}", exc_info=True)
         
-        ***REMOVED*** 2. 通过图结构适配器找到相关实体对应的记忆
+        # 2. 通过图结构适配器找到相关实体对应的记忆
         if self.graph_adapter and entities:
             try:
                 for entity in entities:
-                    ***REMOVED*** 通过实体ID获取关联的记忆
+                    # 通过实体ID获取关联的记忆
                     entity_memories = self.graph_adapter.get_entities_for_memory(center.id)
-                    ***REMOVED*** 注意：这里获取的是与中心记忆共享实体的其他记忆
-                    ***REMOVED*** 如果适配器支持，可以进一步扩展
-                    ***REMOVED*** 目前使用 find_related_memories 作为降级方案
+                    # 注意：这里获取的是与中心记忆共享实体的其他记忆
+                    # 如果适配器支持，可以进一步扩展
+                    # 目前使用 find_related_memories 作为降级方案
                     if self.atom_link_adapter:
-                        ***REMOVED*** 创建一个临时记忆用于查找
+                        # 创建一个临时记忆用于查找
                         temp_memory = Memory(
                             id=center.id,
                             content=center.content,
@@ -227,11 +227,11 @@ class RippleEffectUpdater:
         related: List[Memory] = []
         seen_ids: Set[str] = set()
         
-        ***REMOVED*** 记录当前层的所有记忆ID，避免重复
+        # 记录当前层的所有记忆ID，避免重复
         for memory in wave:
             seen_ids.add(memory.id)
         
-        ***REMOVED*** 对每个记忆，找到其相关记忆
+        # 对每个记忆，找到其相关记忆
         for memory in wave:
             if self.atom_link_adapter:
                 try:
@@ -262,8 +262,8 @@ class RippleEffectUpdater:
         Returns:
             弱相关的记忆列表
         """
-        ***REMOVED*** 使用更大的跳数，但实际实现与间接相关类似
-        ***REMOVED*** 可以通过调整 top_k 参数来控制弱相关的数量
+        # 使用更大的跳数，但实际实现与间接相关类似
+        # 可以通过调整 top_k 参数来控制弱相关的数量
         if not wave:
             return []
         
@@ -276,7 +276,7 @@ class RippleEffectUpdater:
         for memory in wave:
             if self.atom_link_adapter:
                 try:
-                    ***REMOVED*** 使用较小的 top_k，只获取最相关的弱相关记忆
+                    # 使用较小的 top_k，只获取最相关的弱相关记忆
                     weak = self.atom_link_adapter.find_related_memories(memory, top_k=5)
                     for mem in weak:
                         if mem.id not in seen_ids:
@@ -305,7 +305,7 @@ class RippleEffectUpdater:
         
         for node in wave:
             try:
-                ***REMOVED*** 网络链接适配器：演化记忆（参考 A-Mem）
+                # 网络链接适配器：演化记忆（参考 A-Mem）
                 if self.atom_link_adapter:
                     related = self.atom_link_adapter.find_related_memories(node, top_k=5)
                     evolved = self.atom_link_adapter.evolve_memory(
@@ -315,7 +315,7 @@ class RippleEffectUpdater:
                     )
                     node = evolved
                 
-                ***REMOVED*** 图结构适配器：增量更新实体描述（参考 LightRAG）
+                # 图结构适配器：增量更新实体描述（参考 LightRAG）
                 if self.graph_adapter and hasattr(node, 'entities') and node.entities:
                     for entity_id in node.entities:
                         try:

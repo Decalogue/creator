@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FixPrediction:
     """修复预测结果"""
-    success_probability: float  ***REMOVED*** 成功概率（0-1）
-    recommendation: str  ***REMOVED*** 建议：'proceed', 'use_alternative_strategy', 'skip_rewrite'
-    alternative_strategy: Optional[str] = None  ***REMOVED*** 备用策略
-    confidence: float = 0.0  ***REMOVED*** 预测置信度（0-1）
-    similar_cases_count: int = 0  ***REMOVED*** 相似历史案例数
+    success_probability: float  # 成功概率（0-1）
+    recommendation: str  # 建议：'proceed', 'use_alternative_strategy', 'skip_rewrite'
+    alternative_strategy: Optional[str] = None  # 备用策略
+    confidence: float = 0.0  # 预测置信度（0-1）
+    similar_cases_count: int = 0  # 相似历史案例数
 
 
 class FixOutcomePredictor:
@@ -52,43 +52,43 @@ class FixOutcomePredictor:
         Returns:
             修复预测结果
         """
-        ***REMOVED*** 获取相似的历史案例
+        # 获取相似的历史案例
         similar_cases = self.fix_strategy_library.get_similar_historical_cases(
             issue_type, content_length, severity, limit=10
         )
         
         if not similar_cases:
-            ***REMOVED*** 没有历史数据，使用默认预测
+            # 没有历史数据，使用默认预测
             logger.debug(f"问题类型 {issue_type} 无历史数据，使用默认预测")
             return FixPrediction(
-                success_probability=0.5,  ***REMOVED*** 中性预测
+                success_probability=0.5,  # 中性预测
                 recommendation='proceed',
                 confidence=0.0,
                 similar_cases_count=0
             )
         
-        ***REMOVED*** 基于相似案例计算成功概率
+        # 基于相似案例计算成功概率
         success_count = sum(1 for c in similar_cases if c['success'])
         total_count = len(similar_cases)
         base_success_rate = success_count / total_count if total_count > 0 else 0.5
         
-        ***REMOVED*** 计算平均验证评分
+        # 计算平均验证评分
         avg_validation_score = sum(c.get('validation_score', 0) for c in similar_cases) / total_count
         
-        ***REMOVED*** 考虑策略匹配度
+        # 考虑策略匹配度
         strategy_match_count = sum(1 for c in similar_cases if c['strategy_type'] == fix_strategy)
         strategy_match_rate = strategy_match_count / total_count if total_count > 0 else 0.5
         
-        ***REMOVED*** 如果策略匹配度高，提升成功概率
+        # 如果策略匹配度高，提升成功概率
         if strategy_match_rate > 0.5:
             strategy_bonus = (strategy_match_rate - 0.5) * 0.2
         else:
             strategy_bonus = (strategy_match_rate - 0.5) * 0.1
         
-        ***REMOVED*** 考虑之前的尝试次数（尝试次数越多，成功率可能越低）
+        # 考虑之前的尝试次数（尝试次数越多，成功率可能越低）
         attempt_penalty = min(0.2, previous_attempts * 0.05)
         
-        ***REMOVED*** 综合计算成功概率
+        # 综合计算成功概率
         success_probability = (
             base_success_rate * 0.4 +
             avg_validation_score * 0.3 +
@@ -96,19 +96,19 @@ class FixOutcomePredictor:
             (1 - attempt_penalty) * 0.1
         ) + strategy_bonus
         
-        ***REMOVED*** 限制在合理范围内
+        # 限制在合理范围内
         success_probability = max(0.0, min(1.0, success_probability))
         
-        ***REMOVED*** 计算置信度（基于历史案例数量）
-        confidence = min(1.0, total_count / 10.0)  ***REMOVED*** 10个案例 = 100%置信度
+        # 计算置信度（基于历史案例数量）
+        confidence = min(1.0, total_count / 10.0)  # 10个案例 = 100%置信度
         
-        ***REMOVED*** 生成建议
+        # 生成建议
         if success_probability < 0.3:
             recommendation = 'skip_rewrite'
             alternative_strategy = None
         elif success_probability < 0.5:
             recommendation = 'use_alternative_strategy'
-            ***REMOVED*** 尝试找到更好的策略
+            # 尝试找到更好的策略
             alternative_strategy = self._find_better_strategy(issue_type, similar_cases, fix_strategy)
         else:
             recommendation = 'proceed'
@@ -138,7 +138,7 @@ class FixOutcomePredictor:
         current_strategy: str
     ) -> Optional[str]:
         """查找更好的策略"""
-        ***REMOVED*** 按策略类型统计成功率
+        # 按策略类型统计成功率
         strategy_stats = {}
         for case in similar_cases:
             strategy = case['strategy_type']
@@ -150,7 +150,7 @@ class FixOutcomePredictor:
                 strategy_stats[strategy]['success'] += 1
             strategy_stats[strategy]['avg_score'].append(case.get('validation_score', 0))
         
-        ***REMOVED*** 找到成功率最高的策略（排除当前策略）
+        # 找到成功率最高的策略（排除当前策略）
         best_strategy = None
         best_score = 0
         
@@ -158,7 +158,7 @@ class FixOutcomePredictor:
             if strategy == current_strategy:
                 continue
             
-            if stats['total'] < 2:  ***REMOVED*** 至少需要2个案例
+            if stats['total'] < 2:  # 至少需要2个案例
                 continue
             
             success_rate = stats['success'] / stats['total']
@@ -202,7 +202,7 @@ class FixOutcomePredictor:
             issue_type, content_length, fix_strategy, severity, previous_attempts
         )
         
-        ***REMOVED*** 如果严重度高，降低阈值
+        # 如果严重度高，降低阈值
         if severity == 'high':
             min_success_probability = max(0.3, min_success_probability - 0.1)
         

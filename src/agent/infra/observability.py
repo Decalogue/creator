@@ -50,21 +50,21 @@ class AgentMetrics:
     total_tokens: int = 0
     total_tool_calls: int = 0
     
-    ***REMOVED*** 延迟统计
+    # 延迟统计
     avg_latency: float = 0.0
     min_latency: float = float('inf')
     max_latency: float = 0.0
     
-    ***REMOVED*** 工具调用统计
+    # 工具调用统计
     tool_call_counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     tool_call_success: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     tool_call_failures: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     tool_avg_latency: Dict[str, float] = field(default_factory=lambda: defaultdict(float))
     
-    ***REMOVED*** 错误统计
+    # 错误统计
     error_counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     
-    ***REMOVED*** 时间窗口统计（最近1小时）
+    # 时间窗口统计（最近1小时）
     recent_queries: deque = field(default_factory=lambda: deque(maxlen=1000))
     recent_tool_calls: deque = field(default_factory=lambda: deque(maxlen=5000))
 
@@ -91,10 +91,10 @@ class AgentObservability:
         self._lock = threading.RLock()
         self.metrics = AgentMetrics()
         
-        ***REMOVED*** 追踪数据（可选）
+        # 追踪数据（可选）
         self.traces: List[Dict[str, Any]] = [] if enable_tracing else None
         self._trace_lock = threading.Lock()
-        self._max_traces = 1000  ***REMOVED*** 最多保存1000条追踪记录
+        self._max_traces = 1000  # 最多保存1000条追踪记录
     
     def record_query(
         self,
@@ -129,25 +129,25 @@ class AgentObservability:
                 if error_type:
                     self.metrics.error_counts[error_type] += 1
             
-            ***REMOVED*** 更新延迟统计
+            # 更新延迟统计
             if self.metrics.total_queries == 1:
                 self.metrics.avg_latency = latency
                 self.metrics.min_latency = latency
                 self.metrics.max_latency = latency
             else:
-                ***REMOVED*** 移动平均
+                # 移动平均
                 self.metrics.avg_latency = (
                     self.metrics.avg_latency * (self.metrics.total_queries - 1) + latency
                 ) / self.metrics.total_queries
                 self.metrics.min_latency = min(self.metrics.min_latency, latency)
                 self.metrics.max_latency = max(self.metrics.max_latency, latency)
             
-            ***REMOVED*** 更新其他统计
+            # 更新其他统计
             self.metrics.total_iterations += iterations
             self.metrics.total_tokens += tokens_used
             self.metrics.total_tool_calls += tools_called
             
-            ***REMOVED*** 记录到时间窗口
+            # 记录到时间窗口
             query_metric = QueryMetrics(
                 query_id=query_id,
                 timestamp=datetime.now(),
@@ -161,11 +161,11 @@ class AgentObservability:
             )
             self.metrics.recent_queries.append(query_metric)
             
-            ***REMOVED*** 追踪（如果启用）
+            # 追踪（如果启用）
             if self.enable_tracing and self.traces is not None:
                 with self._trace_lock:
                     if len(self.traces) >= self._max_traces:
-                        self.traces.pop(0)  ***REMOVED*** 移除最旧的
+                        self.traces.pop(0)  # 移除最旧的
                     self.traces.append({
                         "type": "query",
                         "query_id": query_id,
@@ -204,7 +204,7 @@ class AgentObservability:
                 if error_type:
                     self.metrics.error_counts[f"tool_{error_type}"] += 1
             
-            ***REMOVED*** 更新工具平均延迟（移动平均）
+            # 更新工具平均延迟（移动平均）
             count = self.metrics.tool_call_counts[tool_name]
             if count == 1:
                 self.metrics.tool_avg_latency[tool_name] = latency
@@ -214,7 +214,7 @@ class AgentObservability:
                     current_avg * (count - 1) + latency
                 ) / count
             
-            ***REMOVED*** 记录到时间窗口
+            # 记录到时间窗口
             tool_metric = ToolCallMetrics(
                 tool_name=tool_name,
                 timestamp=datetime.now(),
@@ -224,7 +224,7 @@ class AgentObservability:
             )
             self.metrics.recent_tool_calls.append(tool_metric)
             
-            ***REMOVED*** 追踪（如果启用）
+            # 追踪（如果启用）
             if self.enable_tracing and self.traces is not None:
                 with self._trace_lock:
                     if len(self.traces) >= self._max_traces:
@@ -246,25 +246,25 @@ class AgentObservability:
             包含所有关键指标的字典，适合前端展示
         """
         with self._lock:
-            ***REMOVED*** 计算成功率
+            # 计算成功率
             success_rate = (
                 self.metrics.successful_queries / self.metrics.total_queries
                 if self.metrics.total_queries > 0 else 0.0
             )
             
-            ***REMOVED*** 计算平均迭代次数
+            # 计算平均迭代次数
             avg_iterations = (
                 self.metrics.total_iterations / self.metrics.total_queries
                 if self.metrics.total_queries > 0 else 0.0
             )
             
-            ***REMOVED*** 计算平均 tokens
+            # 计算平均 tokens
             avg_tokens = (
                 self.metrics.total_tokens / self.metrics.total_queries
                 if self.metrics.total_queries > 0 else 0.0
             )
             
-            ***REMOVED*** 工具调用统计
+            # 工具调用统计
             tool_stats = {}
             for tool_name in self.metrics.tool_call_counts:
                 total = self.metrics.tool_call_counts[tool_name]
@@ -278,7 +278,7 @@ class AgentObservability:
                     "avg_latency": self.metrics.tool_avg_latency[tool_name],
                 }
             
-            ***REMOVED*** 最近1小时的统计（从 recent_queries 计算）
+            # 最近1小时的统计（从 recent_queries 计算）
             recent_queries_list = list(self.metrics.recent_queries)
             recent_1h = [
                 q for q in recent_queries_list
@@ -295,34 +295,34 @@ class AgentObservability:
             )
             
             return {
-                ***REMOVED*** 总体统计
+                # 总体统计
                 "total_queries": self.metrics.total_queries,
                 "successful_queries": self.metrics.successful_queries,
                 "failed_queries": self.metrics.failed_queries,
                 "success_rate": success_rate,
                 
-                ***REMOVED*** 性能指标
+                # 性能指标
                 "avg_latency": self.metrics.avg_latency,
                 "min_latency": self.metrics.min_latency if self.metrics.min_latency != float('inf') else 0.0,
                 "max_latency": self.metrics.max_latency,
                 "avg_iterations": avg_iterations,
                 "avg_tokens": avg_tokens,
                 
-                ***REMOVED*** 工具调用统计
+                # 工具调用统计
                 "total_tool_calls": self.metrics.total_tool_calls,
                 "tool_stats": tool_stats,
                 
-                ***REMOVED*** 错误统计
+                # 错误统计
                 "error_breakdown": dict(self.metrics.error_counts),
                 
-                ***REMOVED*** 最近1小时统计
+                # 最近1小时统计
                 "recent_1h": {
                     "queries": len(recent_1h),
                     "success_rate": recent_success_rate,
                     "avg_latency": recent_avg_latency,
                 },
                 
-                ***REMOVED*** 时间戳
+                # 时间戳
                 "timestamp": datetime.now().isoformat(),
             }
     
@@ -364,7 +364,7 @@ class AgentObservability:
         logger.info("指标已重置")
 
 
-***REMOVED*** 全局可观测性实例
+# 全局可观测性实例
 _observability_instance: Optional[AgentObservability] = None
 _observability_lock = threading.Lock()
 

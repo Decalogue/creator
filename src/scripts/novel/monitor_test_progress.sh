@@ -1,5 +1,5 @@
-***REMOVED***!/bin/bash
-***REMOVED*** 监控测试进度（需在 src 目录下执行，或从项目根执行时路径已自动切到 src）
+#!/bin/bash
+# 监控测试进度（需在 src 目录下执行，或从项目根执行时路径已自动切到 src）
 
 LOG_FILE="/tmp/test_50chapters_word_control_optimization.log"
 OUTPUT_DIR="task/novel/outputs/50章字数控制优化测试"
@@ -10,7 +10,7 @@ echo "📊 测试进度监控"
 echo "=================="
 echo ""
 
-***REMOVED*** 检查日志文件
+# 检查日志文件
 if [ -f "$LOG_FILE" ]; then
     echo "📝 最新日志（最后20行）:"
     echo "---"
@@ -22,7 +22,7 @@ else
     echo ""
 fi
 
-***REMOVED*** 检查输出目录
+# 检查输出目录
 if [ -d "$OUTPUT_DIR" ]; then
     CHAPTERS_DIR="$OUTPUT_DIR/chapters"
     if [ -d "$CHAPTERS_DIR" ]; then
