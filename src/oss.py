@@ -1,14 +1,13 @@
 import os
 import oss2
-app_name = 'asr'
+from config import OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET
 
-access_key_id = 'LTAI5tGnX6CUm2TJkHEkkJwU'
-access_token = 'GjtFbtjByylIffYwk19zveabsjw4Xa'
+app_name = 'creator'
 bucket_name = 'ai-cp'
 upload_dir = app_name
 base_url = 'https://oss-cn-shanghai.aliyuncs.com'
 bucket_url = f'https://{bucket_name}.oss-cn-shanghai.aliyuncs.com'
-auth = oss2.Auth(access_key_id, access_token)
+auth = oss2.Auth(OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET)
 bucket = oss2.Bucket(auth, base_url, bucket_name)
 
 

@@ -15,6 +15,9 @@ ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
 ARK_API_KEY = "93a67648-c2cd-4a51-99ba-c51114b537ee"
 MODEL_NAME = "ep-20251209150604-gxb42"
 
+OSS_ACCESS_KEY_ID = "LTAI5tGnX6CUm2TJkHEkkJwU"
+OSS_ACCESS_KEY_SECRET = "GjtFbtjByylIffYwk19zveabsjw4Xa"
+
 __all__ = [
     "frontend_url",
     "backend_url",
@@ -22,4 +25,6 @@ __all__ = [
     "ARK_BASE_URL",
     "ARK_API_KEY",
     "MODEL_NAME",
+    "OSS_ACCESS_KEY_ID",
+    "OSS_ACCESS_KEY_SECRET",
 ]
