@@ -165,4 +165,4 @@ if __name__ == '__main__':
     ***REMOVED*** with open('output/asr.json', 'w', encoding='utf-8') as f:
     ***REMOVED***     json.dump(data, f, ensure_ascii=False, indent=4)
 
-    asr2info('./task.mp4', output_dir='output')
+    asr2info('../data/task.mp4', output_dir='output')
