@@ -1,22 +1,26 @@
-***REMOVED*** 配置子包：按创作领域分五类，见各子目录 README
-***REMOVED***
-***REMOVED*** - config.novel    — 小说创作（已实现 defaults/prompts）
-***REMOVED*** - config.article  — 论文/学术文章（预留）
-***REMOVED*** - config.document — 学习笔记、博客、公众号等文档（预留）
-***REMOVED*** - config.script   — 剧本/影视脚本（预留）
-***REMOVED*** - config.video    — 视频脚本、电商短视频等（预留）
-***REMOVED***
-***REMOVED*** 全局 URL / API 配置（原 src/config.py）
-frontend_url = "http://azj1.dc.huixingyun.com:58185"  ***REMOVED*** 自定义端口：5002 公网映射端口：58185
-backend_url = "http://azj1.dc.huixingyun.com:53115"  ***REMOVED*** 自定义端口：5200 公网映射端口：53115
-qdrant_url = "http://azj1.dc.huixingyun.com:50499/dashboard"  ***REMOVED*** 自定义端口：6333 公网映射端口：50499
+***REMOVED*** 敏感信息（密钥）仅从环境变量读取，不得写入仓库。参见 .env.example 或文档。
+import os
+from pathlib import Path
 
-ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
-ARK_API_KEY = "93a67648-c2cd-4a51-99ba-c51114b537ee"
-MODEL_NAME = "ep-20251209150604-gxb42"
+***REMOVED*** 加载 src/.env 到 os.environ，使 os.environ.get 能读到 .env 中的变量（需安装 python-dotenv）
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+if _env_path.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_path)
+    except ImportError:
+        pass  ***REMOVED*** 未安装 python-dotenv 时仅使用系统环境变量
 
-OSS_ACCESS_KEY_ID = "LTAI5tGnX6CUm2TJkHEkkJwU"
-OSS_ACCESS_KEY_SECRET = "GjtFbtjByylIffYwk19zveabsjw4Xa"
+frontend_url = os.environ.get("CREATOR_FRONTEND_URL", "http://localhost:5002")
+backend_url = os.environ.get("CREATOR_BACKEND_URL", "http://localhost:5200")
+qdrant_url = os.environ.get("CREATOR_QDRANT_URL", "http://localhost:6333/dashboard")
+
+ARK_BASE_URL = os.environ.get("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
+ARK_API_KEY = os.environ.get("ARK_API_KEY", "")
+MODEL_NAME = os.environ.get("ARK_MODEL_NAME", "")
+
+OSS_ACCESS_KEY_ID = os.environ.get("OSS_ACCESS_KEY_ID", "")
+OSS_ACCESS_KEY_SECRET = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
 
 __all__ = [
     "frontend_url",
