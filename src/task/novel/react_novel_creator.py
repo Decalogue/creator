@@ -385,6 +385,7 @@ class ReactNovelCreator:
         previous_volume_context: Optional[Dict[str, Any]] = None,
         start_chapter: int = 1,
         on_event: Optional[Any] = None,  # 编排事件回调 (dict) -> None，用于 P1 可观测
+        extra_memory_context: Optional[str] = None,  # 云端/长期记忆检索结果，注入大纲 prompt（如 EverMemOS）
     ) -> Dict[str, Any]:
         """
         创建小说大纲
@@ -430,6 +431,7 @@ class ReactNovelCreator:
                     genre, theme, target_chapters, words_per_chapter,
                     previous_volume_context=previous_volume_context,
                     start_chapter=start_chapter,
+                    extra_memory_context=extra_memory_context,
                 )
             try:
                 from api.orchestration_events import emit_step_done
@@ -476,9 +478,11 @@ class ReactNovelCreator:
         words_per_chapter: int,
         previous_volume_context: Optional[Dict[str, Any]] = None,
         start_chapter: int = 1,
+        extra_memory_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         一次性生成小说大纲。支持接续前卷（previous_volume_context + start_chapter）。
+        extra_memory_context：云端长期记忆（如 EverMemOS）检索结果，用于风格/过往创作一致性。
         """
         continuation_block = ""
         if previous_volume_context:
@@ -497,8 +501,14 @@ class ReactNovelCreator:
 
 要求：本卷大纲的 chapter_number 必须从 {start_chapter} 连续到 {start_chapter + target_chapters - 1}，且情节、人物、世界观与前卷无缝衔接。
 """
-        prompt = f"""请为小说《{self.novel_title}》创建详细的大纲（一次性生成所有章节）。{continuation_block}
+        memory_block = ""
+        if extra_memory_context and extra_memory_context.strip():
+            memory_block = f"""
+**【参考】以下为该项目或作者的过往创作/风格记忆（若有），请作为参考以保持风格或设定一致：**
+{extra_memory_context.strip()}
 
+"""
+        prompt = f"""请为小说《{self.novel_title}》创建详细的大纲（一次性生成所有章节）。{continuation_block}{memory_block}
 小说信息：
 - 类型：{genre}
 - 主题：{theme}
@@ -1238,6 +1248,7 @@ class ReactNovelCreator:
         previous_chapters_summary: Optional[str] = None,
         target_words: int = 3000,
         on_event: Optional[Any] = None,  # 编排事件回调 (dict) -> None，用于 P1 可观测
+        extra_memory_context: Optional[str] = None,  # 云端长期记忆检索结果（如 EverMemOS），注入章节 prompt
     ) -> NovelChapter:
         """
         创作单个章节
@@ -1316,6 +1327,14 @@ class ReactNovelCreator:
                     logger.debug(f"第{chapter_number}章：未检索到前面章节的实体信息")
             except Exception as e:
                 logger.warning(f"语义网格实体检索失败: {e}")
+        # 云端长期记忆（EverMemOS 等）注入：由调用方在 run_continue 中检索并传入
+        evermemos_context = ""
+        if extra_memory_context and extra_memory_context.strip():
+            evermemos_context = f"""
+云端长期记忆（参考以保持与前文/大纲一致）：
+{extra_memory_context.strip()}
+
+"""
         _emit_done("memory", {"chapter_number": chapter_number})
         
         # 构建创作提示词
@@ -1425,7 +1444,7 @@ class ReactNovelCreator:
         prompt = f"""请创作小说《{self.novel_title}》的第{chapter_number}章。
 {unimem_context}
 {semantic_entities_context}
-
+{evermemos_context}
 章节信息：
 - 标题：{chapter_title}
 - 摘要：{chapter_summary}

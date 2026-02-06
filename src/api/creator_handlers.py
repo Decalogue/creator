@@ -81,7 +81,14 @@ def get_project_chapters(project_id: Optional[str] = None) -> Tuple[int, Optiona
 
 
 def _default_llm():
+    """创作（规划/续写/润色/对话）使用的 LLM，由 config.NOVEL_LLM_MODEL 决定，默认 kimi-k2-5。"""
+    from config import NOVEL_LLM_MODEL
+    from llm.chat import CHAT_MODELS, chat_model_key
+    key = chat_model_key(NOVEL_LLM_MODEL)
+    if key in CHAT_MODELS:
+        return CHAT_MODELS[key][0]
     from llm.deepseek import deepseek_v3_2
+    logger.warning("NOVEL_LLM_MODEL=%s 未注册，回退到 deepseek_v3_2", NOVEL_LLM_MODEL)
     return deepseek_v3_2
 
 
@@ -260,6 +267,19 @@ def run_create(
             enable_quality_check=False,
             llm_client=llm,
         )
+        extra_memory = ""
+        try:
+            from api.memory_handlers import recall_from_evermemos
+            items = recall_from_evermemos(
+                project_id,
+                "风格 主题 类型 过往创作 大纲",
+                top_k=5,
+                memory_types=["episodic_memory"],
+            )
+            if items:
+                extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
+        except Exception as ex:
+            logger.debug("EverMemOS recall for plan skipped: %s", ex)
         plan = creator.create_novel_plan(
             genre=genre,
             theme=theme,
@@ -268,6 +288,7 @@ def run_create(
             previous_volume_context=prev_ctx,
             start_chapter=start_ch,
             on_event=on_event,
+            extra_memory_context=extra_memory or None,
         )
         # 生成简短摘要供前端展示
         lines = []
@@ -287,6 +308,11 @@ def run_create(
             retain_plan_to_unimem(project_id, content)
         except Exception as ex:
             logger.warning("UniMem retain plan failed: %s", ex)
+        try:
+            from api.memory_handlers import retain_plan_to_evermemos
+            retain_plan_to_evermemos(project_id, content)
+        except Exception as ex:
+            logger.warning("EverMemOS retain plan failed: %s", ex)
         return 0, "创作成功", {"content": content, "mode": "create", "project_id": project_id}
     except Exception as e:
         logger.exception("run_create failed")
@@ -376,6 +402,19 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
             except Exception as ex:
                 logger.warning("Could not load semantic mesh for continue: %s", ex)
 
+        extra_memory = ""
+        try:
+            from api.memory_handlers import recall_from_evermemos
+            items = recall_from_evermemos(
+                project_id,
+                "前文 情节 人物 大纲 本章摘要 角色",
+                top_k=5,
+                memory_types=["episodic_memory"],
+            )
+            if items:
+                extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
+        except Exception as ex:
+            logger.debug("EverMemOS recall for continue skipped: %s", ex)
         chapter = creator.create_chapter(
             chapter_number=chapter_number,
             chapter_title=title,
@@ -383,6 +422,7 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
             previous_chapters_summary=prev_summary or None,
             target_words=2048,
             on_event=on_event,
+            extra_memory_context=extra_memory or None,
         )
         content = (chapter.content or "").strip()
         try:
@@ -390,6 +430,11 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
             retain_chapter_to_unimem(project_id, chapter_number, content)
         except Exception as ex:
             logger.warning("UniMem retain chapter failed: %s", ex)
+        try:
+            from api.memory_handlers import retain_chapter_to_evermemos
+            retain_chapter_to_evermemos(project_id, chapter_number, content)
+        except Exception as ex:
+            logger.warning("EverMemOS retain chapter failed: %s", ex)
         return 0, "续写成功", {"content": content, "mode": "continue", "project_id": project_id, "chapter_number": chapter_number}
     except Exception as e:
         logger.exception("run_continue failed")
@@ -398,7 +443,7 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
 
 def run_polish(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tuple[int, str, Optional[Dict]]:
     """
-    润色用户输入片段。
+    润色用户输入片段。若提供 project_id，会注入该项目云端记忆（风格/润色偏好）以保持一致。
     """
     _ensure_sys_path()
     text = raw_input.strip()
@@ -406,11 +451,28 @@ def run_polish(mode: str, raw_input: str, project_id: Optional[str] = None) -> T
         return 1, "请输入要润色的内容", None
 
     sys_msg = "你负责润色用户给出的片段，提升可读性与文采，保持原意不变。只输出润色后的正文，不要解释。"
+    pid = (project_id or "").strip()
+    if pid:
+        try:
+            from api.memory_handlers import recall_from_evermemos
+            items = recall_from_evermemos(pid, "风格 语气 润色偏好 用词", top_k=5)
+            if items:
+                extra = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
+                if extra:
+                    sys_msg += f"\n\n参考本项目过往风格与润色偏好：\n{extra[:1500]}"
+        except Exception as ex:
+            logger.debug("EverMemOS recall for polish skipped: %s", ex)
     messages = [{"role": "system", "content": sys_msg}, {"role": "user", "content": text}]
     try:
         llm = _default_llm()
         _, content = llm(messages, max_new_tokens=4096)
         content = (content or "").strip()
+        if pid and content:
+            try:
+                from api.memory_handlers import retain_polish_to_evermemos
+                retain_polish_to_evermemos(pid, text, content)
+            except Exception as ex:
+                logger.warning("EverMemOS retain polish failed: %s", ex)
         return 0, "润色成功", {"content": content, "mode": "polish"}
     except Exception as e:
         logger.exception("run_polish failed")
@@ -419,7 +481,7 @@ def run_polish(mode: str, raw_input: str, project_id: Optional[str] = None) -> T
 
 def run_chat(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tuple[int, str, Optional[Dict]]:
     """
-    创作助手对话。
+    创作助手对话。若提供 project_id，会注入该项目云端记忆（设定/偏好/大纲/人物）以增强回复相关性。
     """
     _ensure_sys_path()
     text = raw_input.strip()
@@ -427,11 +489,28 @@ def run_chat(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tup
         return 1, "请输入内容", None
 
     sys_msg = "你是一位多智能体协作的创作助手，可讨论大纲、人物、情节与写作技巧。简洁专业。"
+    pid = (project_id or "").strip()
+    if pid:
+        try:
+            from api.memory_handlers import recall_from_evermemos
+            items = recall_from_evermemos(pid, "对话 偏好 设定 大纲 人物", top_k=5)
+            if items:
+                extra = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
+                if extra:
+                    sys_msg += f"\n\n当前项目相关记忆（供参考）：\n{extra[:1500]}"
+        except Exception as ex:
+            logger.debug("EverMemOS recall for chat skipped: %s", ex)
     messages = [{"role": "system", "content": sys_msg}, {"role": "user", "content": text}]
     try:
         llm = _default_llm()
         _, content = llm(messages, max_new_tokens=2048)
         content = (content or "").strip()
+        if pid and content:
+            try:
+                from api.memory_handlers import retain_chat_to_evermemos
+                retain_chat_to_evermemos(pid, text, content)
+            except Exception as ex:
+                logger.warning("EverMemOS retain chat failed: %s", ex)
         return 0, "回复成功", {"content": content, "mode": "chat"}
     except Exception as e:
         logger.exception("run_chat failed")

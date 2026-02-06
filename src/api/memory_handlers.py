@@ -3,16 +3,18 @@
 
 数据来源：semantic_mesh/mesh.json（按 project_id 即 novel_title 区分项目）
 配置启用时（UNIMEM_ENABLED=1）：合并 UniMem 数据；创作成功时 Retain 写入 UniMem（P1 2.3）
+EVERMEMOS_ENABLED=1 且配置 EVERMEMOS_API_KEY 时：创作成功同时写入 EverMemOS 云 API（参赛用）
 """
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 import os
 import threading
 import queue
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +193,167 @@ def retain_chapter_to_unimem(project_id: str, chapter_number: int, content: str)
         logger.info("Retained chapter %s to UniMem for project_id=%s", chapter_number, project_id)
     except Exception as e:
         logger.warning("Failed to retain chapter to UniMem (project_id=%s ch=%s): %s", project_id, chapter_number, e, exc_info=True)
+
+
+# EverMemOS：sender 必填且为 UUID，sender_name 为可选网名（官方建议）
+_CREATOR_AGENT_SENDER_UUID = str(uuid.uuid5(uuid.NAMESPACE_DNS, "creator.evermemos"))
+
+
+def retain_plan_to_evermemos(project_id: str, plan_summary: str) -> None:
+    """创作大纲成功后写入 EverMemOS 云 API（参赛用）。失败仅打日志，不抛错。"""
+    try:
+        from api_EverMemOS import is_available, add_memory
+        if not is_available():
+            return
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        msg_id = f"creator_plan_{project_id}_{uuid.uuid4().hex[:12]}"
+        content = (plan_summary[:8000] + "…") if len(plan_summary) > 8000 else plan_summary
+        add_memory([
+            {
+                "message_id": msg_id,
+                "create_time": ts,
+                "sender": _CREATOR_AGENT_SENDER_UUID,
+                "sender_name": "创作助手",
+                "group_id": project_id,
+                "content": content,
+            }
+        ])
+        logger.info("Retained plan to EverMemOS for project_id=%s", project_id)
+    except Exception as e:
+        logger.warning("Failed to retain plan to EverMemOS (project_id=%s): %s", project_id, e, exc_info=True)
+
+
+def retain_chapter_to_evermemos(project_id: str, chapter_number: int, content: str) -> None:
+    """续写章节成功后写入 EverMemOS 云 API（参赛用）。失败仅打日志，不抛错。"""
+    try:
+        from api_EverMemOS import is_available, add_memory
+        if not is_available():
+            return
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        msg_id = f"creator_chapter_{project_id}_{chapter_number}_{uuid.uuid4().hex[:12]}"
+        summary = (content[:500] + "…") if len(content) > 500 else content
+        add_memory([
+            {
+                "message_id": msg_id,
+                "create_time": ts,
+                "sender": _CREATOR_AGENT_SENDER_UUID,
+                "sender_name": "创作助手",
+                "group_id": project_id,
+                "content": f"第{chapter_number}章：{summary}",
+            }
+        ])
+        logger.info("Retained chapter %s to EverMemOS for project_id=%s", chapter_number, project_id)
+    except Exception as e:
+        logger.warning(
+            "Failed to retain chapter to EverMemOS (project_id=%s ch=%s): %s",
+            project_id, chapter_number, e, exc_info=True
+        )
+
+
+def retain_polish_to_evermemos(project_id: str, original_snippet: str, polished_snippet: str) -> None:
+    """润色成功后写入 EverMemOS，便于后续润色/续写时保持风格一致。失败仅打日志。"""
+    try:
+        from api_EverMemOS import is_available, add_memory
+        if not is_available():
+            return
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        msg_id = f"creator_polish_{project_id}_{uuid.uuid4().hex[:12]}"
+        content = f"润色前：{original_snippet[:500]}{'…' if len(original_snippet) > 500 else ''}\n润色后：{polished_snippet[:500]}{'…' if len(polished_snippet) > 500 else ''}"
+        add_memory([
+            {
+                "message_id": msg_id,
+                "create_time": ts,
+                "sender": _CREATOR_AGENT_SENDER_UUID,
+                "sender_name": "创作助手",
+                "group_id": project_id,
+                "content": content,
+            }
+        ])
+        logger.info("Retained polish to EverMemOS for project_id=%s", project_id)
+    except Exception as e:
+        logger.warning("Failed to retain polish to EverMemOS (project_id=%s): %s", project_id, e)
+
+
+def retain_chat_to_evermemos(project_id: str, user_message: str, assistant_reply: str) -> None:
+    """对话成功后写入 EverMemOS，便于后续规划/续写/对话时利用用户偏好与设定。失败仅打日志。"""
+    try:
+        from api_EverMemOS import is_available, add_memory
+        if not is_available():
+            return
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        msg_id = f"creator_chat_{project_id}_{uuid.uuid4().hex[:12]}"
+        content = f"用户：{user_message[:800]}{'…' if len(user_message) > 800 else ''}\n助手：{assistant_reply[:800]}{'…' if len(assistant_reply) > 800 else ''}"
+        add_memory([
+            {
+                "message_id": msg_id,
+                "create_time": ts,
+                "sender": _CREATOR_AGENT_SENDER_UUID,
+                "sender_name": "创作助手",
+                "group_id": project_id,
+                "content": content,
+            }
+        ])
+        logger.info("Retained chat to EverMemOS for project_id=%s", project_id)
+    except Exception as e:
+        logger.warning("Failed to retain chat to EverMemOS (project_id=%s): %s", project_id, e)
+
+
+def _content_from_evermemos_memory(m: Any) -> Optional[str]:
+    """从 EverMemOS 单条记忆（EpisodeMemory/EventLog 等）提取展示用文本。优先 summary/episode/content。"""
+    if m is None:
+        return None
+    if isinstance(m, dict):
+        for key in ("summary", "episode", "content", "memory_content", "foresight", "atomic_fact"):
+            val = m.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+            if isinstance(val, list) and val:
+                return " ".join(str(x) for x in val[:5] if x).strip() or None
+        return None
+    for key in ("summary", "episode", "content", "memory_content", "foresight", "atomic_fact"):
+        val = getattr(m, key, None)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+        if isinstance(val, list) and val:
+            return " ".join(str(x) for x in val[:5] if x).strip() or None
+    return None
+
+
+def recall_from_evermemos(
+    project_id: str,
+    query: str,
+    top_k: int = 10,
+    memory_types: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    """从 EverMemOS 按 group_id=project_id 与自然语言 query 检索，供 prompt 或前端展示。
+
+    memory_types 可选，如 ["episodic_memory"] 仅检索情节类记忆，利于创作一致性。
+    """
+    try:
+        from api_EverMemOS import is_available, search_memory
+        if not is_available():
+            return []
+        raw = search_memory(
+            query,
+            group_id=project_id,
+            top_k=top_k,
+            memory_types=memory_types,
+        )
+        if not raw:
+            return []
+        out: List[Dict[str, Any]] = []
+        for m in raw:
+            content = _content_from_evermemos_memory(m)
+            if content:
+                out.append({
+                    "content": content[:2000] if len(content) > 2000 else content,
+                    "id": getattr(m, "id", None) or getattr(m, "memory_id", None) or (m.get("id") or m.get("memory_id") if isinstance(m, dict) else None),
+                })
+        return out
+    except Exception as e:
+        logger.warning("recall_from_evermemos failed: %s", e)
+        return []
+
 
 _TYPE_MAP = {
     "person": "entity", "character": "entity", "location": "entity", "organization": "entity",

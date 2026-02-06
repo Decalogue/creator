@@ -50,12 +50,13 @@ interface Message {
 }
 
 // 模型类型
-type ModelType = 'DeepSeek-v3-2' | 'GLM-4-7' | 'Gemini-3-flash' | 'Claude-Opus-4-5';
+type ModelType = 'DeepSeek-v3-2' | 'Kimi-k2-5' | 'Kimi-k2' | 'GLM-4-7' | 'Gemini-3-flash' | 'Claude-Opus-4-5';
 
 // 获取模型显示名称
 const getModelDisplayName = (model: ModelType | string): string => {
   const modelMap: Record<string, string> = {
     'DeepSeek-v3-2': 'DeepSeek V3.2',
+    'Kimi-k2-5': 'Kimi K2.5',
     'Kimi-k2': 'Kimi K2',
     'GLM-4-7': 'GLM-4-7',
     'Gemini-3-flash': 'Gemini 3 Flash',
@@ -70,7 +71,7 @@ const getModelAvatar = (model: ModelType | string | undefined): string => {
   
   if (model === 'DeepSeek-v3-2') {
     return '/avatars/deepseek.png';
-  } else if (model === 'Kimi-k2') {
+  } else if (model === 'Kimi-k2-5' || model === 'Kimi-k2') {
     return '/avatars/kimi.png';
   } else if (model === 'GLM-4-7') {
     return '/avatars/zai.png';
@@ -563,6 +564,7 @@ const AIAssistant: React.FC = () => {
             size="middle"
             options={[
               { value: 'DeepSeek-v3-2', label: 'DeepSeek V3.2' },
+              { value: 'Kimi-k2-5', label: 'Kimi K2.5' },
               { value: 'Kimi-k2', label: 'Kimi K2' },
               { value: 'GLM-4-7', label: 'GLM-4.7' },
               { value: 'Gemini-3-flash', label: 'Gemini 3 Flash' },
@@ -659,7 +661,7 @@ const AIAssistant: React.FC = () => {
                     maxWidth: 400,
                   }}
                 >
-                  支持 DeepSeek V3.2、Kimi K2、GLM-4.7、Gemini 3 Flash、Claude Opus 4.5
+                  支持 DeepSeek V3.2、Kimi K2.5、Kimi K2、GLM-4.7、Gemini 3 Flash、Claude Opus 4.5
                 </div>
               </div>
             ) : (

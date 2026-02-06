@@ -6,7 +6,7 @@
 
 | 类型 | 说明 | 主要入口与模块 |
 |------|------|----------------|
-| **主路径** | 前端 → 创作/记忆 API → ReactNovelCreator + semantic_mesh（+ 可选 UniMem） | `api_flask.py`（/api/creator/run、/stream，/api/memory/*）→ `api/creator_handlers.py`、`api/memory_handlers.py` → `task/novel/react_novel_creator.py`、`context/` |
+| **主路径** | 前端 → 创作/记忆 API → ReactNovelCreator + semantic_mesh（+ 可选 UniMem + 可选 EverMemOS 云记忆） | `api_flask.py`（/api/creator/run、/stream，/api/memory/*、/api/memory/evermemos）→ `api/creator_handlers.py`、`api/memory_handlers.py`、`api_EverMemOS.py` → `task/novel/react_novel_creator.py`、`context/` |
 | **支线** | 多智能体编排、工作流定义，未接入 /api/creator | `workflow/`（NovelWorkflow、CreativeOrchestrator）、`puppeteer/`（GraphReasoning 等） |
 
 新人改「创作流程」或「记忆/图谱」时，优先看主路径；Puppeteer/Workflow 标为实验或后续 DAG 备选，避免误以为必须维护。
@@ -182,6 +182,7 @@ graph LR
  记忆系统 (Memory System)
 
 - **UniMem**：长期记忆系统，支持经验存储和检索
+- **EverMemOS**：云记忆 API 封装（`api_EverMemOS.py`），add/get/search/search_memory_result 对齐[官方文档](https://docs.evermind.ai/api-reference/introduction)；规划/续写/润色/对话全流程检索注入与写入，见 [INTEGRATION.md](../todo/EverMemOS/INTEGRATION.md)
 - **语义网格记忆**：实体-关系图谱，维护创作一致性
 - **动态上下文路由**：根据用户行为预测并预加载上下文
 - **订阅式记忆总线**：Agent 间实时通信，自动检测冲突

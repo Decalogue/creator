@@ -17,7 +17,6 @@ from typing import List, Dict, Optional, Tuple, Any
 from tools import default_registry, get_discovery
 from agent.context_manager import get_context_manager
 from agent.layered_action_space import get_layered_action_space
-from llm.chat import client, deepseek_v3_2
 
 
 class ReActAgent:
@@ -34,7 +33,7 @@ class ReActAgent:
             max_iterations: 最大迭代次数，防止无限循环
             enable_context_offloading: 是否启用上下文卸载（Context Offloading）
             max_new_tokens: 最大生成 token 数（None = 使用模型默认值）
-            llm_client: LLM客户端函数（如gemini_3_flash、deepseek_v3_2），如果为None则使用默认的OpenAI client
+            llm_client: LLM 客户端函数（如 gemini_3_flash、deepseek_v3_2），必须传入
             enable_observability: 是否启用可观测性（指标收集）
         """
         self.max_iterations = max_iterations
@@ -340,31 +339,16 @@ Final Answer: [最终答案]
             # 获取工具定义
             tools = self.tools.get_all_functions()
 
-            # 调用 LLM 进行推理（尝试使用 Function Calling）
+            # 调用 LLM 进行推理
             try:
-                # 如果提供了自定义LLM客户端函数，使用它
-                if self.llm_client is not None:
-                    # 使用自定义LLM函数（如gemini_3_flash、deepseek_v3_2）
-                    max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
-                    reasoning_content, content = self.llm_client(self.conversation_history, max_new_tokens=max_tokens)
-                    tool_calls = None  # 自定义LLM函数可能不支持Function Calling
-                else:
-                    # 使用默认的 OpenAI Function Calling API
-                    model_name = os.getenv("REACT_MODEL", "ep-20251209150604-gxb42")
-                    # 使用 max_new_tokens 如果设置了，否则使用默认值 8192
-                    max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
-                    response = client.chat.completions.create(
-                        model=model_name,
-                        messages=self.conversation_history,
-                        tools=tools if tools else None,
-                        tool_choice="auto" if tools else None,
-                        stream=False,
-                        max_tokens=max_tokens
+                if self.llm_client is None:
+                    raise ValueError(
+                        "ReActAgent 必须传入 llm_client（如 llm.chat.deepseek_v3_2、llm.chat.gemini_3_flash）。"
+                        " 创建时请指定：ReActAgent(..., llm_client=your_llm_func)"
                     )
-
-                    message = response.choices[0].message
-                    content = message.content or ""
-                    tool_calls = message.tool_calls
+                max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
+                reasoning_content, content = self.llm_client(self.conversation_history, max_new_tokens=max_tokens)
+                tool_calls = None  # 当前封装函数不支持 Function Calling
 
                 # 添加到对话历史
                 assistant_message = {"role": "assistant", "content": content}
@@ -469,15 +453,12 @@ Final Answer: [最终答案]
                     return content
 
             except Exception as e:
-                # 如果 Function Calling 失败，回退到文本解析模式
+                # 主分支异常时回退到文本解析模式，仍使用传入的 llm_client
                 if verbose:
                     print(f"Function Calling 失败，使用文本解析模式: {e}\n")
 
-                # 调用 LLM 进行推理（文本模式）
-                if self.max_new_tokens is not None:
-                    reasoning_content, content = deepseek_v3_2(self.conversation_history, max_new_tokens=self.max_new_tokens)
-                else:
-                    reasoning_content, content = deepseek_v3_2(self.conversation_history)
+                max_tokens = self.max_new_tokens if self.max_new_tokens is not None else 8192
+                reasoning_content, content = self.llm_client(self.conversation_history, max_new_tokens=max_tokens)
 
                 if verbose:
                     print(f"模型输出:\n{content}\n")

@@ -257,11 +257,14 @@ const CreatorPage: React.FC = () => {
   const [volumeTargetChapters, setVolumeTargetChapters] = useState(100);
   const [newVolumeProjectId, setNewVolumeProjectId] = useState('');
   const [memoryListPage, setMemoryListPage] = useState(1);
-  const MEMORY_LIST_PAGE_SIZE = 20;
+  const MEMORY_LIST_PAGE_SIZE = 10;
 
   const [memoryEntities, setMemoryEntities] = useState<Array<{ id: string; name: string; type?: string; brief?: string }>>([]);
   const [memoryGraph, setMemoryGraph] = useState<MemoryGraphData>({ nodes: [], links: [] });
   const [memoryRecents, setMemoryRecents] = useState<string[]>([]);
+  /** 云端记忆（EverMemOS）：列表视图下展示 */
+  const [memoryCloud, setMemoryCloud] = useState<Array<{ content: string; id?: string }>>([]);
+  const [evermemosAvailable, setEvermemosAvailable] = useState(false);
   const [memoryLoading, setMemoryLoading] = useState(false);
   const graphContainerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -341,12 +344,14 @@ const CreatorPage: React.FC = () => {
   const fetchMemory = useCallback(() => {
     setMemoryLoading(true);
     const q = new URLSearchParams({ project_id: projectId });
+    const evermemosQuery = new URLSearchParams({ project_id: projectId, query: '前文 情节 人物 大纲', top_k: '10' });
     Promise.all([
       fetch(`${API_BASE}/api/memory/entities?${q}`).then((r) => (r.ok ? r.json() : [])),
       fetch(`${API_BASE}/api/memory/graph?${q}`).then((r) => (r.ok ? r.json() : { nodes: [], links: [] })),
       fetch(`${API_BASE}/api/memory/recents?${q}`).then((r) => (r.ok ? r.json() : [])),
+      fetch(`${API_BASE}/api/memory/evermemos?${evermemosQuery}`).then((r) => (r.ok ? r.json() : [])),
     ])
-      .then(([entities, graph, recents]) => {
+      .then(([entities, graph, recents, cloud]) => {
         setMemoryEntities(Array.isArray(entities) ? entities : []);
         setMemoryGraph(
           graph && Array.isArray(graph.nodes)
@@ -354,6 +359,7 @@ const CreatorPage: React.FC = () => {
             : { nodes: [], links: [] }
         );
         setMemoryRecents(Array.isArray(recents) ? recents : []);
+        setMemoryCloud(Array.isArray(cloud) ? cloud : []);
       })
       .catch(() => {})
       .finally(() => setMemoryLoading(false));
@@ -363,6 +369,14 @@ const CreatorPage: React.FC = () => {
     if (!memoryOpen) return;
     fetchMemory();
   }, [memoryOpen, projectId, fetchMemory]);
+
+  /** 拉取后端配置（EverMemOS 是否已配置），用于云端记忆空状态文案 */
+  useEffect(() => {
+    fetch(`${API_BASE}/api/config`)
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((c: { evermemos_available?: boolean }) => setEvermemosAvailable(Boolean(c.evermemos_available)))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setMemoryListPage(1);
@@ -1442,6 +1456,40 @@ const CreatorPage: React.FC = () => {
                             <span style={{ fontSize: 14, fontWeight: T.fontWeightSemibold, color: T.textBright }}>记忆列表</span>
                             <span style={{ fontSize: 11, color: T.textMuted }}>{memoryEntities.length} 条</span>
                           </div>
+                        </div>
+                        <div style={{ padding: 12, borderBottom: `1px solid ${T.border}` }}>
+                          <div style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.textMuted, marginBottom: 8, letterSpacing: '0.04em' }}>云端记忆（EverMemOS）</div>
+                          {memoryCloud.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {memoryCloud.slice(0, 5).map((item, i) => (
+                                <div
+                                  key={item.id ?? i}
+                                  style={{
+                                    fontSize: 11,
+                                    color: T.textMuted,
+                                    padding: '8px 12px',
+                                    background: 'rgba(6,182,212,0.08)',
+                                    borderRadius: T.radiusSm,
+                                    border: `1px solid rgba(6,182,212,0.2)`,
+                                    lineHeight: 1.45,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 3,
+                                    WebkitBoxOrient: 'vertical',
+                                  }}
+                                >
+                                  {(item.content || '').trim() || '—'}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 11, color: T.textDim, lineHeight: 1.5 }}>
+                              {evermemosAvailable
+                                ? '暂无云端记忆。创作或续写后将自动写入并在此展示。'
+                                : <>申请并配置 <code style={{ fontSize: 10, background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: 4 }}>EVERMEMOS_API_KEY</code> 后，创作与续写将自动写入并在此展示。</>}
+                            </div>
+                          )}
                         </div>
                         <div style={{ flex: 1, padding: 16, overflowY: 'auto' }}>
                           {memoryEntities

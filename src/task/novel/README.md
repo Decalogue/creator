@@ -30,6 +30,10 @@
 - 修改已有章节
 - 调整大纲
 
+### 4. 长期记忆注入（EverMemOS）
+
+当配置 EverMemOS 云 API 时，`create_novel_plan` 与 `create_chapter` 支持可选参数 `extra_memory_context`：由 API 层在规划/续写前调用 `recall_from_evermemos(project_id, query)` 并将结果传入，用于保持风格与前后文一致。
+
 ## 使用方法
 
 ### 基本使用
