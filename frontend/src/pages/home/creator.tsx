@@ -14,6 +14,8 @@ import {
   List,
   Checkbox,
   InputNumber,
+  Popconfirm,
+  message,
 } from 'antd';
 import {
   SendOutlined,
@@ -28,6 +30,7 @@ import {
   MenuFoldOutlined,
   LinkOutlined,
   ReloadOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OrchestrationFlow } from '@/components/creator/OrchestrationFlow';
@@ -258,6 +261,10 @@ const CreatorPage: React.FC = () => {
   const [newVolumeProjectId, setNewVolumeProjectId] = useState('');
   const [memoryListPage, setMemoryListPage] = useState(1);
   const MEMORY_LIST_PAGE_SIZE = 10;
+  /** 云端记忆分页与展开 */
+  const [cloudPage, setCloudPage] = useState(1);
+  const CLOUD_PAGE_SIZE = 8;
+  const [expandedCloudKey, setExpandedCloudKey] = useState<string | null>(null);
 
   const [memoryEntities, setMemoryEntities] = useState<Array<{ id: string; name: string; type?: string; brief?: string }>>([]);
   const [memoryGraph, setMemoryGraph] = useState<MemoryGraphData>({ nodes: [], links: [] });
@@ -266,6 +273,8 @@ const CreatorPage: React.FC = () => {
   const [memoryCloud, setMemoryCloud] = useState<Array<{ content: string; id?: string }>>([]);
   const [evermemosAvailable, setEvermemosAvailable] = useState(false);
   const [memoryLoading, setMemoryLoading] = useState(false);
+  const [retrievalDemoLoading, setRetrievalDemoLoading] = useState(false);
+  const [retrievalDemoResult, setRetrievalDemoResult] = useState<Array<{ query_type: string; query: string; result_count: number; excerpts: string[] }> | null>(null);
   const graphContainerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -344,12 +353,15 @@ const CreatorPage: React.FC = () => {
   const fetchMemory = useCallback(() => {
     setMemoryLoading(true);
     const q = new URLSearchParams({ project_id: projectId });
-    const evermemosQuery = new URLSearchParams({ project_id: projectId, query: '前文 情节 人物 大纲', top_k: '10' });
     Promise.all([
       fetch(`${API_BASE}/api/memory/entities?${q}`).then((r) => (r.ok ? r.json() : [])),
       fetch(`${API_BASE}/api/memory/graph?${q}`).then((r) => (r.ok ? r.json() : { nodes: [], links: [] })),
       fetch(`${API_BASE}/api/memory/recents?${q}`).then((r) => (r.ok ? r.json() : [])),
-      fetch(`${API_BASE}/api/memory/evermemos?${evermemosQuery}`).then((r) => (r.ok ? r.json() : [])),
+      fetch(`${API_BASE}/api/memory/evermemos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId, query: '前文 情节 人物 大纲', top_k: 10 }),
+      }).then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([entities, graph, recents, cloud]) => {
         setMemoryEntities(Array.isArray(entities) ? entities : []);
@@ -381,6 +393,16 @@ const CreatorPage: React.FC = () => {
   useEffect(() => {
     setMemoryListPage(1);
   }, [projectId]);
+
+  useEffect(() => {
+    setCloudPage(1);
+    setExpandedCloudKey(null);
+  }, [projectId]);
+
+  useEffect(() => {
+    const maxPage = Math.ceil(memoryCloud.length / CLOUD_PAGE_SIZE) || 1;
+    setCloudPage((p) => Math.min(p, maxPage));
+  }, [memoryCloud.length]);
 
   const fetchProjectList = useCallback(() => {
     fetch(`${API_BASE}/api/creator/projects`)
@@ -1457,32 +1479,197 @@ const CreatorPage: React.FC = () => {
                             <span style={{ fontSize: 11, color: T.textMuted }}>{memoryEntities.length} 条</span>
                           </div>
                         </div>
-                        <div style={{ padding: 12, borderBottom: `1px solid ${T.border}` }}>
-                          <div style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.textMuted, marginBottom: 8, letterSpacing: '0.04em' }}>云端记忆（EverMemOS）</div>
-                          {memoryCloud.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {memoryCloud.slice(0, 5).map((item, i) => (
-                                <div
-                                  key={item.id ?? i}
-                                  style={{
-                                    fontSize: 11,
-                                    color: T.textMuted,
-                                    padding: '8px 12px',
-                                    background: 'rgba(6,182,212,0.08)',
-                                    borderRadius: T.radiusSm,
-                                    border: `1px solid rgba(6,182,212,0.2)`,
-                                    lineHeight: 1.45,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 3,
-                                    WebkitBoxOrient: 'vertical',
+                        <div style={{ padding: 12, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.textMuted, letterSpacing: '0.04em' }}>云端记忆（EverMemOS）</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {memoryCloud.length > 0 && (
+                                <span style={{ fontSize: 11, color: T.textMuted }}>共 {memoryCloud.length} 条</span>
+                              )}
+                              {evermemosAvailable && (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  loading={retrievalDemoLoading}
+                                  onClick={async () => {
+                                    setRetrievalDemoLoading(true);
+                                    setRetrievalDemoResult(null);
+                                    try {
+                                      const r = await fetch(
+                                        `${API_BASE}/api/memory/evermemos/retrieval-demo`,
+                                        {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ project_id: projectId, top_k: 8 }),
+                                        }
+                                      );
+                                      const data = r.ok ? await r.json() : {};
+                                      if (data.ok && Array.isArray(data.entries)) {
+                                        setRetrievalDemoResult(data.entries);
+                                        const summary = data.entries
+                                          .map((e: { query_type: string; result_count: number }) => `${e.query_type} ${e.result_count} 条`)
+                                          .join('，');
+                                        message.success(`已记录检索测试：${summary}`);
+                                        fetchMemory();
+                                      } else {
+                                        message.warning(data.message || '检索测试失败');
+                                      }
+                                    } catch {
+                                      message.error('请求失败');
+                                    } finally {
+                                      setRetrievalDemoLoading(false);
+                                    }
                                   }}
+                                  style={{ fontSize: 11, padding: 0 }}
                                 >
-                                  {(item.content || '').trim() || '—'}
+                                  跑检索测试
+                                </Button>
+                              )}
+                            </span>
+                          </div>
+                          {retrievalDemoResult && retrievalDemoResult.length > 0 && (
+                            <div style={{ marginBottom: 8, padding: 8, background: 'rgba(6,182,212,0.06)', borderRadius: T.radiusSm, fontSize: 11 }}>
+                              {retrievalDemoResult.map((e, i) => (
+                                <div key={i} style={{ marginBottom: i < retrievalDemoResult!.length - 1 ? 6 : 0 }}>
+                                  <span style={{ color: T.textMuted }}>{e.query_type}</span>
+                                  <span style={{ color: T.textDim, marginLeft: 6 }}>{e.result_count} 条</span>
+                                  {e.excerpts.slice(0, 2).map((ex, j) => (
+                                    <div key={j} style={{ color: T.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ex}>
+                                      {ex}
+                                    </div>
+                                  ))}
                                 </div>
                               ))}
                             </div>
+                          )}
+                          {memoryCloud.length > 0 ? (
+                            <>
+                              <div
+                                style={{
+                                  maxHeight: 320,
+                                  overflowY: 'auto',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 6,
+                                  paddingRight: 4,
+                                }}
+                              >
+                                {memoryCloud
+                                  .slice((cloudPage - 1) * CLOUD_PAGE_SIZE, cloudPage * CLOUD_PAGE_SIZE)
+                                  .map((item, i) => {
+                                    const key = item.id ?? `cloud_${(cloudPage - 1) * CLOUD_PAGE_SIZE + i}`;
+                                    const isExpanded = expandedCloudKey === key;
+                                    const text = (item.content || '').trim() || '—';
+                                    const canDelete = Boolean(item.id);
+                                    return (
+                                      <div
+                                        key={key}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setExpandedCloudKey((k) => (k === key ? null : key))}
+                                        onKeyDown={(ev) => {
+                                          if (ev.key === 'Enter' || ev.key === ' ') {
+                                            ev.preventDefault();
+                                            setExpandedCloudKey((k) => (k === key ? null : key));
+                                          }
+                                        }}
+                                        style={{
+                                          fontSize: 11,
+                                          color: T.textMuted,
+                                          padding: '8px 12px',
+                                          background: 'rgba(6,182,212,0.08)',
+                                          borderRadius: T.radiusSm,
+                                          border: `1px solid rgba(6,182,212,0.2)`,
+                                          lineHeight: 1.45,
+                                          overflow: 'hidden',
+                                          textOverflow: isExpanded ? undefined : 'ellipsis',
+                                          display: isExpanded ? 'block' : '-webkit-box',
+                                          WebkitLineClamp: isExpanded ? undefined : 3,
+                                          WebkitBoxOrient: 'vertical' as const,
+                                          cursor: 'pointer',
+                                        }}
+                                      >
+                                        {text}
+                                        {isExpanded && canDelete && (
+                                          <div
+                                            style={{ marginTop: 8 }}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Popconfirm
+                                              title="确定删除这条云端记忆？"
+                                              onConfirm={async (e) => {
+                                                e?.stopPropagation();
+                                                try {
+                                                  const r = await fetch(
+                                                    `${API_BASE}/api/memory/evermemos`,
+                                                    {
+                                                      method: 'DELETE',
+                                                      headers: { 'Content-Type': 'application/json' },
+                                                      body: JSON.stringify({ memory_id: item.id }),
+                                                    }
+                                                  );
+                                                  const data = r.ok ? await r.json() : {};
+                                                  if (data.ok) {
+                                                    setMemoryCloud((prev) => prev.filter((x) => x.id !== item.id));
+                                                    setExpandedCloudKey(null);
+                                                  }
+                                                } catch (_) {}
+                                              }}
+                                            >
+                                              <Button
+                                                type="text"
+                                                size="small"
+                                                danger
+                                                icon={<DeleteOutlined />}
+                                                style={{ fontSize: 11, padding: '0 6px' }}
+                                              >
+                                                删除
+                                              </Button>
+                                            </Popconfirm>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                              {memoryCloud.length > CLOUD_PAGE_SIZE && (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 8,
+                                    marginTop: 8,
+                                  }}
+                                >
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    disabled={cloudPage <= 1}
+                                    onClick={() => setCloudPage((p) => Math.max(1, p - 1))}
+                                    style={{ color: T.textMuted, fontSize: 11 }}
+                                  >
+                                    上一页
+                                  </Button>
+                                  <span style={{ fontSize: 11, color: T.textMuted }}>
+                                    {cloudPage} / {Math.ceil(memoryCloud.length / CLOUD_PAGE_SIZE)}
+                                  </span>
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    disabled={cloudPage >= Math.ceil(memoryCloud.length / CLOUD_PAGE_SIZE)}
+                                    onClick={() =>
+                                      setCloudPage((p) =>
+                                        Math.min(Math.ceil(memoryCloud.length / CLOUD_PAGE_SIZE), p + 1)
+                                      )
+                                    }
+                                    style={{ color: T.textMuted, fontSize: 11 }}
+                                  >
+                                    下一页
+                                  </Button>
+                                </div>
+                              )}
+                            </>
                           ) : (
                             <div style={{ fontSize: 11, color: T.textDim, lineHeight: 1.5 }}>
                               {evermemosAvailable
@@ -1491,7 +1678,7 @@ const CreatorPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        <div style={{ flex: 1, padding: 16, overflowY: 'auto' }}>
+                        <div style={{ flex: '0 0 auto', padding: 16, overflowY: 'auto', minHeight: 360, maxHeight: '40vh' }}>
                           {memoryEntities
                             .slice((memoryListPage - 1) * MEMORY_LIST_PAGE_SIZE, memoryListPage * MEMORY_LIST_PAGE_SIZE)
                             .map((e, idx) => (
@@ -1627,12 +1814,30 @@ const CreatorPage: React.FC = () => {
                           </div>
                         )}
                         {memoryRecents.length > 0 && (
-                          <div style={{ padding: 12, borderTop: `1px solid ${T.border}` }}>
+                          <div style={{ padding: 12, borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
                             <div style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.textMuted, marginBottom: 8, letterSpacing: '0.04em' }}>最近检索</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {memoryRecents.slice(0, 3).map((r, i) => (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                              {memoryRecents.slice(0, 10).map((r, i) => {
+                                const looksLikeNoteId = /^voted_\d+_\d+$|^chapter_\d{3}$|^unimem_[\w-]+$/i.test((r || '').trim());
+                                return (
                                 <div
                                   key={i}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={async () => {
+                                    if (looksLikeNoteId) {
+                                      try {
+                                        const res = await fetch(`${API_BASE}/api/memory/note/${encodeURIComponent(r)}?project_id=${encodeURIComponent(projectId)}`);
+                                        if (res.ok) {
+                                          const note = await res.json();
+                                          setSelectedNode({ ...note, related: note.related } as GraphNode);
+                                          return;
+                                        }
+                                      } catch (_) {}
+                                    }
+                                    setSelectedNode({ id: r, label: r, type: 'entity' as const, brief: '' } as GraphNode);
+                                  }}
+                                  onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); (ev.currentTarget as HTMLDivElement).click(); } }}
                                   style={{
                                     fontSize: 11,
                                     color: T.textMuted,
@@ -1642,11 +1847,12 @@ const CreatorPage: React.FC = () => {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 8,
+                                    cursor: 'pointer',
                                   }}
                                 >
-                                  <LinkOutlined style={{ color: T.accent, fontSize: 12 }} /> {r}
+                                  <LinkOutlined style={{ color: T.accent, fontSize: 12 }} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r}</span>
                                 </div>
-                              ))}
+                              ); })}
                             </div>
                           </div>
                         )}

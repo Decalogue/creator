@@ -9,6 +9,7 @@ EverMemOS 记忆操作命令行工具（参赛 Track 2 加分：CLI Tool）。
 
 import argparse
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -51,7 +52,7 @@ def cmd_search(user_id: str, query: str, top_k: int) -> int:
     if not is_available():
         print("EverMemOS 未配置（请设置 EVERMEMOS_API_KEY）", file=sys.stderr)
         return 1
-    memories = search_memory(query, user_id=user_id)
+    memories = search_memory(query, user_id=user_id, top_k=top_k)
     if not memories:
         print("无结果")
         return 0
@@ -72,14 +73,8 @@ def cmd_add(user_id: str, content: str, group_id: str | None) -> int:
     if not content or not content.strip():
         print("请提供 --content 或通过管道传入内容", file=sys.stderr)
         return 1
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    msg_id = f"cli_{user_id}_{ts.replace(':', '').replace('-', '')[:15]}"
-    message = {
-        "message_id": msg_id,
-        "create_time": ts,
-        "sender": user_id,
-        "content": content.strip()[:8000],
-    }
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    message = {"message_id": "msg_" + uuid.uuid4().hex, "create_time": ts, "sender": user_id, "content": content.strip()[:8000]}
     if group_id:
         message["group_id"] = group_id
     add_memory([message])

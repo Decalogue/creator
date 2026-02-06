@@ -274,7 +274,6 @@ def run_create(
                 project_id,
                 "风格 主题 类型 过往创作 大纲",
                 top_k=5,
-                memory_types=["episodic_memory"],
             )
             if items:
                 extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
@@ -404,17 +403,12 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
 
         extra_memory = ""
         try:
-            from api.memory_handlers import recall_from_evermemos
-            items = recall_from_evermemos(
-                project_id,
-                "前文 情节 人物 大纲 本章摘要 角色",
-                top_k=5,
-                memory_types=["episodic_memory"],
-            )
+            from api.memory_handlers import recall_three_types_from_evermemos
+            items = recall_three_types_from_evermemos(project_id, top_k_per_type=5)
             if items:
                 extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
         except Exception as ex:
-            logger.debug("EverMemOS recall for continue skipped: %s", ex)
+            logger.debug("EverMemOS three-type recall for continue skipped: %s", ex)
         chapter = creator.create_chapter(
             chapter_number=chapter_number,
             chapter_title=title,
@@ -431,10 +425,14 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
         except Exception as ex:
             logger.warning("UniMem retain chapter failed: %s", ex)
         try:
-            from api.memory_handlers import retain_chapter_to_evermemos
-            retain_chapter_to_evermemos(project_id, chapter_number, content)
+            from api.memory_handlers import retain_chapter_to_evermemos, retain_chapter_entities_to_evermemos
+            chapter_summary_for_memory = (getattr(chapter, "summary", None) or summary or "").strip()
+            retain_chapter_to_evermemos(
+                project_id, chapter_number, content, chapter_summary=chapter_summary_for_memory or None
+            )
+            retain_chapter_entities_to_evermemos(project_id, chapter_number)
         except Exception as ex:
-            logger.warning("EverMemOS retain chapter failed: %s", ex)
+            logger.warning("EverMemOS retain chapter/entities failed: %s", ex)
         return 0, "续写成功", {"content": content, "mode": "continue", "project_id": project_id, "chapter_number": chapter_number}
     except Exception as e:
         logger.exception("run_continue failed")

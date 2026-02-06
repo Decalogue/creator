@@ -249,8 +249,8 @@ class UniMem:
                 "backend": "memory"
             }
         
-        # 验证后端配置
-        valid_storage_backends = ["redis", "mongodb", "postgresql"]
+        # 验证后端配置（memory 为内存模式，不持久化）
+        valid_storage_backends = ["redis", "mongodb", "postgresql", "memory"]
         if self.storage_backend not in valid_storage_backends:
             logger.warning(f"Unknown storage backend: {self.storage_backend}")
         

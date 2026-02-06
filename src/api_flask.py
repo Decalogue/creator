@@ -360,14 +360,52 @@ def memory_note(node_id):
     return jsonify(note)
 
 
-@app.route("/api/memory/evermemos", methods=["GET"])
+@app.route("/api/memory/evermemos", methods=["POST", "DELETE"])
 def memory_evermemos():
+    """云端记忆：POST 检索（JSON body），DELETE 删除（JSON body 含 memory_id）。"""
     if not _CREATOR_MEMORY_AVAILABLE:
+        if request.method == "DELETE":
+            return jsonify({"ok": False, "message": "云端记忆未配置"}), 400
         return jsonify([])
-    project_id = request.args.get("project_id") or "完美之墙"
-    query = request.args.get("query", "").strip() or "创作 大纲 章节"
-    top_k = request.args.get("top_k", type=int) or 10
+    if request.method == "DELETE":
+        body = request.get_json(silent=True) or {}
+        memory_id = body.get("memory_id") or request.args.get("memory_id")
+        if not memory_id or not str(memory_id).strip():
+            return jsonify({"ok": False, "message": "缺少 memory_id"}), 400
+        from api.memory_handlers import delete_from_evermemos
+        ok = delete_from_evermemos(str(memory_id).strip())
+        return jsonify({"ok": ok})
+    # POST：检索，body 为 JSON，避免中文进 URL
+    body = request.get_json(silent=True) or {}
+    project_id = (body.get("project_id") or "").strip() or "完美之墙"
+    query = (body.get("query") or "").strip() or "创作 大纲 章节"
+    top_k = body.get("top_k")
+    if top_k is None:
+        top_k = 10
+    try:
+        top_k = int(top_k)
+    except (TypeError, ValueError):
+        top_k = 10
     return jsonify(memory_recall_from_evermemos(project_id, query, top_k=top_k))
+
+
+@app.route("/api/memory/evermemos/retrieval-demo", methods=["POST"])
+def memory_evermemos_retrieval_demo():
+    """跑三类检索（跨章人物、伏笔、长线设定）并追加到 JSONL 日志，返回本次结果供前端展示。POST JSON: project_id?, top_k?"""
+    if not _CREATOR_MEMORY_AVAILABLE:
+        return jsonify({"ok": False, "message": "云端记忆未配置", "entries": []}), 400
+    body = request.get_json(silent=True) or {}
+    project_id = (body.get("project_id") or "").strip() or "完美之墙"
+    top_k = body.get("top_k")
+    if top_k is None:
+        top_k = 8
+    try:
+        top_k = int(top_k)
+    except (TypeError, ValueError):
+        top_k = 8
+    from api.memory_handlers import run_retrieval_demo, DEFAULT_RETRIEVAL_DEMO_LOG_PATH
+    entries = run_retrieval_demo(project_id, top_k=top_k, log_path=DEFAULT_RETRIEVAL_DEMO_LOG_PATH)
+    return jsonify({"ok": True, "entries": entries})
 
 
 def start(host=None, port=None, ssl_context=None):

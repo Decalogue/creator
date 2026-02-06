@@ -32,7 +32,7 @@
 
 ### 4. 长期记忆注入（EverMemOS）
 
-当配置 EverMemOS 云 API 时，`create_novel_plan` 与 `create_chapter` 支持可选参数 `extra_memory_context`：由 API 层在规划/续写前调用 `recall_from_evermemos(project_id, query)` 并将结果传入，用于保持风格与前后文一致。
+当配置 EverMemOS 云 API 时，`create_novel_plan` 与 `create_chapter` 支持可选参数 `extra_memory_context`：由 API 层在规划/续写前检索云端记忆并将结果传入。续写时使用**三类检索**（跨章人物、伏笔、长线设定）合并结果（`recall_three_types_from_evermemos`），与前端「跑检索测试」及脚本 `evermemos_retrieval_demo` 共用同一组查询，用于保持前后文与设定一致。
 
 ## 使用方法
 
