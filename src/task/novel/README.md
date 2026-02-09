@@ -22,6 +22,7 @@
 - 每章完成后进行 Compaction，保留关键信息
 - 使用章节摘要确保前后章节连贯性
 - 每5章进行一次上下文压缩
+- **续写时**（API 层 `run_continue`）：除上一章摘要外，会读取**上一章正文末尾约 1/5**（上限约 2000 字）注入 prompt，便于紧接情境与情绪；**更前章节**（第 1 章～第 N-2 章）传递大纲摘要 + 语义网格实体，保持人物与设定一致。`create_chapter` 支持参数 `previous_chapter_tail`、`earlier_chapters_summaries`。
 
 ### 3. 渐进式创作
 

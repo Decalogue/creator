@@ -52,8 +52,8 @@ class RetrievalEngine:
     直接使用各个适配器进行检索，然后融合结果。
     
     支持多种检索方法：
-    - 实体级检索（LightRAG）：基于实体和关系的检索
-    - 抽象概念检索（LightRAG）：基于抽象概念的检索
+    - 实体级检索：基于实体和关系的检索（当前占位）
+    - 抽象概念检索：基于抽象概念的检索（当前占位）
     - 语义检索（A-Mem）：基于向量相似度的检索
     - 子图链接检索（A-Mem）：基于子图结构的检索
     - 时间检索（CogMem）：基于时间维度的检索
@@ -78,7 +78,7 @@ class RetrievalEngine:
         初始化检索引擎
         
         Args:
-            graph_adapter: 图结构适配器（参考 LightRAG）
+            graph_adapter: 图结构适配器（预留）
             atom_link_adapter: 原子链接适配器（参考 A-Mem）
             retrieval_adapter: 检索引擎适配器（参考各架构）
             storage_manager: 存储管理器（用于 FoA/DA/LTM 检索）
@@ -107,7 +107,7 @@ class RetrievalEngine:
         """
         实体级检索（低级别检索）
         
-        使用图结构适配器进行实体检索（LightRAG 风格）
+        使用图结构适配器进行实体检索
         
         Args:
             query: 查询字符串
@@ -126,7 +126,7 @@ class RetrievalEngine:
         """
         抽象概念检索（高级别检索）
         
-        使用图结构适配器进行抽象检索（LightRAG 风格）
+        使用图结构适配器进行抽象检索
         
         Args:
             query: 查询字符串

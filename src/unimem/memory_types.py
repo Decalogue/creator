@@ -347,7 +347,7 @@ class Entity:
     """
     实体表示
     
-    用于图结构中的实体节点（参考 LightRAG）
+    用于图结构中的实体节点
     """
     id: str
     name: str
@@ -376,7 +376,7 @@ class Relation:
     """
     关系表示
     
-    用于图结构中的关系边（参考 LightRAG）
+    用于图结构中的关系边
     """
     source: str  # 源实体ID
     target: str  # 目标实体ID

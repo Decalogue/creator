@@ -13,7 +13,7 @@ UniMem 采用**功能导向的适配器设计**，按照功能需求而非架构
 | 操作接口 | `OperationAdapter` | HindSight | Retain/Recall/Reflect 三大操作 |
 | 分层存储 | `LayeredStorageAdapter` | CogMem | FoA/DA/LTM 三层存储 |
 | 记忆分类 | `MemoryTypeAdapter` | MemMachine | 多类型记忆分类 |
-| 图结构 | `GraphAdapter` | LightRAG | 实体-关系建模和图结构 |
+| 图结构 | `GraphAdapter` | 预留 | 实体-关系建模和图结构（占位） |
 | 原子链接 | `AtomLinkAdapter` | A-Mem | 原子笔记网络和动态链接 |
 | 检索引擎 | `RetrievalAdapter` | 各架构 | 多维检索和结果融合 |
 | 更新机制 | `UpdateAdapter` | LightMem + A-Mem | 涟漪效应和睡眠更新 |
@@ -538,7 +538,6 @@ export UNIMEM_VECTOR_BACKEND="qdrant"
   },
   "graph": {
     "backend": "neo4j",
-    "workspace": "./lightrag_workspace",
     "llm_model": "gpt-4o-mini",
     "embedding_model": "text-embedding-3-small"
   },

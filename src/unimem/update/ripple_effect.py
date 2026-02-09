@@ -50,7 +50,7 @@ class RippleEffectUpdater:
         初始化涟漪效应更新器
         
         Args:
-            graph_adapter: 图结构适配器（参考 LightRAG）
+            graph_adapter: 图结构适配器（预留）
             atom_link_adapter: 原子链接适配器（参考 A-Mem）
             update_adapter: 更新机制适配器（参考 LightMem）
             max_depth: 最大传播深度（默认 3）
@@ -315,7 +315,7 @@ class RippleEffectUpdater:
                     )
                     node = evolved
                 
-                # 图结构适配器：增量更新实体描述（参考 LightRAG）
+                # 图结构适配器：增量更新实体描述
                 if self.graph_adapter and hasattr(node, 'entities') and node.entities:
                     for entity_id in node.entities:
                         try:

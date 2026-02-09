@@ -34,7 +34,7 @@ EVENT=$(grep -c "Created decision event\|Created DecisionEvent" "$LATEST_LOG" 2>
 echo "DecisionEvent创建: $EVENT"
 
 ERRORS=$(grep -ci "error\|exception\|failed" "$LATEST_LOG" 2>/dev/null | grep -v "API connection error" | head -1 || echo "0")
-echo "错误/异常数（排除LightRAG）: $ERRORS"
+echo "错误/异常数: $ERRORS"
 
 echo
 echo "--- 最后10行日志 ---"

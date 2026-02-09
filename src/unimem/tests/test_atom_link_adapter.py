@@ -3,8 +3,8 @@
 
 测试 AtomLinkAdapter 的核心功能
 
-注意：运行测试前需要激活 myswift 环境：
-    conda activate myswift
+注意：运行测试前需要激活 seeme 环境：
+    conda activate seeme
 """
 
 import unittest
@@ -16,11 +16,11 @@ from datetime import datetime
 from typing import List
 
 # 检查环境
-if os.environ.get("CONDA_DEFAULT_ENV") != "myswift":
+if os.environ.get("CONDA_DEFAULT_ENV") != "seeme":
     print("\n" + "="*60)
-    print("警告：当前未激活 myswift 环境，某些测试可能会失败")
+    print("警告：当前未激活 seeme 环境，某些测试可能会失败")
     print(f"当前环境: {os.environ.get('CONDA_DEFAULT_ENV', '未设置')}")
-    print("请先运行: conda activate myswift")
+    print("请先运行: conda activate seeme")
     print("或使用自动测试脚本: python tests/run_tests.py")
     print("="*60 + "\n")
 

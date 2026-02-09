@@ -253,6 +253,10 @@ const CreatorPage: React.FC = () => {
   const [projectList, setProjectList] = useState<string[]>([]);
   const [projectChapters, setProjectChapters] = useState<{ number: number; title: string; summary?: string; has_file: boolean }[]>([]);
   const [chapterListOpen, setChapterListOpen] = useState(false);
+  /** 新作大纲目标章数（默认 100）；接续前卷时用 volumeTargetChapters */
+  const [createTargetChapters, setCreateTargetChapters] = useState(100);
+  /** 章节续写时是否注入 EverMemOS 云端检索结果（可关闭以对比测试） */
+  const [useEvermemosContext, setUseEvermemosContext] = useState(true);
   /** 接续前卷（仅大纲模式）：前卷作品、本卷起始章、本卷章数、本卷作品名 */
   const [continueFromVolume, setContinueFromVolume] = useState(false);
   const [previousProjectId, setPreviousProjectId] = useState('');
@@ -360,7 +364,7 @@ const CreatorPage: React.FC = () => {
       fetch(`${API_BASE}/api/memory/evermemos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id: projectId, query: '前文 情节 人物 大纲', top_k: 10 }),
+        body: JSON.stringify({ project_id: projectId, top_k: 50 }),
       }).then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([entities, graph, recents, cloud]) => {
@@ -622,7 +626,8 @@ const CreatorPage: React.FC = () => {
                   target_chapters: volumeTargetChapters,
                   project_id: newVolumeProjectId.trim() || undefined,
                 }
-              : {}),
+              : mode === 'create' ? { target_chapters: createTargetChapters } : {}),
+            ...(mode === 'continue' ? { use_evermemos_context: useEvermemosContext } : {}),
           };
           let streamEnd: { code: number; message: string; content?: string; project_id?: string; chapter_number?: number };
           try {
@@ -854,6 +859,18 @@ const CreatorPage: React.FC = () => {
                 接续前卷
               </Checkbox>
             )}
+            {mode === 'create' && !continueFromVolume && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: HEADER_CONTROL_FONT_SIZE, color: T.textMuted }}>目标章数</span>
+                <InputNumber
+                  min={1}
+                  max={500}
+                  value={createTargetChapters}
+                  onChange={(v) => setCreateTargetChapters(typeof v === 'number' ? v : 100)}
+                  style={{ width: 72, fontSize: HEADER_CONTROL_FONT_SIZE }}
+                />
+              </div>
+            )}
           </div>
           {mode === 'create' && continueFromVolume && (
             <div
@@ -925,6 +942,7 @@ const CreatorPage: React.FC = () => {
             <Select
               value={projectId}
               onChange={(v) => setProjectId(v || '完美之墙')}
+              onDropdownVisibleChange={(open) => { if (open) fetchProjectList(); }}
               options={[
                 ...(projectId && !projectList.includes(projectId)
                   ? [{ value: projectId, label: `${projectId}（当前）` }]
@@ -949,25 +967,23 @@ const CreatorPage: React.FC = () => {
                 className="creator-icon-btn"
               />
             </Tooltip>
-            {projectChapters.length > 0 && (
-              <Tooltip title="点击查看完整章节列表">
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setChapterListOpen(true)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChapterListOpen(true); } }}
-                  style={{
-                    fontSize: HEADER_CONTROL_FONT_SIZE,
-                    color: T.accent,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    userSelect: 'none',
-                  }}
-                >
-                  共 {projectChapters.length} 章，已写 {projectChapters.filter((c) => c.has_file).length} 章
-                </span>
-              </Tooltip>
-            )}
+            <Tooltip title="点击查看完整章节列表">
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={() => setChapterListOpen(true)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChapterListOpen(true); } }}
+                style={{
+                  fontSize: HEADER_CONTROL_FONT_SIZE,
+                  color: projectChapters.length > 0 ? T.accent : T.textMuted,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  userSelect: 'none',
+                }}
+              >
+                共 {projectChapters.length} 章，已写 {projectChapters.filter((c) => c.has_file).length} 章
+              </span>
+            </Tooltip>
           </Space>
         </div>
         <Modal
@@ -1306,13 +1322,13 @@ const CreatorPage: React.FC = () => {
             )}
           </div>
 
-          {/* 输入区：固定视窗底部，上下滚动时始终可见 */}
+          {/* 输入区：固定视窗底部，仅占中间内容区（左右侧栏之间），内容居中不偏左 */}
           <div
             style={{
               position: 'fixed',
               bottom: 0,
-              left: 0,
-              right: 0,
+              left: orchestrationOpen ? 272 : 56,
+              right: memoryOpen ? (memoryView === 'graph' ? 520 : 320) : 56,
               zIndex: 100,
               borderTop: `1px solid ${T.border}`,
               padding: '24px 40px 28px',
@@ -1376,12 +1392,25 @@ const CreatorPage: React.FC = () => {
               style={{
                 maxWidth: 760,
                 margin: '10px auto 0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
                 fontSize: 12,
                 color: T.textDim,
-                textAlign: 'right',
               }}
             >
-              {loading ? '智能体编排中…' : 'Enter 发送 · Shift+Enter 换行'}
+              {mode === 'continue' && (
+                <Checkbox
+                  checked={useEvermemosContext}
+                  onChange={(e) => setUseEvermemosContext(e.target.checked)}
+                  style={{ color: T.textMuted, fontSize: 12 }}
+                >
+                  续写时注入云端记忆（EverMemOS）
+                </Checkbox>
+              )}
+              <span style={{ marginLeft: 'auto' }}>{loading ? '智能体编排中…' : 'Enter 发送 · Shift+Enter 换行'}</span>
             </div>
           </div>
         </div>
@@ -1463,6 +1492,7 @@ const CreatorPage: React.FC = () => {
                   <div
                     style={{
                       flex: 1,
+                      minHeight: 0,
                       overflowY: 'auto',
                       display: 'flex',
                       flexDirection: 'column',
@@ -1473,12 +1503,6 @@ const CreatorPage: React.FC = () => {
                       <div style={{ padding: 24, textAlign: 'center', color: T.textDim }}>加载中…</div>
                     ) : (
                       <>
-                        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.border}` }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 14, fontWeight: T.fontWeightSemibold, color: T.textBright }}>记忆列表</span>
-                            <span style={{ fontSize: 11, color: T.textMuted }}>{memoryEntities.length} 条</span>
-                          </div>
-                        </div>
                         <div style={{ padding: 12, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                             <span style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.textMuted, letterSpacing: '0.04em' }}>云端记忆（EverMemOS）</span>
@@ -1678,8 +1702,30 @@ const CreatorPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        <div style={{ flex: '0 0 auto', padding: 16, overflowY: 'auto', minHeight: 360, maxHeight: '40vh' }}>
-                          {memoryEntities
+                        <div
+                          style={{
+                            flex: 1,
+                            minHeight: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            borderBottom: memoryRecents.length > 0 ? `1px solid ${T.border}` : undefined,
+                          }}
+                        >
+                          <div style={{ padding: '16px 20px 8px', borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: 14, fontWeight: T.fontWeightSemibold, color: T.textBright }}>记忆列表</span>
+                              <span style={{ fontSize: 11, color: T.textMuted }}>{memoryEntities.length} 条</span>
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              padding: 16,
+                              maxHeight: 380,
+                              overflowY: 'auto',
+                            }}
+                            title="每页 10 条，可在此区域滚动查看；下方有翻页"
+                          >
+                            {memoryEntities
                             .slice((memoryListPage - 1) * MEMORY_LIST_PAGE_SIZE, memoryListPage * MEMORY_LIST_PAGE_SIZE)
                             .map((e, idx) => (
                             <div
@@ -1774,45 +1820,47 @@ const CreatorPage: React.FC = () => {
                             </div>
                           ))}
                         </div>
-                        {memoryEntities.length > MEMORY_LIST_PAGE_SIZE && (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 12,
-                              padding: '12px 16px',
-                              borderTop: `1px solid ${T.border}`,
-                              flexShrink: 0,
-                            }}
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 12,
+                            padding: '12px 16px',
+                            borderTop: `1px solid ${T.border}`,
+                            flexShrink: 0,
+                            background: T.bgSidebar ?? 'rgba(12,12,18,0.98)',
+                            minHeight: 44,
+                          }}
+                          aria-label="记忆列表翻页"
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            disabled={memoryEntities.length === 0 || memoryListPage <= 1}
+                            onClick={() => setMemoryListPage((p) => Math.max(1, p - 1))}
+                            style={{ color: T.textMuted, fontSize: 12 }}
                           >
-                            <Button
-                              type="text"
-                              size="small"
-                              disabled={memoryListPage <= 1}
-                              onClick={() => setMemoryListPage((p) => Math.max(1, p - 1))}
-                              style={{ color: T.textMuted, fontSize: 12 }}
-                            >
-                              上一页
-                            </Button>
-                            <span style={{ fontSize: 12, color: T.textMuted }}>
-                              {memoryListPage} / {Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE)}
-                            </span>
-                            <Button
-                              type="text"
-                              size="small"
-                              disabled={memoryListPage >= Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE)}
-                              onClick={() =>
-                                setMemoryListPage((p) =>
-                                  Math.min(Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE), p + 1)
-                                )
-                              }
-                              style={{ color: T.textMuted, fontSize: 12 }}
-                            >
-                              下一页
-                            </Button>
-                          </div>
-                        )}
+                            上一页
+                          </Button>
+                          <span style={{ fontSize: 12, color: T.textMuted }}>
+                            {memoryListPage} / {Math.max(1, Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE))}
+                          </span>
+                          <Button
+                            type="text"
+                            size="small"
+                            disabled={memoryEntities.length === 0 || memoryListPage >= Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE)}
+                            onClick={() =>
+                              setMemoryListPage((p) =>
+                                Math.min(Math.ceil(memoryEntities.length / MEMORY_LIST_PAGE_SIZE), p + 1)
+                              )
+                            }
+                            style={{ color: T.textMuted, fontSize: 12 }}
+                          >
+                            下一页
+                          </Button>
+                        </div>
                         {memoryRecents.length > 0 && (
                           <div style={{ padding: 12, borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
                             <div style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.textMuted, marginBottom: 8, letterSpacing: '0.04em' }}>最近检索</div>

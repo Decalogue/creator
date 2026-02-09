@@ -48,7 +48,7 @@ class UpdateManager:
         初始化更新管理器
         
         Args:
-            graph_adapter: 图结构适配器（参考 LightRAG）
+            graph_adapter: 图结构适配器（预留）
             atom_link_adapter: 原子链接适配器（参考 A-Mem）
             update_adapter: 更新机制适配器（参考 LightMem + A-Mem）
         """

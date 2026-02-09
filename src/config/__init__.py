@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
+from typing import Optional
 
-# 在 seeme 环境下加载 src/.env，使 EVERMEMOS_API_KEY 等生效
 try:
     from dotenv import load_dotenv
     _env_file = Path(__file__).resolve().parent.parent / ".env"
@@ -9,6 +9,38 @@ try:
         load_dotenv(_env_file)
 except Exception:
     pass
+
+# 创作输出根目录与 project 路径（A.4 配置收敛：project_id 与创作路径单一入口）
+_SRC_DIR = Path(__file__).resolve().parent.parent
+CREATOR_NOVEL_OUTPUTS = _SRC_DIR / "task" / "novel" / "outputs"
+
+
+def project_dir(project_id: str) -> Path:
+    """按 project_id 返回该项目的输出目录（outputs/<project_id>/）。"""
+    pid = normalize_project_id(project_id)
+    return CREATOR_NOVEL_OUTPUTS / pid
+
+
+def normalize_project_id(project_id: Optional[str], default: str = "完美之墙") -> str:
+    """将请求中的 project_id 规范为非空字符串，缺省为 default；去掉「（当前）」等后缀，与创作/续写写入记忆时一致。"""
+    raw = (project_id or default).strip() or default
+    for suffix in ("（当前）", " (当前)", "(当前)"):
+        if raw.endswith(suffix):
+            raw = raw[: -len(suffix)].strip()
+            break
+    return raw or default
+
+
+def list_projects() -> list:
+    """返回已创作小说列表：outputs 下存在 novel_plan.json 的目录名（project_id）。"""
+    if not CREATOR_NOVEL_OUTPUTS.exists():
+        return []
+    out = []
+    for p in CREATOR_NOVEL_OUTPUTS.iterdir():
+        if p.is_dir() and (p / "novel_plan.json").exists():
+            out.append(p.name)
+    return sorted(out)
+
 
 # 前端 / 后端 / 外部服务 URL
 frontend_url = os.environ.get("CREATOR_FRONTEND_URL", "http://localhost:5002")
@@ -61,4 +93,8 @@ __all__ = [
     "NOVEL_LLM_MODEL",
     "CREATOR_TASKS_MAX",
     "SSE_KEEPALIVE_SEC",
+    "CREATOR_NOVEL_OUTPUTS",
+    "project_dir",
+    "normalize_project_id",
+    "list_projects",
 ]

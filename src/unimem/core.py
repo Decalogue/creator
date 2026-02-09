@@ -116,7 +116,7 @@ class UniMem:
     整合六大架构的最优方案：
     - 操作层：HindSight 三操作（Retain/Recall/Reflect）
     - 存储层：CogMem 三层架构（FoA/DA/LTM）+ MemMachine 多类型
-    - 网络层：LightRAG 图结构（底层）+ A-Mem 原子笔记网络（上层）
+    - 网络层：图结构（预留）+ A-Mem 原子笔记网络（上层）
     - 检索层：多维融合（实体/抽象/语义/图/时间）
     - 更新层：涟漪效应（实时）+ 睡眠更新（批量）
     
@@ -277,7 +277,7 @@ class UniMem:
         - 操作接口：参考 HindSight
         - 分层存储：参考 CogMem
         - 记忆分类：参考 MemMachine
-        - 图结构：参考 LightRAG
+        - 图结构：预留接口
         - 网络链接：参考 A-Mem
         - 检索融合：参考各架构
         - 更新机制：参考 LightMem + A-Mem
@@ -489,7 +489,7 @@ class UniMem:
         1. 幂等性检查：如果已执行，返回缓存结果
         2. 并行执行步骤1-3（提取实体、构建笔记、分类类型）
         3. 存储管理器：存储到相应层级（参考 CogMem）
-        4. 网络管理器：更新网络结构（LightRAG + A-Mem）
+        4. 网络管理器：更新网络结构（图结构 + A-Mem）
         5. 更新管理器：触发涟漪效应更新（参考 LightMem + A-Mem）
         
         Args:
@@ -1283,7 +1283,7 @@ class UniMem:
         整合 Hindsight 的 CARA (Coherent Adaptive Reasoning Agents) 思路：
         1. 操作适配器：基于事实进行推理和观点形成（Hindsight 风格）
         2. 网络管理器：记忆演化（参考 A-Mem）
-        3. 网络管理器：更新图结构（参考 LightRAG）
+        3. 网络管理器：更新图结构
         4. 存储管理器：更新存储层
         5. 更新适配器：记录到睡眠更新队列（参考 LightMem）
         

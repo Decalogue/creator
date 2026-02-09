@@ -1,8 +1,8 @@
 """
 Pytest 配置和共享 fixtures
 
-注意：运行测试前需要激活 myswift 环境：
-    conda activate myswift
+注意：运行测试前需要激活 seeme 环境：
+    conda activate seeme
 """
 
 import os
@@ -22,11 +22,11 @@ def pytest_configure(config: Any) -> None:
     """
     # 检查环境
     conda_env = os.environ.get("CONDA_DEFAULT_ENV")
-    if conda_env != "myswift":
+    if conda_env != "seeme":
         print("\n" + "="*60)
-        print("警告：当前未激活 myswift 环境")
+        print("警告：当前未激活 seeme 环境")
         print(f"当前环境: {conda_env or '未设置'}")
-        print("请先运行: conda activate myswift")
+        print("请先运行: conda activate seeme")
         print("="*60 + "\n")
         # 不强制退出，允许继续运行（某些测试可能不需要环境）
 
@@ -34,7 +34,7 @@ def pytest_configure(config: Any) -> None:
 @pytest.fixture(scope="session")
 def check_seeme_environment() -> None:
     """
-    检查 myswift 环境是否激活
+    检查 seeme 环境是否激活
     
     如果环境未激活，跳过测试。
     
@@ -42,8 +42,8 @@ def check_seeme_environment() -> None:
         None
     """
     conda_env = os.environ.get("CONDA_DEFAULT_ENV")
-    if conda_env != "myswift":
-        pytest.skip("需要激活 myswift 环境: conda activate myswift")
+    if conda_env != "seeme":
+        pytest.skip("需要激活 seeme 环境: conda activate seeme")
 
 
 @pytest.fixture(scope="function")

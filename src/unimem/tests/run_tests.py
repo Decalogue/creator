@@ -2,7 +2,7 @@
 """
 UniMem 测试运行脚本（Python 版本）
 
-自动激活 myswift 环境并运行测试
+自动激活 seeme 环境并运行测试
 
 功能：
 - 检查 conda 环境是否激活
@@ -19,20 +19,20 @@ from typing import Optional
 
 def check_seeme_environment() -> bool:
     """
-    检查 myswift 环境是否激活
+    检查 seeme 环境是否激活
     
     Returns:
         bool: 如果环境已激活返回 True，否则返回 False
     """
     conda_env = os.environ.get("CONDA_DEFAULT_ENV")
     
-    if conda_env != "myswift":
+    if conda_env != "seeme":
         print("=" * 60)
-        print("警告：当前未激活 myswift 环境")
+        print("警告：当前未激活 seeme 环境")
         print(f"当前环境: {conda_env or '未设置'}")
         print("")
         print("请先运行以下命令激活环境：")
-        print("  conda activate myswift")
+        print("  conda activate seeme")
         print("")
         print("或者使用以下命令自动激活并运行测试：")
         print("  bash tests/run_tests.sh")

@@ -2,7 +2,7 @@
 检索引擎适配器
 
 实现 UniMem 的多维检索和结果融合
-参考架构：各架构的检索思路（LightRAG/A-Mem/CogMem）
+参考架构：各架构的检索思路（A-Mem/CogMem）
 
 核心功能：
 - 时间检索：基于时间戳的检索
@@ -24,7 +24,7 @@ class RetrievalAdapter(BaseAdapter):
     检索引擎适配器
     
     功能需求：多维检索和结果融合
-    参考架构：各架构的检索思路（LightRAG/A-Mem/CogMem）
+    参考架构：各架构的检索思路（A-Mem/CogMem）
     
     核心功能：
     - 时间检索：基于时间戳的检索（最近记忆优先）

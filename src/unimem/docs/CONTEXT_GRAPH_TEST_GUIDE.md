@@ -95,7 +95,7 @@ cd /root/data/AI/creator/src/unimem/examples
 
 ```bash
 cd /root/data/AI/creator/src
-conda activate myswift  # 或 seeme
+conda activate seeme
 export PYTHONPATH=/root/data/AI/creator/src:$PYTHONPATH
 python3 unimem/examples/comprehensive_context_graph_test.py
 ```

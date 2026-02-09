@@ -16,9 +16,9 @@ from unittest.mock import patch
 
 import pytest
 
-# 确保从 src 根可导入
-_BASE = Path(__file__).resolve().parent.parent
-_OUTPUTS = _BASE / "task" / "novel" / "outputs"
+# 确保从 src 根可导入；创作路径与 project_id 使用 config 入口（A.4）
+from config import CREATOR_NOVEL_OUTPUTS, project_dir
+
 _TEST_PROJECT_ID = "test_e2e_integration"
 
 
@@ -35,7 +35,7 @@ def _mock_run_create(
     if mode != "create":
         return 1, "仅支持 create 模式", None
     pid = (project_id or _TEST_PROJECT_ID).strip() or _TEST_PROJECT_ID
-    root = _OUTPUTS / pid
+    root = project_dir(pid)
     root.mkdir(parents=True, exist_ok=True)
     plan_path = root / "novel_plan.json"
     minimal_plan = {
@@ -50,8 +50,8 @@ def _mock_run_create(
 @pytest.fixture(autouse=True)
 def _cleanup_test_project():
     yield
-    if _OUTPUTS.exists():
-        test_root = _OUTPUTS / _TEST_PROJECT_ID
+    if CREATOR_NOVEL_OUTPUTS.exists():
+        test_root = project_dir(_TEST_PROJECT_ID)
         if test_root.exists():
             shutil.rmtree(test_root, ignore_errors=True)
 
@@ -100,7 +100,7 @@ def test_creator_run_create_contract_and_outputs():
             pytest.fail("Task did not complete within timeout")
 
         # 3) 校验 outputs/<project_id>/novel_plan.json 存在
-        plan_path = _OUTPUTS / _TEST_PROJECT_ID / "novel_plan.json"
+        plan_path = project_dir(_TEST_PROJECT_ID) / "novel_plan.json"
         assert plan_path.exists()
         with open(plan_path, "r", encoding="utf-8") as f:
             plan = json.load(f)

@@ -2,14 +2,14 @@
 
  主路径 vs 支线
 
-当前端到端产品走**主路径**，其余为**支线**（有代码但未深度接入主产品）。
+当前端到端产品走**主路径**，其余为**支线**（有代码但未深度接入主产品；支线标**实验**，不承诺接入主产品）。
 
 | 类型 | 说明 | 主要入口与模块 |
 |------|------|----------------|
 | **主路径** | 前端 → 创作/记忆 API → ReactNovelCreator + semantic_mesh（+ 可选 UniMem + 可选 EverMemOS 云记忆） | `api_flask.py`（/api/creator/run、/stream，/api/memory/*、/api/memory/evermemos）→ `api/creator_handlers.py`、`api/memory_handlers.py`、`api_EverMemOS.py` → `task/novel/react_novel_creator.py`、`context/` |
-| **支线** | 多智能体编排、工作流定义，未接入 /api/creator | `workflow/`（NovelWorkflow、CreativeOrchestrator）、`puppeteer/`（GraphReasoning 等） |
+| **支线（实验）** | 多智能体编排、工作流定义，未接入 /api/creator | `workflow/`（NovelWorkflow、CreativeOrchestrator）、`puppeteer/`（GraphReasoning 等）— **标实验，后续 DAG 备选** |
 
-新人改「创作流程」或「记忆/图谱」时，优先看主路径；Puppeteer/Workflow 标为实验或后续 DAG 备选，避免误以为必须维护。
+新人改「创作流程」或「记忆/图谱」时，优先看主路径；Puppeteer/Workflow 仅作实验或后续 DAG 备选，避免误以为必须维护。
 
  模块依赖简图
 
@@ -21,6 +21,11 @@ api_flask.py (HTTP)
 task.novel 不依赖 workflow、puppeteer
 unimem 不反向依赖 api（通过配置/环境变量解耦）
 ```
+
+- **LLM 层**：门面与调用点见 [llm/README.md](llm/README.md)。
+- **创作记忆**：mesh 读写 + UniMem 适配器（B.2），见 [api/README.md](api/README.md)；入口：read_mesh, write_mesh, recall_for_mode, retain_plan, retain_chapter, retain_polish, retain_chat。
+- **创作路径与 project_id**：统一从 `config` 入口（project_dir, normalize_project_id, list_projects），见 [config/README.md](config/README.md)。
+- **工具/技能统一（B.3）**：tools 注册+发现+调用（default_registry、get_discovery）；skills 为工具之上封装（SOP、规范、按需注入），见 [tools/README.md](tools/README.md)、[skills/README.md](skills/README.md)。编排层通过 tools 执行、skills 提供上下文。
 
  📐 系统架构图
 
@@ -298,9 +303,9 @@ src/
 - **共享沙箱**：Master 和 Sub-agent 共享同一沙箱，通过文件路径传递信息
 
  6. 实体提取系统
-- **多模型投票提取**：使用多个 LLM 模型（`kimi_k2` + `gemini_3_flash`）并行提取实体
-  - 主模型优先策略：优先保留 Kimi K2 的所有提取结果
-  - 投票机制：只保留至少2个模型都提取到的实体
+- **多模型投票提取**：使用多个 LLM 模型（`kimi_k2_5` + `deepseek_v3_2`）并行提取实体
+  - 主模型优先策略：优先保留 Kimi K2.5 的所有提取结果
+  - 投票机制：只保留至少 2 个模型都提取到的实体
   - **提取精度：95%+**
 - **实体类型**：角色、组织、地点、物品、生物、概念、时间
 - **实体验证**：长度检查、动作词过滤、介词过滤、句子片段过滤

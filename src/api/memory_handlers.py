@@ -4,23 +4,31 @@
 数据来源：semantic_mesh/mesh.json（按 project_id 即 novel_title 区分项目）
 配置启用时（UNIMEM_ENABLED=1）：合并 UniMem 数据；创作成功时 Retain 写入 UniMem（P1 2.3）
 EVERMEMOS_ENABLED=1 且配置 EVERMEMOS_API_KEY 时：创作成功同时写入 EverMemOS 云 API（参赛用）
-"""
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timezone
+创作记忆抽象（A.3/B.2）：mesh 读写 + UniMem 适配器。
+- 主存储：semantic_mesh/mesh.json；read_mesh, write_mesh
+- UniMem：UNIMEM_ENABLED=1 时 retain 写入、get_entities/graph 合并 recall
+- recall：recall_for_mode(project_id, mode, ...)
+- retain：retain_plan, retain_chapter, retain_chapter_entities, retain_polish, retain_chat
+"""
+import os
 import hashlib
 import json
 import logging
-import os
 import threading
 import queue
 import uuid
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
+# 创作输出路径与 project_id 规范统一从 config 入口（A.4）
+from config import project_dir, normalize_project_id
+
+# 项目 src 目录，用于脚本/日志等路径
 _BASE = Path(__file__).resolve().parent.parent
-_OUTPUTS = _BASE / "task" / "novel" / "outputs"
 
 # UniMem 可选后端：环境变量 UNIMEM_ENABLED=1 时启用
 _unimem_instance: Optional[Any] = None
@@ -72,15 +80,13 @@ def _get_unimem() -> Optional[Any]:
                         "UniMem using memory-only backends; data will not persist to Qdrant/Neo4j. "
                         "Set UNIMEM_STORAGE_BACKEND=redis, UNIMEM_GRAPH_BACKEND=neo4j, UNIMEM_VECTOR_BACKEND=qdrant for persistence."
                     )
-                # 未设置 UNIMEM_LIGHTRAG_URL 时不连 LightRAG（避免 POST /query 到 localhost:9621 报错）
-                lightrag_url = (os.getenv("UNIMEM_LIGHTRAG_URL") or "").strip()
                 unimem_config = {
                     "storage": {
                         "foa_backend": sb,
                         "da_backend": sb,
                         "ltm_backend": gb,
                     },
-                    "graph": {"backend": gb, "api_base_url": lightrag_url},
+                    "graph": {"backend": gb},
                     "vector": {"backend": vb},
                     "network": {
                         "qdrant_host": os.getenv("UNIMEM_QDRANT_HOST", "localhost").strip(),
@@ -400,24 +406,74 @@ def recall_from_evermemos(
         return []
 
 
-# 三类检索（跨章人物、伏笔、长线设定），供自动创作流程与 run_retrieval_demo/API 共用
+def list_from_evermemos(project_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    """按 project_id 对应 group_id 拉取该项目下全部云端记忆（不依赖 query），与 recall_from_evermemos 返回格式一致；用于前端「云端记忆」列表、重启后可靠展示。"""
+    try:
+        from api_EverMemOS import is_available, get_memory
+        if not is_available():
+            return []
+        raw = get_memory(user_id=CREATOR_USER_ID, group_id=_evermemos_group_id(project_id))
+        if not raw:
+            return []
+        seen_ids: set = set()
+        seen_content_prefix: set = set()
+        out: List[Dict[str, Any]] = []
+        for m in raw[: limit * 2]:
+            if len(out) >= limit:
+                break
+            mem_id = getattr(m, "id", None) or getattr(m, "memory_id", None) or (m.get("id") or m.get("memory_id") if isinstance(m, dict) else None)
+            if mem_id and mem_id in seen_ids:
+                continue
+            content = _content_from_evermemos_memory(m)
+            if not content:
+                continue
+            content_trim = content[:2000] if len(content) > 2000 else content
+            content_key = content_trim[:80].strip()
+            if content_key and content_key in seen_content_prefix and not mem_id:
+                continue
+            if mem_id:
+                seen_ids.add(mem_id)
+            if content_key:
+                seen_content_prefix.add(content_key)
+            out.append({"content": content_trim, "id": mem_id})
+        return out
+    except Exception as e:
+        logger.warning("list_from_evermemos failed: %s", e)
+        return []
+
+
+# 三类检索（跨章人物、伏笔、长线设定），供 run_retrieval_demo/API 与 recall_for_mode(continue) 共用
 RETRIEVAL_DEMO_QUERIES = [
     ("跨章人物", "主角 人物 角色 成长 变化 关系"),
     ("伏笔", "伏笔 铺垫 悬念 回收 线索"),
     ("长线设定", "世界观 设定 规则 体系 玄灵 大陆"),
 ]
 
+# 续写专用：近期情节（章节数>5 时启用，强化前后章衔接）
+CONTINUE_QUERY_RECENT = ("近期情节", "近期 情节 发展 剧情 承接 上一章")
+
+# 按模式区分的查询策略：(单 query 字符串) 或 (多 (label, query) 的列表)，以及 top_k
+MODE_QUERY_CONFIG = {
+    "create": {"query": "风格 主题 类型 过往创作 大纲 设定 世界观", "top_k": 8},
+    "polish": {"query": "风格 语气 润色偏好 用词 文风", "top_k": 6},
+    "chat": {"query": "对话 偏好 设定 大纲 人物 情节", "top_k": 6},
+}
+
 
 def recall_three_types_from_evermemos(
     project_id: str,
     top_k_per_type: int = 5,
+    include_recent_plot: bool = False,
 ) -> List[Dict[str, Any]]:
-    """按三类（跨章人物、伏笔、长线设定）检索云端记忆并合并去重，供续写等自动创作流程注入上下文。
+    """按三类（跨章人物、伏笔、长线设定）检索云端记忆并合并去重；可选加入近期情节。
     返回格式与 recall_from_evermemos 一致，可直接用于 extra_memory_context。"""
     seen_ids: set = set()
     seen_content_prefix: set = set()
     out: List[Dict[str, Any]] = []
-    for _label, query in RETRIEVAL_DEMO_QUERIES:
+    queries = list(RETRIEVAL_DEMO_QUERIES)
+    if include_recent_plot:
+        queries.append(CONTINUE_QUERY_RECENT)
+    for _label, query in queries:
         items = recall_from_evermemos(project_id, query, top_k=top_k_per_type)
         for x in items:
             mem_id = x.get("id")
@@ -436,6 +492,33 @@ def recall_three_types_from_evermemos(
                 seen_content_prefix.add(content_key)
             out.append({"content": content_trim, "id": mem_id})
     return out
+
+
+def recall_for_mode(
+    project_id: str,
+    mode: str,
+    chapter_number: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """按创作模式检索云端记忆，供 prompt 注入。mode: create/continue/polish/chat。"""
+    try:
+        from api_EverMemOS import is_available
+        if not is_available():
+            return []
+    except Exception:
+        return []
+    if mode == "continue":
+        top_k_per = 5 if (chapter_number or 0) <= 10 else 6
+        include_recent = (chapter_number or 0) > 5
+        return recall_three_types_from_evermemos(
+            project_id, top_k_per_type=top_k_per, include_recent_plot=include_recent
+        )
+    cfg = MODE_QUERY_CONFIG.get(mode)
+    if not cfg:
+        return []
+    items = recall_from_evermemos(project_id, cfg["query"], top_k=cfg["top_k"])
+    return items
+
+
 RETRIEVAL_DEMO_EXCERPT_MAX = 120
 RETRIEVAL_DEMO_EXCERPT_COUNT = 3
 DEFAULT_RETRIEVAL_DEMO_LOG_PATH = _BASE / "scripts" / "evermemos_retrieval_log.jsonl"
@@ -445,9 +528,10 @@ def run_retrieval_demo(
     project_id: str,
     top_k: int = 8,
     log_path: Optional[Path] = None,
+    include_recent_plot: bool = True,
 ) -> List[Dict[str, Any]]:
-    """跑三类检索（跨章人物、伏笔、长线设定）并返回摘要；若提供 log_path 则追加到 JSONL 日志。
-    与自动创作流程共用 RETRIEVAL_DEMO_QUERIES；续写时通过 recall_three_types_from_evermemos 注入同类检索结果。"""
+    """跑三类检索（跨章人物、伏笔、长线设定、近期情节）并返回摘要；若提供 log_path 则追加到 JSONL 日志。
+    与续写流程一致；include_recent_plot 为 True 时加入近期情节类（章节>5 时续写会启用）。"""
     try:
         from api_EverMemOS import is_available
         if not is_available():
@@ -457,8 +541,10 @@ def run_retrieval_demo(
 
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
     entries: List[Dict[str, Any]] = []
-
-    for query_type, query in RETRIEVAL_DEMO_QUERIES:
+    queries = list(RETRIEVAL_DEMO_QUERIES)
+    if include_recent_plot:
+        queries.append(CONTINUE_QUERY_RECENT)
+    for query_type, query in queries:
         items = recall_from_evermemos(project_id, query, top_k=top_k)
         count = len(items)
         excerpts: List[str] = []
@@ -506,13 +592,8 @@ _TYPE_MAP = {
 }
 
 
-def _project_dir(project_id: str) -> Path:
-    pid = (project_id or "完美之墙").strip() or "完美之墙"
-    return _OUTPUTS / pid
-
-
 def _load_mesh(project_id: str) -> Optional[Dict[str, Any]]:
-    d = _project_dir(project_id)
+    d = project_dir(project_id)
     mesh_file = d / "semantic_mesh" / "mesh.json"
     if not mesh_file.exists():
         return None
@@ -524,9 +605,64 @@ def _load_mesh(project_id: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def read_mesh(project_id: str) -> Optional[Dict[str, Any]]:
+    """按 project 读取 semantic_mesh（mesh.json）。创作记忆抽象入口。"""
+    return _load_mesh(project_id)
+
+
+def write_mesh(project_id: str, mesh_data: Dict[str, Any]) -> None:
+    """按 project 写入 semantic_mesh（mesh.json）。创作记忆抽象入口。失败打日志不抛错。"""
+    d = project_dir(project_id)
+    mesh_dir = d / "semantic_mesh"
+    mesh_dir.mkdir(parents=True, exist_ok=True)
+    mesh_file = mesh_dir / "mesh.json"
+    try:
+        mesh_file.write_text(
+            json.dumps(mesh_data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        logger.debug("Written mesh for project_id=%s", project_id)
+    except Exception as e:
+        logger.warning("Failed to write mesh for %s: %s", project_id, e)
+
+
+def retain_plan(project_id: str, plan_summary: str) -> None:
+    """大纲成功后写入 UniMem + EverMemOS（可选）。创作记忆抽象入口。"""
+    retain_plan_to_unimem(project_id, plan_summary)
+    retain_plan_to_evermemos(project_id, plan_summary)
+
+
+def retain_chapter(
+    project_id: str,
+    chapter_number: int,
+    content: str,
+    chapter_summary: Optional[str] = None,
+) -> None:
+    """章节成功后写入 UniMem + EverMemOS（可选）。创作记忆抽象入口。"""
+    retain_chapter_to_unimem(project_id, chapter_number, content)
+    retain_chapter_to_evermemos(
+        project_id, chapter_number, content, chapter_summary=chapter_summary
+    )
+
+
+def retain_chapter_entities(project_id: str, chapter_number: int) -> None:
+    """章节实体写入 EverMemOS（可选）。创作记忆抽象入口。"""
+    retain_chapter_entities_to_evermemos(project_id, chapter_number)
+
+
+def retain_polish(project_id: str, original_snippet: str, polished_snippet: str) -> None:
+    """润色成功后写入 EverMemOS（可选）。创作记忆抽象入口。"""
+    retain_polish_to_evermemos(project_id, original_snippet, polished_snippet)
+
+
+def retain_chat(project_id: str, user_message: str, assistant_reply: str) -> None:
+    """对话成功后写入 EverMemOS（可选）。创作记忆抽象入口。"""
+    retain_chat_to_evermemos(project_id, user_message, assistant_reply)
+
+
 def get_entities(project_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """GET /api/memory/entities 返回列表。启用 UniMem 时合并 recall 结果。"""
-    pid = project_id or "完美之墙"
+    pid = normalize_project_id(project_id)
     mesh = _load_mesh(pid)
     entities = mesh.get("entities") or {} if mesh else {}
     out = []
@@ -565,7 +701,7 @@ def get_entities(project_id: Optional[str] = None) -> List[Dict[str, Any]]:
 
 def get_graph(project_id: Optional[str] = None, max_nodes: int = 80) -> Dict[str, Any]:
     """GET /api/memory/graph 返回 { nodes, links }。启用 UniMem 时合并 recall 结果为额外节点与边（P1 2.4）。"""
-    pid = project_id or "完美之墙"
+    pid = normalize_project_id(project_id)
     mesh = _load_mesh(pid)
     nodes: List[Dict[str, Any]] = []
     links: List[Dict[str, Any]] = []
@@ -665,7 +801,7 @@ def get_recents(project_id: Optional[str] = None, limit: int = 5) -> List[str]:
     if u:
         try:
             from unimem.memory_types import Context
-            ctx = Context(metadata={"task_id": project_id or "完美之墙", "project_id": project_id})
+            ctx = Context(metadata={"task_id": normalize_project_id(project_id), "project_id": project_id})
             results = u.recall_for_agent("最近 记忆", context=ctx, top_k=limit)
             for r in results[:limit]:
                 brief = (r.memory.content or "").strip()
@@ -678,7 +814,7 @@ def get_recents(project_id: Optional[str] = None, limit: int = 5) -> List[str]:
 
 def get_note(node_id: str, project_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """GET /api/memory/note/<id> 返回单节点详情。若为 UniMem 节点（unimem_ 前缀）则从 UniMem 取。"""
-    pid = project_id or "完美之墙"
+    pid = normalize_project_id(project_id)
 
     if node_id.startswith("unimem_"):
         raw_id = node_id.replace("unimem_", "", 1)

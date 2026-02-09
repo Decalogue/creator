@@ -56,7 +56,6 @@ class UniMemConfig:
             # 图数据库配置
             "graph": {
                 "backend": "neo4j",
-                "workspace": "./lightrag_workspace",
                 "llm_provider": "ark_deepseek",
                 "llm_model": "deepseek-v3-2",
                 "embedding_model": "text-embedding-3-small",

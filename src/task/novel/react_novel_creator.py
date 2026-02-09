@@ -248,49 +248,49 @@ class ReactNovelCreator:
         # 增强实体提取器（支持多模型投票）
         self.entity_extractor = None
         self.enable_enhanced_extraction = enable_enhanced_extraction
-        # 控制是否只使用单模型（kimi_k2），不启用多模型投票
-        # 通过环境变量控制：如果设置 USE_SINGLE_MODEL_EXTRACTION=1，则只使用 kimi_k2
+        # 控制是否只使用单模型（kimi_k2_5），不启用多模型投票
+        # 通过环境变量控制：如果设置 USE_SINGLE_MODEL_EXTRACTION=1，则只使用 kimi_k2_5
         use_single_model_only = False
         import os
         if os.getenv("USE_SINGLE_MODEL_EXTRACTION", "0") == "1":
             use_single_model_only = True
-            logger.info("检测到 USE_SINGLE_MODEL_EXTRACTION=1，将只使用 kimi_k2 进行实体提取")
+            logger.info("检测到 USE_SINGLE_MODEL_EXTRACTION=1，将只使用 kimi_k2_5 进行实体提取")
         
         if enable_enhanced_extraction:
             try:
-                # 如果设置了只使用单模型，直接使用 kimi_k2
+                # 如果设置了只使用单模型，直接使用 kimi_k2_5
                 if use_single_model_only:
                     from task.novel.enhanced_entity_extractor import EnhancedEntityExtractor
-                    from llm.chat import kimi_k2
+                    from llm.chat import kimi_k2_5
                     self.entity_extractor = EnhancedEntityExtractor(
-                        llm_client=kimi_k2,
+                        llm_client=kimi_k2_5,
                         use_ner=False
                     )
-                    logger.info("增强实体提取器已启用（仅使用 Kimi K2 模型）")
+                    logger.info("增强实体提取器已启用（仅使用 Kimi K2.5 模型）")
                 else:
                     # 尝试使用多模型投票提取器（更准确）
                     try:
                         from task.novel.multi_model_entity_extractor import MultiModelEntityExtractor
-                        from llm.chat import kimi_k2, deepseek_v3_2
+                        from llm.chat import kimi_k2_5, deepseek_v3_2
                         
-                        # 使用 Kimi K2 和 DeepSeek V3.2 进行投票（推荐配置：Kimi 实体提取最强，DeepSeek 作为验证）
+                        # 使用 Kimi K2.5 和 DeepSeek V3.2 进行投票（推荐配置：Kimi 实体提取最强，DeepSeek 作为验证）
                         # 优先保留 Kimi 的所有结果，DeepSeek 作为补充
-                        llm_clients = [kimi_k2, deepseek_v3_2]
+                        llm_clients = [kimi_k2_5, deepseek_v3_2]
                         self.entity_extractor = MultiModelEntityExtractor(
                             llm_clients=llm_clients,
                             vote_threshold=2,  # 投票阈值（但主模型结果优先保留）
                             use_ner=False,
-                            primary_model_index=0  # Kimi K2 作为主模型（索引0），优先保留其所有结果
+                            primary_model_index=0  # Kimi K2.5 作为主模型（索引0），优先保留其所有结果
                         )
-                        logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型：Kimi K2 + DeepSeek V3.2）")
+                        logger.info(f"多模型投票实体提取器已启用（{len(llm_clients)} 个模型：Kimi K2.5 + DeepSeek V3.2）")
                     except (ImportError, Exception) as e:
                         logger.debug(f"多模型提取器初始化失败，回退到单模型: {e}")
                         # 回退到单模型提取器
                         from task.novel.enhanced_entity_extractor import EnhancedEntityExtractor
                         try:
-                            from llm.chat import kimi_k2
-                            llm_client = kimi_k2
-                            logger.info("增强实体提取器已启用（使用 Kimi K2 模型）")
+                            from llm.chat import kimi_k2_5
+                            llm_client = kimi_k2_5
+                            logger.info("增强实体提取器已启用（使用 Kimi K2.5 模型）")
                         except ImportError:
                             from llm.chat import deepseek_v3_2
                             llm_client = deepseek_v3_2
@@ -1246,6 +1246,8 @@ class ReactNovelCreator:
         chapter_title: str,
         chapter_summary: str,
         previous_chapters_summary: Optional[str] = None,
+        previous_chapter_tail: Optional[str] = None,
+        earlier_chapters_summaries: Optional[str] = None,
         target_words: int = 3000,
         on_event: Optional[Any] = None,  # 编排事件回调 (dict) -> None，用于 P1 可观测
         extra_memory_context: Optional[str] = None,  # 云端长期记忆检索结果（如 EverMemOS），注入章节 prompt
@@ -1257,7 +1259,9 @@ class ReactNovelCreator:
             chapter_number: 章节编号
             chapter_title: 章节标题
             chapter_summary: 章节摘要（来自大纲）
-            previous_chapters_summary: 前面章节的摘要（用于保持连贯性）
+            previous_chapters_summary: 上一章摘要（用于保持连贯性）
+            previous_chapter_tail: 上一章正文末尾约 1/5 原文，供衔接
+            earlier_chapters_summaries: 更前章节（第1章～第N-2章）的摘要，与实体信息配合
             target_words: 目标字数
             on_event: 编排事件回调，步骤开始/结束/失败时调用 (payload: dict) -> None
         
@@ -1337,15 +1341,27 @@ class ReactNovelCreator:
 """
         _emit_done("memory", {"chapter_number": chapter_number})
         
-        # 构建创作提示词
+        # 构建创作提示词：上一章摘要 + 上一章正文末尾（衔接）+ 更前章节摘要
         context_info = ""
         if previous_chapters_summary:
             context_info = f"""
-前面章节摘要：
+上一章摘要：
 {previous_chapters_summary}
-
-请确保新章节与前面章节保持连贯性。
 """
+        if previous_chapter_tail and previous_chapter_tail.strip():
+            context_info += f"""
+上一章正文末尾（约 1/5，请紧接此情境与情绪自然续写）：
+---
+{previous_chapter_tail.strip()}
+---
+"""
+        if earlier_chapters_summaries and earlier_chapters_summaries.strip():
+            context_info += f"""
+更前章节摘要（供人物与设定一致）：
+{earlier_chapters_summaries.strip()}
+"""
+        if context_info:
+            context_info += "\n请确保新章节与前面章节保持连贯性。"
         
         # 计算字数范围
         # 基于番茄小说爆款数据统计：

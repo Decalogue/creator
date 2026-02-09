@@ -13,26 +13,12 @@ import json
 import logging
 import re
 
-logger = logging.getLogger(__name__)
+from config import project_dir, normalize_project_id, list_projects
 
+# 项目 src 目录，用于 sys.path 以便导入 task.novel 等
 _BASE = Path(__file__).resolve().parent.parent
-_OUTPUTS = _BASE / "task" / "novel" / "outputs"
 
-
-def _project_dir(project_id: str) -> Path:
-    pid = (project_id or "完美之墙").strip() or "完美之墙"
-    return _OUTPUTS / pid
-
-
-def list_projects() -> list:
-    """返回已创作小说列表：outputs 下存在 novel_plan.json 的目录名（project_id）。"""
-    if not _OUTPUTS.exists():
-        return []
-    out = []
-    for p in _OUTPUTS.iterdir():
-        if p.is_dir() and (p / "novel_plan.json").exists():
-            out.append(p.name)
-    return sorted(out)
+logger = logging.getLogger(__name__)
 
 
 def get_project_chapters(project_id: Optional[str] = None) -> Tuple[int, Optional[list]]:
@@ -40,11 +26,24 @@ def get_project_chapters(project_id: Optional[str] = None) -> Tuple[int, Optiona
     返回当前作品的章节列表（含标题、是否已写）。
     Returns: (code, None) 表示无大纲；(0, [ { number, title, summary?, has_file }, ... ]) 表示成功。
     """
-    pid = (project_id or "完美之墙").strip() or "完美之墙"
-    root = _project_dir(pid)
+    pid = normalize_project_id(project_id)
+    root = project_dir(pid)
     plan_file = root / "novel_plan.json"
     chapters_dir = root / "chapters"
     if not plan_file.exists():
+        # 无大纲时从 chapters 目录推断，至少显示「共 N 章，已写 N 章」
+        existing = []
+        if chapters_dir.exists():
+            for f in chapters_dir.glob("chapter_*.txt"):
+                try:
+                    suffix = f.stem.replace("chapter_", "").strip()
+                    if suffix.isdigit():
+                        existing.append(int(suffix))
+                except Exception:
+                    pass
+        if existing:
+            existing.sort()
+            return 0, [{"number": n, "title": f"第{n}章", "summary": "", "has_file": True} for n in existing]
         return 1, None
     try:
         with open(plan_file, "r", encoding="utf-8") as f:
@@ -53,6 +52,13 @@ def get_project_chapters(project_id: Optional[str] = None) -> Tuple[int, Optiona
         logger.warning("get_project_chapters load plan failed: %s", e)
         return 1, None
     co = plan.get("chapter_outline") or (plan.get("plan") or {}).get("chapter_outline")
+    if not isinstance(co, list) or not co:
+        # 渐进式大纲：从 phases[].chapters 合并
+        phases = plan.get("phases") or []
+        co = []
+        for p in phases:
+            if isinstance(p, dict):
+                co.extend(p.get("chapters") or [])
     if not isinstance(co, list):
         return 0, []
     existing_files = set()
@@ -81,15 +87,9 @@ def get_project_chapters(project_id: Optional[str] = None) -> Tuple[int, Optiona
 
 
 def _default_llm():
-    """创作（规划/续写/润色/对话）使用的 LLM，由 config.NOVEL_LLM_MODEL 决定，默认 kimi-k2-5。"""
-    from config import NOVEL_LLM_MODEL
-    from llm.chat import CHAT_MODELS, chat_model_key
-    key = chat_model_key(NOVEL_LLM_MODEL)
-    if key in CHAT_MODELS:
-        return CHAT_MODELS[key][0]
-    from llm.deepseek import deepseek_v3_2
-    logger.warning("NOVEL_LLM_MODEL=%s 未注册，回退到 deepseek_v3_2", NOVEL_LLM_MODEL)
-    return deepseek_v3_2
+    """创作（规划/续写/润色/对话）使用的 LLM，配置驱动（B.1，见 llm.chat.get_default_novel_llm）。"""
+    from llm.chat import get_default_novel_llm
+    return get_default_novel_llm()
 
 
 def _sanitize_project_id(name: str, max_len: int = 20) -> str:
@@ -140,7 +140,7 @@ def _load_previous_volume_context(previous_project_id: str) -> Optional[Dict[str
     加载前卷项目的接续上下文，供第二卷大纲生成使用。
     包含：背景、人物、主线、结尾摘要、未解决伏笔、最后几章内容摘要。
     """
-    root = _project_dir(previous_project_id.strip())
+    root = project_dir(normalize_project_id(previous_project_id.strip()))
     plan_file = root / "novel_plan.json"
     chapters_dir = root / "chapters"
     mesh_file = root / "semantic_mesh" / "mesh.json"
@@ -215,6 +215,7 @@ def run_create(
     start_chapter: Optional[int] = None,
     target_chapters: Optional[int] = None,
     on_event: Optional[Any] = None,
+    use_evermemos_context: bool = True,
 ) -> Tuple[int, str, Optional[Dict]]:
     """
     执行「大纲」：创建小说大纲。
@@ -269,12 +270,8 @@ def run_create(
         )
         extra_memory = ""
         try:
-            from api.memory_handlers import recall_from_evermemos
-            items = recall_from_evermemos(
-                project_id,
-                "风格 主题 类型 过往创作 大纲",
-                top_k=5,
-            )
+            from api.memory_handlers import recall_for_mode
+            items = recall_for_mode(project_id, "create")
             if items:
                 extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
         except Exception as ex:
@@ -303,32 +300,33 @@ def run_create(
                         lines.append(f"第{ch.get('chapter_number', i+1)}章：{t}")
         content = "\n".join(lines) if lines else json.dumps(plan, ensure_ascii=False)[:1500]
         try:
-            from api.memory_handlers import retain_plan_to_unimem
-            retain_plan_to_unimem(project_id, content)
+            from api.memory_handlers import retain_plan
+            retain_plan(project_id, content)
         except Exception as ex:
-            logger.warning("UniMem retain plan failed: %s", ex)
-        try:
-            from api.memory_handlers import retain_plan_to_evermemos
-            retain_plan_to_evermemos(project_id, content)
-        except Exception as ex:
-            logger.warning("EverMemOS retain plan failed: %s", ex)
+            logger.warning("Retain plan (UniMem/EverMemOS) failed: %s", ex)
         return 0, "创作成功", {"content": content, "mode": "create", "project_id": project_id}
     except Exception as e:
         logger.exception("run_create failed")
         return 1, f"创作失败：{str(e)}", None
 
 
-def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on_event: Optional[Any] = None) -> Tuple[int, str, Optional[Dict]]:
+def run_continue(
+    mode: str,
+    raw_input: str,
+    project_id: Optional[str] = None,
+    on_event: Optional[Any] = None,
+    use_evermemos_context: bool = True,
+) -> Tuple[int, str, Optional[Dict]]:
     """
     执行「续写」：写下一章。
+    use_evermemos_context: 是否注入云端记忆（EverMemOS）检索结果到 prompt；False 时仅用本地 mesh + 大纲摘要，便于对比测试。
     Returns: (code, message, extra)
     """
     _ensure_sys_path()
-    project_id = (project_id or "完美之墙").strip() or "完美之墙"
-    root = _project_dir(project_id)
+    project_id = normalize_project_id(project_id)
+    root = project_dir(project_id)
     plan_file = root / "novel_plan.json"
     metadata_file = root / "metadata.json"
-    mesh_file = root / "semantic_mesh" / "mesh.json"
     chapters_dir = root / "chapters"
 
     if not plan_file.exists():
@@ -342,6 +340,13 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
 
     co = plan.get("chapter_outline") or (plan.get("plan") or {}).get("chapter_outline")
     if not isinstance(co, list):
+        # 渐进式大纲：从 phases[].chapters 合并
+        phases = plan.get("phases") or []
+        co = []
+        for p in phases:
+            if isinstance(p, dict):
+                co.extend(p.get("chapters") or [])
+    if not isinstance(co, list) or not co:
         return 1, "大纲中无章节信息", None
 
     existing = list(chapters_dir.glob("chapter_*.txt")) if chapters_dir.exists() else []
@@ -359,7 +364,7 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
     # 大纲索引：本卷内第几章（0-based），多卷时 co 仅含本卷 100 章
     outline_index = next_num - start_chapter
     if outline_index < 0 or outline_index >= len(co):
-        return 1, "已写完所有大纲章节", None
+        return 1, f"已写完所有大纲章节（当前大纲共 {len(co)} 章，已写至第 {next_num - 1} 章）。若需继续写，请先在大纲模式扩展或新增章节。", None
 
     ch = co[outline_index]
     if not isinstance(ch, dict):
@@ -370,8 +375,33 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
     summary = ch.get("summary") or ""
 
     prev_summary = ""
+    previous_chapter_tail = ""
+    earlier_chapters_summaries = ""
     if outline_index > 0 and isinstance(co[outline_index - 1], dict):
         prev_summary = co[outline_index - 1].get("summary") or ""
+        # 上一章正文末尾约 1/5，供衔接（上限约 2000 字，避免 token 过长）
+        prev_ch_num = co[outline_index - 1].get("chapter_number", chapter_number - 1)
+        prev_file = chapters_dir / f"chapter_{prev_ch_num:03d}.txt"
+        if prev_file.exists():
+            try:
+                raw_prev = prev_file.read_text(encoding="utf-8").strip()
+                if raw_prev:
+                    tail_len = max(400, len(raw_prev) // 5)
+                    tail_len = min(tail_len, 2000)
+                    previous_chapter_tail = raw_prev[-tail_len:]
+            except Exception as ex:
+                logger.debug("读取上一章正文末尾失败: %s", ex)
+        # 更前章节（第 1 章～第 N-2 章）的摘要，与实体信息配合保持连贯
+        if outline_index >= 2:
+            parts = []
+            for i in range(0, outline_index - 1):
+                if isinstance(co[i], dict):
+                    num = co[i].get("chapter_number", i + 1)
+                    s = (co[i].get("summary") or "").strip()
+                    if s:
+                        parts.append(f"第{num}章：{s[:300]}{'…' if len(s) > 300 else ''}")
+            if parts:
+                earlier_chapters_summaries = "\n".join(parts)
 
     try:
         from task.novel.react_novel_creator import ReactNovelCreator
@@ -390,11 +420,15 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
                 creator.metadata = json.load(f)
         if not creator.metadata.get("plan"):
             creator.metadata["plan"] = plan
-        if mesh_file.exists():
+        mesh_data = None
+        try:
+            from api.memory_handlers import read_mesh
+            mesh_data = read_mesh(project_id)
+        except Exception as ex:
+            logger.debug("read_mesh for continue skipped: %s", ex)
+        if mesh_data:
             try:
                 from context import SemanticMeshMemory
-                with open(mesh_file, "r", encoding="utf-8") as f:
-                    mesh_data = json.load(f)
                 mesh = SemanticMeshMemory()
                 mesh.from_dict(mesh_data)
                 creator.semantic_mesh = mesh
@@ -402,37 +436,36 @@ def run_continue(mode: str, raw_input: str, project_id: Optional[str] = None, on
                 logger.warning("Could not load semantic mesh for continue: %s", ex)
 
         extra_memory = ""
-        try:
-            from api.memory_handlers import recall_three_types_from_evermemos
-            items = recall_three_types_from_evermemos(project_id, top_k_per_type=5)
-            if items:
-                extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
-        except Exception as ex:
-            logger.debug("EverMemOS three-type recall for continue skipped: %s", ex)
+        if use_evermemos_context:
+            try:
+                from api.memory_handlers import recall_for_mode
+                items = recall_for_mode(project_id, "continue", chapter_number=chapter_number)
+                if items:
+                    extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
+            except Exception as ex:
+                logger.debug("EverMemOS recall for continue skipped: %s", ex)
         chapter = creator.create_chapter(
             chapter_number=chapter_number,
             chapter_title=title,
             chapter_summary=summary,
             previous_chapters_summary=prev_summary or None,
+            previous_chapter_tail=previous_chapter_tail.strip() or None,
+            earlier_chapters_summaries=earlier_chapters_summaries.strip() or None,
             target_words=2048,
             on_event=on_event,
             extra_memory_context=extra_memory or None,
         )
         content = (chapter.content or "").strip()
+        chapter_summary_for_memory = (getattr(chapter, "summary", None) or summary or "").strip()
         try:
-            from api.memory_handlers import retain_chapter_to_unimem
-            retain_chapter_to_unimem(project_id, chapter_number, content)
-        except Exception as ex:
-            logger.warning("UniMem retain chapter failed: %s", ex)
-        try:
-            from api.memory_handlers import retain_chapter_to_evermemos, retain_chapter_entities_to_evermemos
-            chapter_summary_for_memory = (getattr(chapter, "summary", None) or summary or "").strip()
-            retain_chapter_to_evermemos(
-                project_id, chapter_number, content, chapter_summary=chapter_summary_for_memory or None
+            from api.memory_handlers import retain_chapter, retain_chapter_entities
+            retain_chapter(
+                project_id, chapter_number, content,
+                chapter_summary=chapter_summary_for_memory or None,
             )
-            retain_chapter_entities_to_evermemos(project_id, chapter_number)
+            retain_chapter_entities(project_id, chapter_number)
         except Exception as ex:
-            logger.warning("EverMemOS retain chapter/entities failed: %s", ex)
+            logger.warning("Retain chapter/entities (UniMem/EverMemOS) failed: %s", ex)
         return 0, "续写成功", {"content": content, "mode": "continue", "project_id": project_id, "chapter_number": chapter_number}
     except Exception as e:
         logger.exception("run_continue failed")
@@ -452,8 +485,8 @@ def run_polish(mode: str, raw_input: str, project_id: Optional[str] = None) -> T
     pid = (project_id or "").strip()
     if pid:
         try:
-            from api.memory_handlers import recall_from_evermemos
-            items = recall_from_evermemos(pid, "风格 语气 润色偏好 用词", top_k=5)
+            from api.memory_handlers import recall_for_mode
+            items = recall_for_mode(pid, "polish")
             if items:
                 extra = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
                 if extra:
@@ -467,10 +500,10 @@ def run_polish(mode: str, raw_input: str, project_id: Optional[str] = None) -> T
         content = (content or "").strip()
         if pid and content:
             try:
-                from api.memory_handlers import retain_polish_to_evermemos
-                retain_polish_to_evermemos(pid, text, content)
+                from api.memory_handlers import retain_polish
+                retain_polish(pid, text, content)
             except Exception as ex:
-                logger.warning("EverMemOS retain polish failed: %s", ex)
+                logger.warning("Retain polish failed: %s", ex)
         return 0, "润色成功", {"content": content, "mode": "polish"}
     except Exception as e:
         logger.exception("run_polish failed")
@@ -490,8 +523,8 @@ def run_chat(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tup
     pid = (project_id or "").strip()
     if pid:
         try:
-            from api.memory_handlers import recall_from_evermemos
-            items = recall_from_evermemos(pid, "对话 偏好 设定 大纲 人物", top_k=5)
+            from api.memory_handlers import recall_for_mode
+            items = recall_for_mode(pid, "chat")
             if items:
                 extra = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
                 if extra:
@@ -505,10 +538,10 @@ def run_chat(mode: str, raw_input: str, project_id: Optional[str] = None) -> Tup
         content = (content or "").strip()
         if pid and content:
             try:
-                from api.memory_handlers import retain_chat_to_evermemos
-                retain_chat_to_evermemos(pid, text, content)
+                from api.memory_handlers import retain_chat
+                retain_chat(pid, text, content)
             except Exception as ex:
-                logger.warning("EverMemOS retain chat failed: %s", ex)
+                logger.warning("Retain chat failed: %s", ex)
         return 0, "回复成功", {"content": content, "mode": "chat"}
     except Exception as e:
         logger.exception("run_chat failed")
@@ -523,8 +556,9 @@ def run(
     start_chapter: Optional[int] = None,
     target_chapters: Optional[int] = None,
     on_event: Optional[Any] = None,
+    use_evermemos_context: bool = True,
 ) -> Tuple[int, str, Optional[Dict]]:
-    """统一入口。create 模式可传 previous_project_id、start_chapter、target_chapters 用于接续前卷。on_event 用于 P1 编排事件推送。"""
+    """统一入口。create 模式可传 previous_project_id、start_chapter、target_chapters 用于接续前卷。on_event 用于 P1 编排事件推送。use_evermemos_context 仅对 continue 生效。"""
     mode_key = (mode or "").strip().lower()
     if mode_key == "create":
         return run_create(
@@ -537,6 +571,10 @@ def run(
     if mode_key in ("continue", "polish", "chat"):
         h = {"continue": run_continue, "polish": run_polish, "chat": run_chat}[mode_key]
         if mode_key == "continue":
-            return run_continue(mode, raw_input, project_id, on_event=on_event)
+            return run_continue(
+                mode, raw_input, project_id,
+                on_event=on_event,
+                use_evermemos_context=use_evermemos_context,
+            )
         return h(mode, raw_input, project_id)
     return 1, f"不支持的 mode：{mode}", None

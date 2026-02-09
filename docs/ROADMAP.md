@@ -20,14 +20,14 @@
 
 | 阶段 | 任务 | 要点 |
 |------|------|------|
-| **A 去冗余** | A.1 主路径/支线文档 | 稳定主路径描述，支线标实验 |
-| | A.2 LLM 收敛 | 梳理调用点，明确 LLM 门面 |
-| | A.3 创作记忆抽象 | 接口：按 project 读/写 mesh，可选 recall/retain |
-| | A.4 配置收敛 | 创作配置与 project_id/session 收敛到少量入口 |
-| **B 通用沉淀** | B.1 LLM 门面 | 统一输入输出，配置驱动模型 |
-| | B.2 记忆抽象实现 | mesh 读写 + UniMem 适配器 |
-| | B.3 工具/技能统一 | 注册+发现+调用；skills 为工具之上封装 |
-| | B.4 编排事件契约 | step 类型与 payload 稳定契约 |
+| **A 去冗余** | A.1 主路径/支线文档 ✅ | 稳定主路径描述，支线标实验（见 src/README.md） |
+| | A.2 LLM 收敛 ✅ | 梳理调用点，明确 LLM 门面（见 src/llm/README.md） |
+| | A.3 创作记忆抽象 ✅ | 接口：按 project 读/写 mesh，可选 recall/retain（见 api/memory_handlers 文档头） |
+| | A.4 配置收敛 ✅ | 创作配置与 project_id 收敛到 config（project_dir, normalize_project_id, list_projects；见 config/README.md） |
+| **B 通用沉淀** | B.1 LLM 门面 ✅ | 统一输入输出，配置驱动模型（get_default_novel_llm、call_llm_for_novel；见 src/llm/README.md） |
+| | B.2 记忆抽象实现 ✅ | mesh 读写 + UniMem 适配器（见 api/README.md、api/memory_handlers 文档头） |
+| | B.3 工具/技能统一 ✅ | 注册+发现+调用（tools）；skills 为工具之上封装（SOP、按需注入）；见 tools/README、skills/README |
+| | B.4 编排事件契约 ✅ | step 类型（CREATOR_STEPS）与 payload 稳定契约；见 api/orchestration_events、api/README.md |
 | **C 能力增强** | C.1 DAG（可选） | 主路径可切换 ReAct / DAG |
 | | C.2 RAG | 续写/润色前检索已有章节+mesh |
 | | C.3 图增强 | 时序边、来源等，与 UniMem 对齐 |

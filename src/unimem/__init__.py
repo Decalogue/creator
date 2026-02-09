@@ -5,7 +5,7 @@ UniMem: 统一记忆系统
 - HindSight: 操作接口层（Retain/Recall/Reflect）
 - CogMem: 存储管理层（FoA/DA/LTM）
 - A-Mem: 网络组织层（原子笔记网络）
-- LightRAG: 网络组织层（图结构）
+- 图结构: 网络组织层（预留）
 - LightMem: 更新机制层（睡眠更新）
 - MemMachine: 存储管理层（多类型记忆）
 
