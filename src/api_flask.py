@@ -735,6 +735,41 @@ def memory_evermemos():
     return jsonify(memory_recall_from_evermemos(project_id, query or "创作 大纲 章节", top_k=top_k))
 
 
+@app.route("/api/memory/evermemos/clear", methods=["POST", "DELETE"])
+def memory_evermemos_clear():
+    """清空云端记忆：POST/DELETE body 含 scope。优先按各项目目录下的 evermemos_ids.json 逐条 delete。
+    - scope=all：按所有项目本地记录逐条删除，再按 user 拉取并删除剩余（无本地记录的历史数据）。
+    - scope=project 且 project_id=xxx：按该项目 evermemos_ids.json 逐条删除；无本地记录时回退为按 group_id 拉取后删除。
+    返回 { "ok": true, "deleted": N } 或 { "ok": false, "message": "..." }。"""
+    try:
+        from api_EverMemOS import is_available, CREATOR_USER_ID, delete_all_memories_for_user, delete_all_memories_for_group
+        from api.memory_handlers import delete_project_evermemos_by_local_record, delete_all_evermemos_by_local_records
+    except Exception as e:
+        app.logger.warning("EverMemOS clear not available: %s", e)
+        return jsonify({"ok": False, "message": "云端记忆服务不可用", "deleted": 0}), 400
+    if not is_available():
+        return jsonify({"ok": False, "message": "EverMemOS 未配置或不可用", "deleted": 0}), 400
+    body = request.get_json(silent=True) or {}
+    scope = (body.get("scope") or request.args.get("scope") or "").strip().lower()
+    if scope == "all":
+        deleted = delete_all_evermemos_by_local_records()
+        remaining = delete_all_memories_for_user(CREATOR_USER_ID)
+        return jsonify({"ok": True, "deleted": deleted + remaining})
+    if scope == "project":
+        project_id = normalize_project_id(body.get("project_id") or request.args.get("project_id"))
+        if not project_id:
+            return jsonify({"ok": False, "message": "scope=project 时需提供 project_id", "deleted": 0}), 400
+        group_id = _evermemos_group_id(project_id)
+        deleted = delete_all_memories_for_group(CREATOR_USER_ID, group_id)
+        from api.memory_handlers import _clear_evermemos_ids_file
+        try:
+            _clear_evermemos_ids_file(project_id)
+        except Exception:
+            pass
+        return jsonify({"ok": True, "deleted": deleted})
+    return jsonify({"ok": False, "message": "请传 scope=all 或 scope=project 及 project_id", "deleted": 0}), 400
+
+
 @app.route("/api/memory/evermemos/retrieval-demo", methods=["POST"])
 def memory_evermemos_retrieval_demo():
     """跑三类检索（跨章人物、伏笔、长线设定、近期情节）并返回本次结果供前端展示；可选写 JSONL 日志。POST JSON: project_id?, top_k?"""

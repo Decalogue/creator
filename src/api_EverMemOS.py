@@ -104,15 +104,80 @@ def search_memory(
         return []
 
 
-def delete_memory(user_id: str, memory_id: str) -> None:
-    """删除指定记忆。"""
+def delete_memory(user_id: str, memory_id: str, group_id: Optional[str] = None) -> None:
+    """删除指定记忆。使用 SDK 命名参数；同时传 query（含 id/memory_id/event_id）以防服务端忽略 DELETE body；可选 group_id。"""
     if not _memory_client:
         return
     try:
-        _memory_client.delete(extra_body={"user_id": user_id, "memory_id": memory_id})
+        # 部分网关忽略 DELETE body，故 query 中传齐 id / memory_id / event_id（API 中均为删除条件）
+        q = {"user_id": user_id, "memory_id": memory_id, "id": memory_id, "event_id": memory_id}
+        if group_id:
+            q["group_id"] = group_id
+        _memory_client.delete(
+            user_id=user_id,
+            memory_id=memory_id,
+            group_id=group_id,
+            extra_query=q,
+        )
         logger.info("EverMemOS delete_memory success: user_id=%s memory_id=%s", user_id, memory_id)
     except Exception as e:
         logger.warning("EverMemOS delete_memory failed: %s | user_id=%s memory_id=%s", e, user_id, memory_id)
+
+
+def _memory_id_from_item(m: Any) -> Optional[str]:
+    """从 get 返回的单项中取出 memory_id。"""
+    if m is None:
+        return None
+    mid = getattr(m, "id", None) or getattr(m, "memory_id", None)
+    if mid:
+        return str(mid)
+    if isinstance(m, dict):
+        return str(m.get("id") or m.get("memory_id") or "")
+    return None
+
+
+def delete_all_memories_for_user(user_id: str) -> int:
+    """删除该用户下全部云端记忆（如清空实验数据）。使用「仅 user_id」的批量删除，返回删除前条数。"""
+    if not _memory_client or not user_id:
+        return 0
+    try:
+        raw = get_memory(user_id=user_id)
+        count = len(raw or [])
+        if count == 0:
+            return 0
+        # 服务端逐条按 memory_id 删除不生效，需用「仅 user_id」的批量删除
+        _memory_client.delete(
+            user_id=user_id,
+            extra_query={"user_id": user_id},
+        )
+        logger.info("EverMemOS delete_all_memories_for_user: user_id=%s deleted=%s", user_id, count)
+        return count
+    except Exception as e:
+        logger.warning("EverMemOS delete_all_memories_for_user failed: %s | user_id=%s", e, user_id)
+        return 0
+
+
+def delete_all_memories_for_group(user_id: str, group_id: str) -> int:
+    """删除该用户下指定 group_id 的全部记忆（即清空某一作品的云端记忆）。使用「仅 user_id+group_id」的批量删除，返回删除前该组条数。"""
+    if not _memory_client or not user_id or not group_id:
+        return 0
+    try:
+        raw = get_memory(user_id=user_id, group_id=group_id)
+        count = len(raw or [])
+        if count == 0:
+            return 0
+        # 服务端按 memory_id 逐条删除不生效，需用「仅 user_id + group_id」的批量删除
+        _memory_client.delete(
+            user_id=user_id,
+            group_id=group_id,
+            extra_query={"user_id": user_id, "group_id": group_id},
+        )
+        logger.info("EverMemOS delete_all_memories_for_group: user_id=%s group_id=%s deleted=%s", user_id, group_id, count)
+        return count
+    except Exception as e:
+        logger.warning("EverMemOS delete_all_memories_for_group failed: %s | user_id=%s group_id=%s", e, user_id, group_id)
+        return 0
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

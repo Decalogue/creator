@@ -216,6 +216,82 @@ def _evermemos_group_id(project_id: str) -> str:
     return "grp_" + hashlib.sha256(pid.encode("utf-8")).hexdigest()[:24]
 
 
+# 每个项目目录下的 evermemos 写入记录，清空时按此列表逐条 delete，无需 get_memory
+EVERMEMOS_IDS_FILENAME = "evermemos_ids.json"
+
+
+def _evermemos_ids_path(project_id: str) -> Path:
+    """当前作品目录下的 evermemos 记录文件路径。"""
+    return project_dir(normalize_project_id(project_id)) / EVERMEMOS_IDS_FILENAME
+
+
+def _load_evermemos_ids(project_id: str) -> List[str]:
+    """读取该项目已写入云端的 message_id 列表。"""
+    path = _evermemos_ids_path(project_id)
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return [str(x) for x in data] if isinstance(data, list) else []
+    except Exception as e:
+        logger.warning("load evermemos_ids failed: %s", e)
+        return []
+
+
+def _append_evermemos_ids(project_id: str, message_ids: List[str]) -> None:
+    """追加本次 add_memory 使用的 message_id，写入项目目录下的 evermemos_ids.json。"""
+    if not message_ids:
+        return
+    pid = normalize_project_id(project_id)
+    root = project_dir(pid)
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / EVERMEMOS_IDS_FILENAME
+    existing = _load_evermemos_ids(project_id)
+    existing.extend(message_ids)
+    try:
+        path.write_text(json.dumps(existing, ensure_ascii=False, indent=0), encoding="utf-8")
+    except Exception as e:
+        logger.warning("append evermemos_ids failed: %s", e)
+
+
+def _clear_evermemos_ids_file(project_id: str) -> None:
+    """清空该项目本地的 evermemos 记录文件。"""
+    path = _evermemos_ids_path(project_id)
+    if path.exists():
+        try:
+            path.write_text("[]", encoding="utf-8")
+        except Exception as e:
+            logger.warning("clear evermemos_ids file failed: %s", e)
+
+
+def delete_project_evermemos_by_local_record(project_id: str) -> int:
+    """根据本地 evermemos_ids.json 逐条调用 delete，并清空本地记录。返回删除条数。无本地记录时返回 0。"""
+    ids = _load_evermemos_ids(project_id)
+    if not ids:
+        return 0
+    try:
+        from api_EverMemOS import CREATOR_USER_ID, delete_memory
+        for mid in ids:
+            try:
+                delete_memory(CREATOR_USER_ID, mid)
+            except Exception as e:
+                logger.warning("delete_memory failed for %s: %s", mid, e)
+        _clear_evermemos_ids_file(project_id)
+        return len(ids)
+    except Exception as e:
+        logger.warning("delete_project_evermemos_by_local_record failed: %s", e)
+        return 0
+
+
+def delete_all_evermemos_by_local_records() -> int:
+    """遍历所有项目目录，按各项目 evermemos_ids.json 逐条 delete 并清空本地记录。返回总删除条数。"""
+    from config import list_projects
+    total = 0
+    for pid in list_projects():
+        total += delete_project_evermemos_by_local_record(pid)
+    return total
+
+
 def retain_plan_to_evermemos(project_id: str, plan_summary: str) -> None:
     """创作大纲成功后写入 EverMemOS 云 API（参赛用）。失败仅打日志，不抛错。"""
     try:
@@ -227,6 +303,7 @@ def retain_plan_to_evermemos(project_id: str, plan_summary: str) -> None:
         raw = (plan_summary[:8000] + "…") if len(plan_summary) > 8000 else plan_summary
         content = f"【大纲】{raw}" if raw.strip() else raw
         add_memory([{"message_id": msg_id, "create_time": ts, "sender": CREATOR_SENDER, "content": content, "group_id": _evermemos_group_id(project_id)}])
+        _append_evermemos_ids(project_id, [msg_id])
         logger.info("Retained plan to EverMemOS for project_id=%s", project_id)
     except Exception as e:
         logger.warning("Failed to retain plan to EverMemOS (project_id=%s): %s", project_id, e, exc_info=True)
@@ -251,6 +328,7 @@ def retain_chapter_to_evermemos(
         else:
             summary_text = (summary_text[:800] + "…") if len(summary_text) > 800 else summary_text
         add_memory([{"message_id": msg_id, "create_time": ts, "sender": CREATOR_SENDER, "content": f"【第{chapter_number}章】{summary_text}", "group_id": _evermemos_group_id(project_id)}])
+        _append_evermemos_ids(project_id, [msg_id])
         logger.info("Retained chapter %s to EverMemOS for project_id=%s", chapter_number, project_id)
     except Exception as e:
         logger.warning(
@@ -298,7 +376,9 @@ def retain_chapter_entities_to_evermemos(project_id: str, chapter_number: int) -
             return
         content = f"【第{chapter_number}章实体】" + "；".join(parts)
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        add_memory([{"message_id": "msg_" + uuid.uuid4().hex, "create_time": ts, "sender": CREATOR_SENDER, "content": content[:2000], "group_id": _evermemos_group_id(project_id)}])
+        msg_id = "msg_" + uuid.uuid4().hex
+        add_memory([{"message_id": msg_id, "create_time": ts, "sender": CREATOR_SENDER, "content": content[:2000], "group_id": _evermemos_group_id(project_id)}])
+        _append_evermemos_ids(project_id, [msg_id])
         logger.info("Retained chapter %s entities to EverMemOS for project_id=%s", chapter_number, project_id)
     except Exception as e:
         logger.warning("Failed to retain chapter entities to EverMemOS (project_id=%s ch=%s): %s", project_id, chapter_number, e)
@@ -312,7 +392,9 @@ def retain_polish_to_evermemos(project_id: str, original_snippet: str, polished_
             return
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
         content = f"润色前：{original_snippet[:500]}{'…' if len(original_snippet) > 500 else ''}\n润色后：{polished_snippet[:500]}{'…' if len(polished_snippet) > 500 else ''}"
-        add_memory([{"message_id": "msg_" + uuid.uuid4().hex, "create_time": ts, "sender": CREATOR_SENDER, "content": content, "group_id": _evermemos_group_id(project_id)}])
+        msg_id = "msg_" + uuid.uuid4().hex
+        add_memory([{"message_id": msg_id, "create_time": ts, "sender": CREATOR_SENDER, "content": content, "group_id": _evermemos_group_id(project_id)}])
+        _append_evermemos_ids(project_id, [msg_id])
         logger.info("Retained polish to EverMemOS for project_id=%s", project_id)
     except Exception as e:
         logger.warning("Failed to retain polish to EverMemOS (project_id=%s): %s", project_id, e)
@@ -326,7 +408,9 @@ def retain_chat_to_evermemos(project_id: str, user_message: str, assistant_reply
             return
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
         content = f"用户：{user_message[:800]}{'…' if len(user_message) > 800 else ''}\n助手：{assistant_reply[:800]}{'…' if len(assistant_reply) > 800 else ''}"
-        add_memory([{"message_id": "msg_" + uuid.uuid4().hex, "create_time": ts, "sender": CREATOR_SENDER, "content": content, "group_id": _evermemos_group_id(project_id)}])
+        msg_id = "msg_" + uuid.uuid4().hex
+        add_memory([{"message_id": msg_id, "create_time": ts, "sender": CREATOR_SENDER, "content": content, "group_id": _evermemos_group_id(project_id)}])
+        _append_evermemos_ids(project_id, [msg_id])
         logger.info("Retained chat to EverMemOS for project_id=%s", project_id)
     except Exception as e:
         logger.warning("Failed to retain chat to EverMemOS (project_id=%s): %s", project_id, e)

@@ -187,7 +187,7 @@ graph LR
  记忆系统 (Memory System)
 
 - **UniMem**：长期记忆系统，支持经验存储和检索
-- **EverMemOS**：云记忆 API 封装（`api_EverMemOS.py`），add/get/search 对齐[官方文档](https://docs.evermind.ai/api-reference/introduction)；规划/续写/润色/对话全流程检索注入与写入，见 [INTEGRATION.md](../todo/EverMemOS/INTEGRATION.md)。续写时自动使用**三类检索**（跨章人物、伏笔、长线设定）合并结果注入上下文（`recall_three_types_from_evermemos`）；手动「跑检索测试」与脚本 `evermemos_retrieval_demo` 共用同一组查询并记 JSONL 日志。HTTP 接口使用 POST/JSON（`/api/memory/evermemos`、`/api/memory/evermemos/retrieval-demo`），避免中文进 URL。
+- **EverMemOS**：云记忆 API 封装（`api_EverMemOS.py`），add/get/search 对齐[官方文档](https://docs.evermind.ai/api-reference/introduction)；规划/续写/润色/对话全流程检索注入与写入，见 [INTEGRATION.md](../todo/EverMemOS/INTEGRATION.md)。删除接口需同时传 **query 参数**（`user_id`、`memory_id`），因部分环境会忽略 DELETE 请求体；清空全部云端记忆可运行 `delete_memory.py`（见该文件头部用法）。续写时自动使用**三类检索**（跨章人物、伏笔、长线设定）合并结果注入上下文（`recall_three_types_from_evermemos`）；手动「跑检索测试」与脚本 `evermemos_retrieval_demo` 共用同一组查询并记 JSONL 日志。HTTP 接口使用 POST/JSON（`/api/memory/evermemos`、`/api/memory/evermemos/retrieval-demo`），避免中文进 URL。
 - **语义网格记忆**：实体-关系图谱，维护创作一致性
 - **动态上下文路由**：根据用户行为预测并预加载上下文
 - **订阅式记忆总线**：Agent 间实时通信，自动检测冲突

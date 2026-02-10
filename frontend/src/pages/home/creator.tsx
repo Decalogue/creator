@@ -1511,43 +1511,101 @@ const CreatorPage: React.FC = () => {
                                 <span style={{ fontSize: 11, color: T.textMuted }}>共 {memoryCloud.length} 条</span>
                               )}
                               {evermemosAvailable && (
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  loading={retrievalDemoLoading}
-                                  onClick={async () => {
-                                    setRetrievalDemoLoading(true);
-                                    setRetrievalDemoResult(null);
-                                    try {
-                                      const r = await fetch(
-                                        `${API_BASE}/api/memory/evermemos/retrieval-demo`,
-                                        {
+                                <>
+                                  <Button
+                                    type="link"
+                                    size="small"
+                                    loading={retrievalDemoLoading}
+                                    onClick={async () => {
+                                      setRetrievalDemoLoading(true);
+                                      setRetrievalDemoResult(null);
+                                      try {
+                                        const r = await fetch(
+                                          `${API_BASE}/api/memory/evermemos/retrieval-demo`,
+                                          {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ project_id: projectId, top_k: 8 }),
+                                          }
+                                        );
+                                        const data = r.ok ? await r.json() : {};
+                                        if (data.ok && Array.isArray(data.entries)) {
+                                          setRetrievalDemoResult(data.entries);
+                                          const summary = data.entries
+                                            .map((e: { query_type: string; result_count: number }) => `${e.query_type} ${e.result_count} 条`)
+                                            .join('，');
+                                          message.success(`已记录检索测试：${summary}`);
+                                          fetchMemory();
+                                        } else {
+                                          message.warning(data.message || '检索测试失败');
+                                        }
+                                      } catch {
+                                        message.error('请求失败');
+                                      } finally {
+                                        setRetrievalDemoLoading(false);
+                                      }
+                                    }}
+                                    style={{ fontSize: 11, padding: 0 }}
+                                  >
+                                    跑检索测试
+                                  </Button>
+                                  <Popconfirm
+                                    title={`确定清空当前作品「${projectId}」的全部云端记忆？此操作不可恢复。`}
+                                    onConfirm={async () => {
+                                      try {
+                                        const r = await fetch(`${API_BASE}/api/memory/evermemos/clear`, {
                                           method: 'POST',
                                           headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ project_id: projectId, top_k: 8 }),
+                                          body: JSON.stringify({ scope: 'project', project_id: projectId }),
+                                        });
+                                        const data = r.ok ? await r.json() : {};
+                                        if (data.ok !== false) {
+                                          const n = data.deleted ?? 0;
+                                          message.success(`已清空当前作品云端记忆，共 ${n} 条`);
+                                          setMemoryCloud([]);
+                                          setRetrievalDemoResult(null);
+                                          fetchMemory();
+                                        } else {
+                                          message.warning(data.message || '清空失败');
                                         }
-                                      );
-                                      const data = r.ok ? await r.json() : {};
-                                      if (data.ok && Array.isArray(data.entries)) {
-                                        setRetrievalDemoResult(data.entries);
-                                        const summary = data.entries
-                                          .map((e: { query_type: string; result_count: number }) => `${e.query_type} ${e.result_count} 条`)
-                                          .join('，');
-                                        message.success(`已记录检索测试：${summary}`);
-                                        fetchMemory();
-                                      } else {
-                                        message.warning(data.message || '检索测试失败');
+                                      } catch {
+                                        message.error('请求失败');
                                       }
-                                    } catch {
-                                      message.error('请求失败');
-                                    } finally {
-                                      setRetrievalDemoLoading(false);
-                                    }
-                                  }}
-                                  style={{ fontSize: 11, padding: 0 }}
-                                >
-                                  跑检索测试
-                                </Button>
+                                    }}
+                                  >
+                                    <Button type="link" size="small" danger style={{ fontSize: 11, padding: 0 }}>
+                                      清空当前作品
+                                    </Button>
+                                  </Popconfirm>
+                                  <Popconfirm
+                                    title="确定清空全部云端记忆？将删除 EverMemOS 中所有项目的记忆，此操作不可恢复。"
+                                    onConfirm={async () => {
+                                      try {
+                                        const r = await fetch(`${API_BASE}/api/memory/evermemos/clear`, {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ scope: 'all' }),
+                                        });
+                                        const data = r.ok ? await r.json() : {};
+                                        if (data.ok !== false) {
+                                          const n = data.deleted ?? 0;
+                                          message.success(`已清空全部云端记忆，共 ${n} 条`);
+                                          setMemoryCloud([]);
+                                          setRetrievalDemoResult(null);
+                                          fetchMemory();
+                                        } else {
+                                          message.warning(data.message || '清空失败');
+                                        }
+                                      } catch {
+                                        message.error('请求失败');
+                                      }
+                                    }}
+                                  >
+                                    <Button type="link" size="small" danger style={{ fontSize: 11, padding: 0 }}>
+                                      清空全部
+                                    </Button>
+                                  </Popconfirm>
+                                </>
                               )}
                             </span>
                           </div>

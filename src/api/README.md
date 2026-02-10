@@ -31,6 +31,8 @@
 
 **续写是否注入云端记忆**：`run_continue(..., use_evermemos_context=True)`；`POST /api/creator/run` 与 `POST /api/creator/stream` 的 body 支持 `use_evermemos_context`（默认 true）。为 false 时续写仅使用本地 mesh + 大纲摘要，不调用 EverMemOS recall，便于对比测试章节重叠等问题。
 
+**EverMemOS 本地记录与清空**：每次 `add_memory` 使用的 `message_id` 会追加到该项目目录下的 `evermemos_ids.json`。清空云端记忆时优先按该文件逐条调用 `delete`，无需先 `get_memory`；无本地记录时（历史项目）回退为按 group_id 拉取后删除。`scope=all` 时先按各项目本地记录删除，再按 user 拉取并删除剩余。
+
 UniMem 与 EverMemOS 通过上述 retain/recall 入口透明接入，主路径仅依赖抽象接口。
 
 ## 编排事件契约（B.4）
