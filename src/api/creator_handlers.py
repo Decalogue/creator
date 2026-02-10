@@ -228,12 +228,14 @@ def run_create(
     target_chapters: Optional[int] = None,
     on_event: Optional[Any] = None,
     use_evermemos_context: bool = True,
+    use_progressive: Optional[bool] = None,
 ) -> Tuple[int, str, Optional[Dict]]:
     """
     执行「大纲」：创建小说大纲。
     - 若未接续前卷：根据输入用 LLM 解析书名作为 project_id，target_chapters 默认 100。
     - 若接续前卷：previous_project_id 必填；project_id 为本卷作品名（如 完美之墙_第二卷）；
       start_chapter 为本卷起始章号（如 101），target_chapters 为本卷章数（如 100）。
+    - use_progressive：None=自动（≥50 章用渐进式），False=一次性生成全部章节大纲，True=强制渐进式。
     Returns: (code, message, extra)
     """
     _ensure_sys_path()
@@ -297,6 +299,7 @@ def run_create(
             start_chapter=start_ch,
             on_event=on_event,
             extra_memory_context=extra_memory or None,
+            use_progressive=use_progressive,
         )
         # 生成简短摘要供前端展示
         lines = []
@@ -371,28 +374,103 @@ def run_continue(
         except Exception:
             pass
     start_chapter = plan.get("start_chapter", 1)
+    target_chapters = plan.get("target_chapters")
+    if not isinstance(target_chapters, int) or target_chapters <= 0:
+        target_chapters = len(co)
     # 下一章号：有文件则 max+1，否则用 start_chapter（多卷时为本卷起始章，如 101）
     next_num = (max(existing_nums) + 1) if existing_nums else start_chapter
-    # 大纲索引：本卷内第几章（0-based），多卷时 co 仅含本卷 100 章
+    # 大纲索引：本卷内第几章（0-based），多卷时 co 可能只含前 N 章（如渐进式只生成 20 章）
     outline_index = next_num - start_chapter
-    if outline_index < 0 or outline_index >= len(co):
-        return 1, f"已写完所有大纲章节（当前大纲共 {len(co)} 章，已写至第 {next_num - 1} 章）。若需继续写，请先在大纲模式扩展或新增章节。", None
+    if outline_index < 0:
+        return 1, f"章节号异常（start_chapter={start_chapter}，下一章={next_num}）", None
+    if next_num > start_chapter + target_chapters - 1:
+        return 1, f"已写完所有章节（目标共 {target_chapters} 章，已写至第 {next_num - 1} 章）。若需继续写，请先在大纲模式扩展或新增章节。", None
 
-    ch = co[outline_index]
-    if not isinstance(ch, dict):
-        return 1, "大纲章节格式异常", None
-    # 使用大纲中的章节号（多卷时为 101、102…），用于正文与文件名
-    chapter_number = ch.get("chapter_number", next_num)
-    title = ch.get("title") or f"第{chapter_number}章"
-    summary = ch.get("summary") or ""
+    phases = plan.get("phases") or []
+    phase_size = plan.get("phase_size", 20)
+    current_phase = (outline_index // phase_size) + 1
+    if (
+        plan.get("plan_type") == "progressive"
+        and outline_index >= len(co)
+        and current_phase > len(phases)
+        and isinstance(plan.get("overall"), dict)
+    ):
+        try:
+            from task.novel.react_novel_creator import ReactNovelCreator
+            _llm = _default_llm()
+            _creator = ReactNovelCreator(
+                novel_title=project_id,
+                output_dir=root,
+                enable_context_offloading=True,
+                enable_creative_context=True,
+                enable_enhanced_extraction=True,
+                enable_quality_check=False,
+                llm_client=_llm,
+            )
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, "r", encoding="utf-8") as _f:
+                        _meta = json.load(_f)
+                    _genre = _meta.get("genre", "小说")
+                    _theme = _meta.get("theme", "")
+                    _wpc = int(_meta.get("words_per_chapter", 2048)) or 2048
+                except Exception:
+                    _genre, _theme, _wpc = "小说", "", 2048
+            else:
+                _genre, _theme, _wpc = "小说", "", 2048
+            new_phase_outline = _creator._generate_phase_outline(
+                phase_number=current_phase,
+                phase_size=phase_size,
+                overall_outline=plan.get("overall", {}),
+                previous_phases=phases,
+                genre=_genre,
+                theme=_theme,
+                words_per_chapter=_wpc,
+                volume_start_chapter=start_chapter,
+                target_chapters_total=target_chapters,
+            )
+            phases = list(phases)
+            phases.append(new_phase_outline)
+            plan["phases"] = phases
+            plan["current_phase"] = current_phase
+            all_chapters = []
+            for _p in phases:
+                if isinstance(_p, dict):
+                    all_chapters.extend(_p.get("chapters") or [])
+            plan["chapter_outline"] = _creator._deduplicate_chapter_titles(all_chapters)
+            with open(plan_file, "w", encoding="utf-8") as _f:
+                json.dump(plan, _f, ensure_ascii=False, indent=2)
+            co = plan["chapter_outline"]
+            logger.info(
+                "续写前已扩展渐进式大纲：阶段 %s（约第 %s–%s 章）",
+                current_phase,
+                (current_phase - 1) * phase_size + start_chapter,
+                min(current_phase * phase_size, start_chapter + target_chapters - 1),
+            )
+        except Exception as ex:
+            logger.warning("续写前扩展渐进式大纲失败，将使用占位章节: %s", ex)
+
+    # 若大纲已有该章则用大纲，否则用占位（便于渐进式大纲只生成前 20 章时继续写 21～target_chapters）
+    if outline_index < len(co) and isinstance(co[outline_index], dict):
+        ch = co[outline_index]
+        chapter_number = ch.get("chapter_number", next_num)
+        title = ch.get("title") or f"第{chapter_number}章"
+        summary = ch.get("summary") or ""
+    else:
+        chapter_number = next_num
+        title = f"第{chapter_number}章"
+        summary = ""
 
     prev_summary = ""
     previous_chapter_tail = ""
     earlier_chapters_summaries = ""
-    if outline_index > 0 and isinstance(co[outline_index - 1], dict):
-        prev_summary = co[outline_index - 1].get("summary") or ""
-        # 上一章正文末尾约 1/5，供衔接（上限约 2000 字，避免 token 过长）
-        prev_ch_num = co[outline_index - 1].get("chapter_number", chapter_number - 1)
+    if outline_index > 0:
+        # 上一章：可能在大纲内（co[outline_index-1]）或仅存在已写文件（超出渐进式大纲时）
+        if outline_index - 1 < len(co) and isinstance(co[outline_index - 1], dict):
+            prev_summary = co[outline_index - 1].get("summary") or ""
+            prev_ch_num = co[outline_index - 1].get("chapter_number", chapter_number - 1)
+        else:
+            prev_ch_num = chapter_number - 1
         prev_file = chapters_dir / f"chapter_{prev_ch_num:03d}.txt"
         if prev_file.exists():
             try:
@@ -403,10 +481,10 @@ def run_continue(
                     previous_chapter_tail = raw_prev[-tail_len:]
             except Exception as ex:
                 logger.debug("读取上一章正文末尾失败: %s", ex)
-        # 更前章节（第 1 章～第 N-2 章）的摘要，与实体信息配合保持连贯
+        # 更前章节（第 1 章～第 N-2 章）的摘要，仅从已有大纲条目取，避免越界
         if outline_index >= 2:
             parts = []
-            for i in range(0, outline_index - 1):
+            for i in range(0, min(outline_index - 1, len(co))):
                 if isinstance(co[i], dict):
                     num = co[i].get("chapter_number", i + 1)
                     s = (co[i].get("summary") or "").strip()
@@ -569,8 +647,9 @@ def run(
     target_chapters: Optional[int] = None,
     on_event: Optional[Any] = None,
     use_evermemos_context: bool = True,
+    use_progressive: Optional[bool] = None,
 ) -> Tuple[int, str, Optional[Dict]]:
-    """统一入口。create 模式可传 previous_project_id、start_chapter、target_chapters 用于接续前卷。on_event 用于 P1 编排事件推送。use_evermemos_context 仅对 continue 生效。"""
+    """统一入口。create 模式可传 previous_project_id、start_chapter、target_chapters、use_progressive。use_progressive=False 时一次性生成全部章节大纲；默认 None（≥50 章用渐进式）。"""
     mode_key = (mode or "").strip().lower()
     if mode_key == "create":
         return run_create(
@@ -579,6 +658,7 @@ def run(
             start_chapter=start_chapter,
             target_chapters=target_chapters,
             on_event=on_event,
+            use_progressive=use_progressive,
         )
     if mode_key in ("continue", "polish", "chat"):
         h = {"continue": run_continue, "polish": run_polish, "chat": run_chat}[mode_key]

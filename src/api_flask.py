@@ -331,6 +331,7 @@ def _run_creator_task(task_id, mode, raw, project_id, options=None):
                 start_chapter=options.get("start_chapter"),
                 target_chapters=options.get("target_chapters"),
                 use_evermemos_context=options.get("use_evermemos_context", True),
+                use_progressive=options.get("use_progressive"),
             )
         finally:
             if mode == "continue":
@@ -362,6 +363,7 @@ def _run_creator_stream_task(ev_queue, mode, raw, project_id, options=None):
                 target_chapters=options.get("target_chapters"),
                 on_event=ev_queue.put,
                 use_evermemos_context=options.get("use_evermemos_context", True),
+                use_progressive=options.get("use_progressive"),
             )
             ev_queue.put({
                 "type": "stream_end",
@@ -417,6 +419,7 @@ def creator_run_endpoint():
             "start_chapter": data.get("start_chapter"),
             "target_chapters": data.get("target_chapters"),
             "use_evermemos_context": data.get("use_evermemos_context", True),
+            "use_progressive": data.get("use_progressive"),
         }
         task_id = str(uuid.uuid4())
         with _creator_tasks_lock:
@@ -451,6 +454,7 @@ def creator_stream_endpoint():
             "start_chapter": data.get("start_chapter"),
             "target_chapters": data.get("target_chapters"),
             "use_evermemos_context": data.get("use_evermemos_context", True),
+            "use_progressive": data.get("use_progressive"),
         }
         if mode not in ("create", "continue"):
             return jsonify({"code": 1, "message": "stream 仅支持 mode=create 或 continue"}), 400
