@@ -27,7 +27,7 @@
 
 **记忆只读 fallback**：当 `api.memory_handlers` 未加载时，`api_flask` 仍从本地 `project_dir(pid)/semantic_mesh/mesh.json` 提供实体/图谱/最近/节点详情；云端记忆在 fallback 下通过单独导入 `api_EverMemOS` 按 group_id 拉列表，保证「作品列表正常但记忆看不到」时可展示本地 mesh 与云端列表。
 
-**章节列表**：`GET /api/creator/chapters?project_id=xxx` 由 `creator_handlers.get_project_chapters` 提供；CREATOR 未就绪时由 `api_flask._fallback_chapters` 从本地 `novel_plan.json` + `chapters/` 目录读取。`get_project_chapters` 支持顶层 `chapter_outline`、无 outline 时从 `phases[].chapters` 合并；无 `novel_plan.json` 时仅从 `chapters/chapter_*.txt` 推断，保证「共 N 章，已写 M 章」正确显示。
+**章节列表**：`GET /api/creator/chapters?project_id=xxx` 由 `creator_handlers.get_project_chapters` 提供；CREATOR 未就绪时由 `api_flask._fallback_chapters` 从本地 `novel_plan.json` + `chapters/` 目录读取。支持顶层 `chapter_outline`、无 outline 时从 `phases[].chapters` 合并；若大纲条数少于 `novel_plan.json` 中的 `target_chapters`（如渐进式只生成了首阶段），会补齐到 `target_chapters`，保证「共 N 章，已写 M 章」显示正确。无 `novel_plan.json` 时仅从 `chapters/chapter_*.txt` 推断。
 
 **续写是否注入云端记忆**：`run_continue(..., use_evermemos_context=True)`；`POST /api/creator/run` 与 `POST /api/creator/stream` 的 body 支持 `use_evermemos_context`（默认 true）。为 false 时续写仅使用本地 mesh + 大纲摘要，不调用 EverMemOS recall，便于对比测试章节重叠等问题。
 

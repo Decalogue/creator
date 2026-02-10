@@ -36,3 +36,5 @@ DIALOGUE_RATIO_MAX = 0.40  # 40%
 STRICT_CUTOFF_FACTOR = 1.20  # 超过目标*1.2 触发截断
 TRUNCATE_AFTER_FACTOR = 1.15  # 截断到目标*1.15
 MIN_ACCEPTABLE_WORDS_FACTOR = 0.5  # 最少接受目标*0.5，否则重试
+# 每章字数截断上限（超过此字数将智能截断；创作目标与 prompt 不变）
+CHAPTER_TRUNCATE_MAX_WORDS = 4096

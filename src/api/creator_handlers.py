@@ -83,6 +83,18 @@ def get_project_chapters(project_id: Optional[str] = None) -> Tuple[int, Optiona
             "summary": summary[:200] if summary else "",
             "has_file": num in existing_files,
         })
+    # 若大纲条数少于 target_chapters（如渐进式只生成了首阶段），补齐到 target_chapters，保证「共 N 章」正确
+    target = plan.get("target_chapters")
+    if isinstance(target, int) and target > 0:
+        max_num = max((x["number"] for x in out), default=0)
+        if max_num < target:
+            for n in range(max_num + 1, target + 1):
+                out.append({
+                    "number": n,
+                    "title": f"第{n}章",
+                    "summary": "",
+                    "has_file": n in existing_files,
+                })
     return 0, out
 
 
@@ -219,7 +231,7 @@ def run_create(
 ) -> Tuple[int, str, Optional[Dict]]:
     """
     执行「大纲」：创建小说大纲。
-    - 若未接续前卷：根据输入用 LLM 解析书名作为 project_id，target_chapters 默认 20。
+    - 若未接续前卷：根据输入用 LLM 解析书名作为 project_id，target_chapters 默认 100。
     - 若接续前卷：previous_project_id 必填；project_id 为本卷作品名（如 完美之墙_第二卷）；
       start_chapter 为本卷起始章号（如 101），target_chapters 为本卷章数（如 100）。
     Returns: (code, message, extra)
@@ -248,11 +260,11 @@ def run_create(
         logger.info("run_create 接续前卷: previous=%r, project_id=%r, start_chapter=%s, target_chapters=%s",
                     previous_project_id, project_id, start_ch, target_ch)
     else:
-        # 新作：LLM 解析书名
+        # 新作：LLM 解析书名；目标章数默认 100（与前端「目标章数」一致）
         llm = _default_llm()
         project_id = _extract_novel_title(theme, llm)
         start_ch = 1
-        target_ch = 20 if target_chapters is None else max(1, int(target_chapters))
+        target_ch = 100 if target_chapters is None else max(1, min(500, int(target_chapters)))
         prev_ctx = None
         logger.info("run_create: theme=%r -> project_id=%r", theme[:80], project_id)
 

@@ -4,7 +4,7 @@
 
 ## 模块
 
-- **defaults.py**：默认字数、节奏系数、对话占比、token 限制等常量。
+- **defaults.py**：默认字数、节奏系数、对话占比、token 限制、**每章截断上限（CHAPTER_TRUNCATE_MAX_WORDS=4096）**等常量。
 - **prompts.py**：实体提取、JSON 修复、对话质量要求等 prompt 模板。
 
 ## 使用

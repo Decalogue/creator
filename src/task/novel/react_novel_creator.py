@@ -72,6 +72,7 @@ try:
         STRICT_CUTOFF_FACTOR as _STRICT_CUTOFF_FACTOR,
         TRUNCATE_AFTER_FACTOR as _TRUNCATE_AFTER_FACTOR,
         MIN_ACCEPTABLE_WORDS_FACTOR as _MIN_ACCEPTABLE_WORDS_FACTOR,
+        CHAPTER_TRUNCATE_MAX_WORDS as _CHAPTER_TRUNCATE_MAX_WORDS,
         TOKEN_WORDS_FACTOR as _TOKEN_WORDS_FACTOR,
         WORD_TARGET_TOLERANCE_MIN as _WORD_TARGET_TOLERANCE_MIN,
         WORD_TARGET_TOLERANCE_MAX as _WORD_TARGET_TOLERANCE_MAX,
@@ -88,6 +89,7 @@ except ImportError:
     _WORD_RANGE_MIN, _WORD_RANGE_MAX = 0.8, 1.2
     _STRICT_CUTOFF_FACTOR, _TRUNCATE_AFTER_FACTOR = 1.20, 1.15
     _MIN_ACCEPTABLE_WORDS_FACTOR = 0.5
+    _CHAPTER_TRUNCATE_MAX_WORDS = 4096
     _TOKEN_WORDS_FACTOR = 1.5
     _WORD_TARGET_TOLERANCE_MIN, _WORD_TARGET_TOLERANCE_MAX = 0.9, 1.1
     _DIALOGUE_QUALITY_INSTRUCTION = "\n**对话质量要求（必须严格遵守）**：\n1. **对话占比（硬性要求）**：对话必须占章节总字数的 20-40%..."
@@ -379,7 +381,7 @@ class ReactNovelCreator:
         self,
         genre: str,
         theme: str,
-        target_chapters: int = 20,
+        target_chapters: int = 100,
         words_per_chapter: int = 3000,
         use_progressive: Optional[bool] = None,  # None = 自动选择（章节数 >= 50 时使用渐进式）
         previous_volume_context: Optional[Dict[str, Any]] = None,
@@ -1369,15 +1371,13 @@ class ReactNovelCreator:
         # - 完美落点：2100字（我们使用2048字）
         # - 目标：2048字（或用户指定）
         # - 下限：1500字（统计建议）
-        # - 上限：3000字（统计建议，避免注水）
+        # - 截断上限：CHAPTER_TRUNCATE_MAX_WORDS（当前 4096），创作目标与 prompt 不变
         min_words = 1500  # 番茄小说统计建议的下限
-        # 允许上限：根据目标字数调整，但不超过3000字
+        # 允许上限：根据目标字数调整，但不超过截断上限（4096 字）
         if target_words <= 2000:
-            # 如果目标字数 <= 2000，使用固定上限3000字
-            max_words_allowed = 3000
+            max_words_allowed = min(3000, _CHAPTER_TRUNCATE_MAX_WORDS)
         else:
-            # 如果目标字数 > 2000，按1.5倍计算，但不超过3000字
-            max_words_allowed = min(int(target_words * 1.5), 3000)
+            max_words_allowed = min(int(target_words * 1.5), _CHAPTER_TRUNCATE_MAX_WORDS)
         
         # 字数控制提示（基于番茄小说爆款数据统计）
         target_range_min = int(target_words * _WORD_TARGET_TOLERANCE_MIN)
@@ -2527,7 +2527,7 @@ class ReactNovelCreator:
         self,
         genre: str,
         theme: str,
-        target_chapters: int = 20,
+        target_chapters: int = 100,
         words_per_chapter: int = 3000,
         start_from_chapter: int = 1,
         use_progressive: Optional[bool] = None  # None = 自动选择（章节数 >= 50 时使用渐进式）

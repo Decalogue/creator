@@ -2,7 +2,7 @@
 
 ## 概述
 
-利用结合了 Cursor 和 Manus 思路的 ReAct 系统进行中长篇小说创作，充分利用以下特性。
+利用 ReAct 系统进行中长篇小说创作，充分利用以下特性。
 
 **配置与 prompt**：小说创作相关的默认配置（字数、节奏、对话占比、token 限制等）与 prompt 模板（实体提取、JSON 修复、对话质量要求等）已集中到 **`config/novel`**，便于调整与复用。详见 `config/novel/README.md`。
 

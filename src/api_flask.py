@@ -263,6 +263,18 @@ def _fallback_chapters(project_id):
             "summary": summary[:200] if summary else "",
             "has_file": num in existing_files,
         })
+    # 若大纲条数少于 target_chapters（如渐进式只生成了首阶段），补齐到 target_chapters
+    target = plan.get("target_chapters")
+    if isinstance(target, int) and target > 0:
+        max_num = max((x["number"] for x in out), default=0)
+        if max_num < target:
+            for n in range(max_num + 1, target + 1):
+                out.append({
+                    "number": n,
+                    "title": f"第{n}章",
+                    "summary": "",
+                    "has_file": n in existing_files,
+                })
     return 0, out
 
 

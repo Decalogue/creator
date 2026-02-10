@@ -19,6 +19,7 @@ from config.novel.defaults import (
     STRICT_CUTOFF_FACTOR,
     TRUNCATE_AFTER_FACTOR,
     MIN_ACCEPTABLE_WORDS_FACTOR,
+    CHAPTER_TRUNCATE_MAX_WORDS,
     TOKEN_WORDS_FACTOR,
 )
 from config.novel.prompts import (
@@ -41,6 +42,7 @@ __all__ = [
     "STRICT_CUTOFF_FACTOR",
     "TRUNCATE_AFTER_FACTOR",
     "MIN_ACCEPTABLE_WORDS_FACTOR",
+    "CHAPTER_TRUNCATE_MAX_WORDS",
     "TOKEN_WORDS_FACTOR",
     "get_entity_extraction_prompt",
     "JSON_REPAIR_PROMPT_TEMPLATE",
