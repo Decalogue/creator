@@ -27,11 +27,17 @@
 
 **记忆只读 fallback**：当 `api.memory_handlers` 未加载时，`api_flask` 仍从本地 `project_dir(pid)/semantic_mesh/mesh.json` 提供实体/图谱/最近/节点详情；云端记忆在 fallback 下通过单独导入 `api_EverMemOS` 按 group_id 拉列表，保证「作品列表正常但记忆看不到」时可展示本地 mesh 与云端列表。
 
-**章节列表**：`GET /api/creator/chapters?project_id=xxx` 由 `creator_handlers.get_project_chapters` 提供；CREATOR 未就绪时由 `api_flask._fallback_chapters` 从本地 `novel_plan.json` + `chapters/` 目录读取。支持顶层 `chapter_outline`、无 outline 时从 `phases[].chapters` 合并；若大纲条数少于 `novel_plan.json` 中的 `target_chapters`（如渐进式只生成了首阶段），会补齐到 `target_chapters`，保证「共 N 章，已写 M 章」显示正确。无 `novel_plan.json` 时仅从 `chapters/chapter_*.txt` 推断。创作时可通过请求体传 `use_progressive: false` 一次性生成全部章节大纲（否则目标章数 ≥50 时默认渐进式，仅首阶段约 20 章）。
+**章节列表**：`GET /api/creator/chapters?project_id=xxx` 由 `creator_handlers.get_project_chapters` 提供；CREATOR 未就绪时由 `api_flask._fallback_chapters` 从本地 `novel_plan.json` + `chapters/` 目录读取。
+
+**单章全文**：`GET /api/creator/chapter?project_id=xxx&number=1` 由 `api_flask._get_chapter_content` 从 `project_dir(pid)/chapters/chapter_001.txt` 读取正文并返回 `{ code, message, number?, title?, content? }`；用于创作页「章节列表」中点击已写章节查看全文。支持顶层 `chapter_outline`、无 outline 时从 `phases[].chapters` 合并；若大纲条数少于 `novel_plan.json` 中的 `target_chapters`（如渐进式只生成了首阶段），会补齐到 `target_chapters`，保证「共 N 章，已写 M 章」显示正确。无 `novel_plan.json` 时仅从 `chapters/chapter_*.txt` 推断。创作时可通过请求体传 `use_progressive: false` 一次性生成全部章节大纲（否则目标章数 ≥50 时默认渐进式，仅首阶段约 20 章）。
 
 **续写与 target_chapters**：`run_continue` 以 `plan.target_chapters`（缺省为当前大纲条数）为上限；当下一章号不超过目标章数时允许续写。若当前大纲条数少于目标章数（如渐进式只生成 20 章、目标 100 章），第 21 章及以后：**渐进式大纲**会在写新阶段首章（如第 21 章）前自动扩展该阶段大纲（如 21–40 章），再按新大纲写；若扩展失败则使用占位。上一章摘要与正文末尾从已有大纲或已写文件读取。
 
-**续写是否注入云端记忆**：`run_continue(..., use_evermemos_context=True)`；`POST /api/creator/run` 与 `POST /api/creator/stream` 的 body 支持 `use_evermemos_context`（默认 true）。为 false 时续写仅使用本地 mesh + 大纲摘要，不调用 EverMemOS recall，便于对比测试章节重叠等问题。
+**续写是否注入云端记忆**：`run_continue(..., use_evermemos_context=True)`；`POST /api/creator/run` 与 `POST /api/creator/stream` 的 body 支持 `use_evermemos_context`（默认 true）。为 false 时续写仅使用本地 mesh + 大纲摘要，不调用 EverMemOS recall，便于对比测试。续写章节≥21 时，recall 会额外启用**长程召回**（长程细节查询），以获取早期章节的叙事细节（具体数字、技术术语、一次性事件），提升精确回指一致性。
+
+**Mesh 与云端分工**：语义网格（mesh）提供人物/关系/实体结构；云端长期记忆提供跨章叙事细节（具体数字、技术术语、一次性事件）。retain_chapter 除摘要外，会提取并写入**关键细节点**（含数字、编号、技术术语的句子），便于长程召回精确回指。
+
+**续写 prompt 长度控制**：为避免单章生成过慢，run_continue 对注入内容做上限：云端记忆合计不超过 8000 字（按召回顺序截断）；「更前章节摘要」仅取最近 10 章、每章摘要约 180 字。
 
 **EverMemOS 本地记录与清空**：每次 `add_memory` 使用的 `message_id` 会追加到该项目目录下的 `evermemos_ids.json`。清空云端记忆时优先按该文件逐条调用 `delete`，无需先 `get_memory`；无本地记录时（历史项目）回退为按 group_id 拉取后删除。`scope=all` 时先按各项目本地记录删除，再按 user 拉取并删除剩余。
 

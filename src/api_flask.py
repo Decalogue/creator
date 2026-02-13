@@ -560,6 +560,57 @@ def creator_chapters():
             return jsonify({"chapters": [], "total": 0})
 
 
+def _get_chapter_content(project_id: str, number: int):
+    """读取单章正文。返回 (code, message, dict|None)，dict 含 number, title, content。"""
+    pid = normalize_project_id(project_id)
+    root = project_dir(pid)
+    chapters_dir = root / "chapters"
+    if not chapters_dir.exists():
+        return 1, "项目目录不存在", None
+    num = max(1, min(9999, int(number)))
+    path = chapters_dir / f"chapter_{num:03d}.txt"
+    if not path.exists():
+        return 1, "该章尚未生成", None
+    try:
+        content = path.read_text(encoding="utf-8")
+    except Exception as e:
+        app.logger.warning("Read chapter file failed: %s", e)
+        return 1, "读取失败", None
+    title = f"第{num}章"
+    plan_file = root / "novel_plan.json"
+    if plan_file.exists():
+        try:
+            with open(plan_file, "r", encoding="utf-8") as f:
+                plan = json.load(f)
+            co = plan.get("chapter_outline") or (plan.get("plan") or {}).get("chapter_outline")
+            if isinstance(co, list):
+                for ch in co:
+                    if isinstance(ch, dict) and ch.get("chapter_number") == num:
+                        title = (ch.get("title") or title).strip() or title
+                        break
+        except Exception:
+            pass
+    return 0, "ok", {"number": num, "title": title, "content": content}
+
+
+@app.route("/api/creator/chapter", methods=["GET"])
+def creator_chapter():
+    """单章全文：GET ?project_id=xxx&number=1，返回 { code, message, number?, title?, content? }。"""
+    try:
+        project_id = request.args.get("project_id") or ""
+        try:
+            number = int(request.args.get("number", "1"))
+        except (TypeError, ValueError):
+            number = 1
+        code, msg, data = _get_chapter_content(project_id, number)
+        if code != 0 or not data:
+            return jsonify({"code": code, "message": msg})
+        return jsonify({"code": 0, "message": msg, **data})
+    except Exception as e:
+        app.logger.exception("creator_chapter error")
+        return jsonify({"code": 1, "message": str(e)})
+
+
 @app.route("/api/memory/entities", methods=["GET"])
 def memory_entities():
     project_id = normalize_project_id(request.args.get("project_id"))
@@ -610,6 +661,7 @@ _RETRIEVAL_DEMO_QUERIES = [
     ("伏笔", "伏笔 铺垫 悬念 回收 线索"),
     ("长线设定", "世界观 设定 规则 体系 玄灵 大陆"),
     ("近期情节", "近期 情节 发展 剧情 承接 上一章"),
+    ("长程细节", "主角初次相遇 遗迹发现 人物登场 早期情节 具体数字 技术术语"),
 ]
 _RETRIEVAL_DEMO_EXCERPT_MAX = 120
 _RETRIEVAL_DEMO_EXCERPT_COUNT = 3

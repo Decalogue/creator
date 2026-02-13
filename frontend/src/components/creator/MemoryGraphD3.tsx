@@ -35,7 +35,17 @@ export const MemoryGraphD3: React.FC<MemoryGraphD3Props> = ({
   const run = useCallback(() => {
     if (!svgRef.current || !data.nodes.length) return;
 
-    const nodes: SimNode[] = data.nodes.map((n) => ({ ...n }));
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) * 0.35;
+    const nodes: SimNode[] = data.nodes.map((n, i) => {
+      const angle = (i / Math.max(1, data.nodes.length)) * Math.PI * 2;
+      return {
+        ...n,
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+      };
+    });
     const links: SimLink[] = data.links.map((l) => ({ ...l }));
 
     const svg = d3.select(svgRef.current);

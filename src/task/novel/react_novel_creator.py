@@ -1334,10 +1334,11 @@ class ReactNovelCreator:
             except Exception as e:
                 logger.warning(f"语义网格实体检索失败: {e}")
         # 云端长期记忆（EverMemOS 等）注入：由调用方在 run_continue 中检索并传入
+        # 与语义网格分工：mesh 提供人物/关系结构；云端记忆提供跨章叙事细节（具体数字、技术术语、一次性事件）
         evermemos_context = ""
         if extra_memory_context and extra_memory_context.strip():
             evermemos_context = f"""
-云端长期记忆（参考以保持与前文/大纲一致）：
+云端长期记忆（跨章叙事细节，含具体数字、技术术语、一次性事件；优先参考以保持精确回指一致）：
 {extra_memory_context.strip()}
 
 """

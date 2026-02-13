@@ -38,7 +38,7 @@ const workflowSteps = [
     id: 'create',
     title: '创作',
     subtitle: 'Creation',
-    description: '多智能体协同写作，语义记忆与渐进式大纲加持，一键生成章节与长篇。',
+    description: '多智能体协同写作，记忆系统与渐进式大纲加持，一键生成章节与长篇。',
     icon: <EditOutlined />,
     color: '#10b981',
     features: ['章节续写', '记忆召回', '风格一致'],
@@ -108,12 +108,12 @@ export default function IntroPage() {
         .intro-page .intro-gradient-bg {
           background: linear-gradient(135deg,
             rgba(255,255,255,1) 0%,
-            rgba(255,75,47,0.06) 25%,
-            rgba(255,167,167,0.04) 50%,
-            rgba(255,178,158,0.05) 75%,
+            rgba(255,75,47,0.08) 20%,
+            rgba(255,167,167,0.06) 40%,
+            rgba(255,178,158,0.08) 60%,
             rgba(255,255,255,1) 100%);
           background-size: 400% 400%;
-          animation: intro-gradient-shift 18s ease infinite;
+          animation: intro-gradient-shift 20s ease infinite;
         }
         @keyframes intro-gradient-shift {
           0%, 100% { background-position: 0% 50%; }
@@ -311,7 +311,7 @@ export default function IntroPage() {
               <span style={{ position: 'relative', width: 6, height: 6, borderRadius: '50%', background: T.accent }} />
             </span>
             <ThunderboltOutlined style={{ fontSize: 15 }} />
-            多智能体 · 语义记忆 · 动态编排
+            多智能体 · 云端记忆 · 动态编排
           </motion.div>
 
           <motion.h1
@@ -344,25 +344,25 @@ export default function IntroPage() {
             initial={{ opacity: 0, filter: 'blur(10px)' }}
             animate={{ opacity: 1, filter: 'blur(0px)' }}
             transition={{ duration: 0.9, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            style={{ color: T.textMuted, fontSize: 19, lineHeight: 1.6, marginBottom: 40, maxWidth: 672, margin: '0 auto 40px' }}
+            style={{ color: T.textMuted, fontSize: 'clamp(16px, 2.2vw, 19px)', lineHeight: 1.7, marginBottom: 40, maxWidth: 672, margin: '0 auto 40px', letterSpacing: '0.02em' }}
           >
-            从构思、创作到优化，全程智能陪伴。支持长篇连载、语义记忆图谱与 Agent 工作流可视化，让创作更高效、更连贯。
+            从构思、创作到优化，全程智能陪伴。支持长篇连载、云端记忆与 Agent 工作流可视化，创作更高效，叙事更连贯。
           </motion.p>
 
           <motion.div
             initial="hidden"
             animate="visible"
             variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08, delayChildren: 0.6 } } }}
-            style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center' }}
           >
-            <motion.div variants={{ hidden: { scale: 0, opacity: 0 }, visible: { scale: 1, opacity: 1 } }} transition={{ type: 'spring', stiffness: 260, damping: 18 }}>
+            <motion.div variants={{ hidden: { scale: 0, opacity: 0 }, visible: { scale: 1, opacity: 1 } }} transition={{ type: 'spring', stiffness: 260, damping: 18 }} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
               <Link to="/creator">
-                <Button type="primary" size="large" icon={<ThunderboltOutlined />} style={{ background: T.primaryBg, borderColor: T.primaryBg, height: 52, paddingLeft: 28, paddingRight: 28, fontSize: 16, fontWeight: T.fontWeightSemibold, borderRadius: T.radiusMd }}>
+                <Button type="primary" size="large" icon={<ThunderboltOutlined />} style={{ background: T.primaryBg, borderColor: T.primaryBg, height: 52, paddingLeft: 28, paddingRight: 28, fontSize: 16, fontWeight: T.fontWeightSemibold, borderRadius: T.radiusMd, boxShadow: '0 4px 14px rgba(255,75,47,0.35)' }}>
                   进入创作助手
                 </Button>
               </Link>
             </motion.div>
-            <motion.div variants={{ hidden: { scale: 0, opacity: 0 }, visible: { scale: 1, opacity: 1 } }} transition={{ type: 'spring', stiffness: 260, damping: 18 }}>
+            <motion.div variants={{ hidden: { scale: 0, opacity: 0 }, visible: { scale: 1, opacity: 1 } }} transition={{ type: 'spring', stiffness: 260, damping: 18 }} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
               <Link to="/ai">
                 <Button size="large" icon={<MessageOutlined />} style={{ height: 52, paddingLeft: 28, paddingRight: 28, fontSize: 16, color: T.text, border: `2px solid ${T.stroke}`, background: 'transparent', fontWeight: T.fontWeightMedium, borderRadius: T.radiusMd }}>
                   AI 对话
@@ -375,24 +375,24 @@ export default function IntroPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1 }}
-            style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'center', marginTop: 40 }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 48, justifyContent: 'center', marginTop: 48 }}
           >
             {[
               { value: '多智能体', label: '动态编排' },
-              { value: '语义记忆', label: '图谱联动' },
+              { value: '云端记忆', label: '图谱联动' },
               { value: '构思→创作→优化', label: '一站式' },
             ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
+              <motion.div key={i} style={{ textAlign: 'center' }} whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
                 <div style={{ fontSize: 18, fontWeight: T.fontWeightBold, color: T.textBright }}>{s.value}</div>
                 <div style={{ fontSize: 13, color: T.textDim }}>{s.label}</div>
-              </div>
+              </motion.div>
             ))}
           </motion.div>
         </motion.div>
       </section>
 
       {/* 实时查看工作流 */}
-      <section style={{ padding: '120px 40px 140px', background: T.bgPage, minHeight: 'min(100vh, 900px)' }}>
+      <section style={{ padding: '120px 40px 140px', background: 'linear-gradient(180deg, #fafafa 0%, #ffffff 100%)', minHeight: 'min(100vh, 900px)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <motion.div
             initial={{ opacity: 0, y: 32 }}
@@ -420,10 +420,10 @@ export default function IntroPage() {
               <span style={{ fontSize: 14, fontWeight: T.fontWeightSemibold, color: T.accent }}>实时编排中</span>
             </div>
             <Title level={2} style={{ color: T.textBright, fontWeight: T.fontWeightBold, marginBottom: 12, fontSize: 32 }}>
-              实时查看你的 <span className="intro-text-gradient">AI 工作流</span>
+              实时查看你的 <span className="intro-text-gradient">创作工作流</span>
             </Title>
             <Paragraph style={{ color: T.textMuted, fontSize: 18, maxWidth: 672, margin: '0 auto' }}>
-              观察多智能体如何动态编排、协同创作。Agent 可随任务灵活增删，每个步骤清晰可见，全程可控。
+              构思 → 记忆召回(跨章人物、伏笔、长线设定) → 续写 → 质检 ⇄ 重写 → 实体提取 → 记忆入库。每个步骤清晰可见，全程可控。
             </Paragraph>
           </motion.div>
 
@@ -436,11 +436,12 @@ export default function IntroPage() {
           >
             <div style={{ maxWidth: 1240, margin: '0 auto' }}>
               <WorkflowGraph
+                variant="creation"
                 demo
                 showAgentCenter
-                scale={1.25}
-                height={420}
-                width={800}
+                scale={1.1}
+                height={480}
+                width={950}
               />
             </div>
           </motion.div>
@@ -497,7 +498,7 @@ export default function IntroPage() {
       </section>
 
       {/* 流程：构思 → 创作 → 优化 — 参考 WorkflowCards 手风琴 + 动效 */}
-      <section style={{ padding: '100px 40px 120px', maxWidth: 1280, margin: '0 auto', minHeight: 'min(100vh, 820px)' }}>
+      <section style={{ padding: '100px 40px 120px', maxWidth: 1280, margin: '0 auto', minHeight: 'min(100vh, 820px)', background: T.bgPage }}>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -659,7 +660,7 @@ export default function IntroPage() {
         </motion.div>
       </section>
 
-      {/* 探索你的记忆网络 — 深色区块 */}
+      {/* 探索你的记忆系统 — 深色区块 */}
       <section
         style={{
           padding: '120px 40px 140px',
@@ -707,10 +708,10 @@ export default function IntroPage() {
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
             </div>
             <Title level={2} style={{ color: '#fafafa', fontWeight: T.fontWeightBold, marginBottom: 12, fontSize: 32 }}>
-              探索你的 <span className="intro-text-gradient">记忆网络</span>
+              探索你的 <span className="intro-text-gradient">记忆系统</span>
             </Title>
             <Paragraph style={{ color: 'rgba(255,255,255,0.55)', fontSize: 18, maxWidth: 672, margin: '0 auto' }}>
-              实体、事实、原子笔记自动关联成网。点击节点查看详情，体验游戏化的记忆探索。
+              实体、事实与原子笔记自动关联，跨章人物、伏笔与长线设定一目了然。点击节点查看详情。
             </Paragraph>
           </motion.div>
 
@@ -731,13 +732,13 @@ export default function IntroPage() {
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 40 }}
           >
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: T.accent }} />
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>点击节点查看记忆详情，进入创作助手体验完整图谱</span>
+            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>点击节点查看记忆详情，进入创作助手体验完整记忆系统</span>
           </motion.div>
 
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} style={{ textAlign: 'center' }}>
             <Link to="/creator">
               <Button type="primary" size="large" icon={<ArrowRightOutlined />} style={{ background: T.primaryBg, borderColor: T.primaryBg, height: 52, paddingLeft: 32, paddingRight: 32, fontSize: 16, fontWeight: T.fontWeightSemibold, borderRadius: T.radiusMd }}>
-                进入创作助手体验记忆网络
+                进入创作助手体验记忆系统
               </Button>
             </Link>
           </motion.div>
@@ -745,7 +746,7 @@ export default function IntroPage() {
       </section>
 
       {/* CTA */}
-      <section style={{ padding: '100px 40px 120px', textAlign: 'center', minHeight: 'min(80vh, 520px)' }}>
+      <section style={{ padding: '100px 40px 120px', textAlign: 'center', minHeight: 'min(80vh, 520px)', background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)' }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -769,7 +770,7 @@ export default function IntroPage() {
               准备好开始创作了吗？
             </Title>
             <Paragraph style={{ color: T.textMuted, marginBottom: 28, fontSize: 18, maxWidth: 560, margin: '0 auto 28px' }}>
-              进入创作助手，选择新建或续写项目，即可体验多智能体与记忆网络。
+              进入创作助手，选择新建或续写项目，即可体验。
             </Paragraph>
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
               <Link to="/creator">

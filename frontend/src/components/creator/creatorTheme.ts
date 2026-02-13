@@ -112,7 +112,7 @@ export const CREATOR_THEME = {
 export type CreatorTheme = typeof CREATOR_THEME;
 
 /**
- * 介绍页亮色主题 — 参考 Kimi 参考 app Hero（白底、深色字、品牌色）
+ * 主页亮色主题 — 参考 Kimi 参考 app Hero（白底、深色字、品牌色）
  */
 export const INTRO_THEME = {
   fontFamily: CREATOR_THEME.fontFamily,

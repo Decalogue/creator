@@ -5,10 +5,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  SearchOutlined,
+  BulbOutlined,
+  ReadOutlined,
+  TeamOutlined,
+  LinkOutlined,
+  GlobalOutlined,
   EditOutlined,
-  PictureOutlined,
-  CodeOutlined,
+  FormOutlined,
+  DatabaseOutlined,
+  SaveOutlined,
+  RiseOutlined,
   CheckCircleOutlined,
   ThunderboltOutlined,
   LoadingOutlined,
@@ -17,32 +23,75 @@ import { INTRO_THEME } from './creatorTheme';
 
 const T = INTRO_THEME;
 
-const DEFAULT_AGENTS = [
-  { id: 'research', name: '研究Agent', icon: <SearchOutlined />, color: '#3b82f6' },
+/** 通用研究流程（保留供 creator 页使用） */
+const RESEARCH_AGENTS = [
+  { id: 'research', name: '研究Agent', icon: <BulbOutlined />, color: '#3b82f6' },
   { id: 'writing', name: '写作Agent', icon: <EditOutlined />, color: '#10b981' },
-  { id: 'image', name: '图像Agent', icon: <PictureOutlined />, color: '#f59e0b' },
-  { id: 'code', name: '代码Agent', icon: <CodeOutlined />, color: '#06b6d4' },
+  { id: 'entity', name: '实体Agent', icon: <DatabaseOutlined />, color: '#06b6d4' },
   { id: 'review', name: '审核Agent', icon: <CheckCircleOutlined />, color: '#ec4899' },
 ] as const;
 
-const DEFAULT_POSITIONS: Record<string, { x: number; y: number }> = {
-  research: { x: 100, y: 200 },
-  writing: { x: 300, y: 140 },
-  image: { x: 300, y: 260 },
-  code: { x: 500, y: 140 },
-  review: { x: 700, y: 200 },
+const RESEARCH_POSITIONS: Record<string, { x: number; y: number }> = {
+  research: { x: 80, y: 180 },
+  writing: { x: 280, y: 180 },
+  entity: { x: 480, y: 180 },
+  review: { x: 680, y: 180 },
 };
 
-const DEFAULT_LINKS = [
+const RESEARCH_LINKS = [
   { source: 'research', target: 'writing' },
-  { source: 'research', target: 'image' },
-  { source: 'writing', target: 'code' },
-  { source: 'writing', target: 'review' },
-  { source: 'image', target: 'review' },
-  { source: 'code', target: 'review' },
+  { source: 'writing', target: 'entity' },
+  { source: 'entity', target: 'review' },
 ];
 
-const DEFAULT_RUN_ORDER = ['research', 'writing', 'image', 'code', 'review'];
+const RESEARCH_RUN_ORDER = ['research', 'writing', 'entity', 'review'];
+
+/** 创作任务流程：构思 → 记忆召回(跨章人物、伏笔、长线设定) → 续写 → 质检 ⇄ 重写 → 实体提取 → 记忆入库 */
+const CREATION_AGENTS = [
+  { id: 'ideate', name: '构思Agent', icon: <BulbOutlined />, color: '#3b82f6' },
+  { id: 'recall', name: '记忆召回', icon: <ReadOutlined />, color: '#0ea5e9' },
+  { id: 'cross_char', name: '跨章人物', icon: <TeamOutlined />, color: '#06b6d4' },
+  { id: 'foreshadow', name: '伏笔', icon: <LinkOutlined />, color: '#a855f7' },
+  { id: 'longterm', name: '长线设定', icon: <GlobalOutlined />, color: '#0d9488' },
+  { id: 'write', name: '续写Agent', icon: <EditOutlined />, color: '#10b981' },
+  { id: 'quality', name: '质检Agent', icon: <RiseOutlined />, color: '#f59e0b' },
+  { id: 'rewrite', name: '重写Agent', icon: <FormOutlined />, color: '#ec4899' },
+  { id: 'entity', name: '实体提取', icon: <DatabaseOutlined />, color: '#8b5cf6' },
+  { id: 'store', name: '记忆入库', icon: <SaveOutlined />, color: '#047857' },
+] as const;
+
+// 布局：各列水平等间距（节点宽 88，列间距 24），保证召回右缘 < 三模块左缘
+const NODE_W = 88;
+const COL_GAP = 24;
+const CREATION_POSITIONS: Record<string, { x: number; y: number }> = {
+  ideate: { x: 30, y: 200 },
+  recall: { x: 30 + NODE_W + COL_GAP, y: 200 },
+  cross_char: { x: 30 + (NODE_W + COL_GAP) * 2, y: 100 },
+  foreshadow: { x: 30 + (NODE_W + COL_GAP) * 2, y: 200 },
+  longterm: { x: 30 + (NODE_W + COL_GAP) * 2, y: 300 },
+  write: { x: 30 + (NODE_W + COL_GAP) * 3, y: 200 },
+  quality: { x: 30 + (NODE_W + COL_GAP) * 4, y: 200 },
+  rewrite: { x: 30 + (NODE_W + COL_GAP) * 4, y: 320 },
+  entity: { x: 30 + (NODE_W + COL_GAP) * 5, y: 200 },
+  store: { x: 30 + (NODE_W + COL_GAP) * 6, y: 200 },
+};
+
+const CREATION_LINKS = [
+  { source: 'ideate', target: 'recall' },
+  { source: 'recall', target: 'cross_char' },
+  { source: 'recall', target: 'foreshadow' },
+  { source: 'recall', target: 'longterm' },
+  { source: 'cross_char', target: 'write' },
+  { source: 'foreshadow', target: 'write' },
+  { source: 'longterm', target: 'write' },
+  { source: 'write', target: 'quality' },
+  { source: 'quality', target: 'rewrite' },
+  { source: 'rewrite', target: 'quality' },
+  { source: 'quality', target: 'entity' },
+  { source: 'entity', target: 'store' },
+];
+
+const CREATION_RUN_ORDER = ['ideate', 'recall', 'cross_char', 'foreshadow', 'longterm', 'write', 'quality', 'rewrite', 'quality', 'entity', 'store'];
 
 export interface WorkflowAgent {
   id: string;
@@ -52,13 +101,15 @@ export interface WorkflowAgent {
 }
 
 export interface WorkflowGraphProps {
-  /** 动态 agents，不传则用默认 研究/写作/图像/代码/审核 */
+  /** 流程变体：creation 创作任务（构思→续写→实体→质检），research 通用研究流程 */
+  variant?: 'creation' | 'research';
+  /** 动态 agents，不传则根据 variant 使用预设 */
   agents?: WorkflowAgent[];
   /** 边：source -> target */
   links?: { source: string; target: string }[];
-  /** 节点位置，不传则用默认布局 */
+  /** 节点位置，不传则根据 variant 使用预设 */
   positions?: Record<string, { x: number; y: number }>;
-  /** 运行顺序，不传则用 DEFAULT_RUN_ORDER */
+  /** 运行顺序，不传则根据 variant 使用预设 */
   runOrder?: string[];
   /** 是否 demo 自动循环运行 */
   demo?: boolean;
@@ -160,13 +211,37 @@ function bezierPath(
   return `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
 }
 
+/** 正交路径：经路点转折。wayX 为共用竖线 x；wayY 可选，用于汇聚到目标前先对齐 y */
+function orthogonalPath(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  wayX?: number,
+  wayY?: number
+): string {
+  const wx = wayX ?? (x1 + x2) / 2;
+  if (wayY != null) {
+    return `M ${x1} ${y1} L ${wx} ${y1} L ${wx} ${wayY} L ${x2} ${wayY} L ${x2} ${y2}`;
+  }
+  return `M ${x1} ${y1} L ${wx} ${y1} L ${wx} ${y2} L ${x2} ${y2}`;
+}
+
 const AGENT_CENTER_WIDTH = 220;
 
+function getPresets(variant: 'creation' | 'research') {
+  if (variant === 'creation') {
+    return { agents: CREATION_AGENTS, links: CREATION_LINKS, positions: CREATION_POSITIONS, runOrder: CREATION_RUN_ORDER };
+  }
+  return { agents: RESEARCH_AGENTS, links: RESEARCH_LINKS, positions: RESEARCH_POSITIONS, runOrder: RESEARCH_RUN_ORDER };
+}
+
 export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
-  agents = DEFAULT_AGENTS as unknown as WorkflowAgent[],
-  links = DEFAULT_LINKS,
-  positions = DEFAULT_POSITIONS,
-  runOrder = DEFAULT_RUN_ORDER,
+  variant = 'creation',
+  agents: agentsProp,
+  links: linksProp,
+  positions: positionsProp,
+  runOrder: runOrderProp,
   demo = false,
   height = 420,
   width = 800,
@@ -174,6 +249,12 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
   showAgentCenter = false,
   className,
 }) => {
+  const presets = getPresets(variant);
+  const agents = agentsProp ?? (presets.agents as unknown as WorkflowAgent[]);
+  const links = linksProp ?? presets.links;
+  const positions = positionsProp ?? presets.positions;
+  const runOrder = runOrderProp ?? presets.runOrder;
+
   const agentIds = useMemo(() => agents.map((a) => a.id), [agents]);
   const agentNames = useMemo(
     () => Object.fromEntries(agents.map((a) => [a.id, a.name])),
@@ -213,6 +294,21 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
   );
 
   const linkPaths = useMemo(() => {
+    const trim = nodeSize.w / 2 + 24;
+    const isCreation = variant === 'creation';
+    const recallCenter = isCreation ? getNodeCenter('recall') : null;
+    const writeCenter = isCreation ? getNodeCenter('write') : null;
+    const entityCenter = isCreation ? getNodeCenter('entity') : null;
+    const storeCenter = isCreation ? getNodeCenter('store') : null;
+    const recallRight = recallCenter ? recallCenter.x + nodeSize.w / 2 : 0;
+    const writeLeft = writeCenter ? writeCenter.x - nodeSize.w / 2 : 0;
+    const writeY = writeCenter?.y ?? 0;
+    const joinSpineX = isCreation && entityCenter && storeCenter
+      ? (entityCenter.x + storeCenter.x) / 2
+      : 0;
+    const storeY = storeCenter?.y ?? 0;
+    const storeLeft = storeCenter ? storeCenter.x - nodeSize.w / 2 : 0;
+
     return links.map((l) => {
       const a = getNodeCenter(l.source);
       const b = getNodeCenter(l.target);
@@ -221,15 +317,39 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
       const dist = Math.hypot(dx, dy) || 1;
       const nx = dx / dist;
       const ny = dy / dist;
-      const trim = Math.min(24, dist * 0.35);
-      const off = nodeSize.w / 2 + trim;
-      const x1 = a.x + nx * off;
-      const y1 = a.y + ny * off;
-      const x2 = b.x - nx * off;
-      const y2 = b.y - ny * off;
-      return { path: bezierPath(x1, y1, x2, y2), source: l.source, target: l.target };
+      let x1 = a.x + nx * trim;
+      let y1 = a.y + ny * trim;
+      let x2 = b.x - nx * trim;
+      let y2 = b.y - ny * trim;
+
+      let path: string;
+      if (isCreation) {
+        const recallFork = l.source === 'recall' && ['cross_char', 'foreshadow', 'longterm'].includes(l.target);
+        const recallJoin = l.target === 'write' && ['cross_char', 'foreshadow', 'longterm'].includes(l.source);
+        const entityToStore = l.source === 'entity' && l.target === 'store';
+        if (recallFork) {
+          const trimEnd = nodeSize.w / 2;
+          const endX = b.x - trimEnd;
+          const startX = Math.min(recallRight, endX);
+          const pathEndX = Math.max(recallRight, endX);
+          y1 = b.y;
+          y2 = b.y;
+          path = `M ${startX} ${y1} L ${pathEndX} ${y2}`;
+        } else if (recallJoin) {
+          const joinEndX = writeLeft;
+          const joinEndY = writeY;
+          path = bezierPath(x1, y1, joinEndX, joinEndY, Math.min(80, Math.abs(joinEndX - x1) * 0.35));
+        } else if (entityToStore) {
+          path = `M ${x1} ${y1} L ${joinSpineX} ${y1} L ${joinSpineX} ${storeY} L ${storeLeft} ${storeY}`;
+        } else {
+          path = bezierPath(x1, y1, x2, y2, Math.min(60, dist * 0.25));
+        }
+      } else {
+        path = bezierPath(x1, y1, x2, y2, 50);
+      }
+      return { path, source: l.source, target: l.target };
     });
-  }, [links, getNodeCenter]);
+  }, [links, getNodeCenter, variant, nodeSize.w]);
 
   const completedCount = completed.length;
   const fs = (n: number) => Math.round(n * scale);
@@ -279,23 +399,23 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
         <defs>
           <marker
             id="workflow-arrow"
-            markerWidth="8"
-            markerHeight="6"
-            refX="7"
-            refY="3"
+            markerWidth="10"
+            markerHeight="8"
+            refX="9"
+            refY="4"
             orient="auto"
           >
-            <path d="M0 0 L8 3 L0 6 Z" fill="rgba(255,75,47,0.5)" />
+            <path d="M0 0 L10 4 L0 8 Z" fill="rgba(255,75,47,0.4)" />
           </marker>
           <marker
             id="workflow-arrow-active"
-            markerWidth="8"
-            markerHeight="6"
-            refX="7"
-            refY="3"
+            markerWidth="10"
+            markerHeight="8"
+            refX="9"
+            refY="4"
             orient="auto"
           >
-            <path d="M0 0 L8 3 L0 6 Z" fill={T.accent} />
+            <path d="M0 0 L10 4 L0 8 Z" fill={T.accent} />
           </marker>
         </defs>
         {linkPaths.map(({ path, source, target }, i) => {
@@ -307,9 +427,10 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
               <path
                 d={path}
                 fill="none"
-                stroke="rgba(255,75,47,0.25)"
-                strokeWidth={2}
-                strokeDasharray="6 10"
+                stroke="rgba(0,0,0,0.12)"
+                strokeWidth={1.5}
+                strokeDasharray="5 8"
+                strokeLinecap="round"
                 markerEnd="url(#workflow-arrow)"
               />
               {isActive && (
@@ -318,6 +439,7 @@ export const WorkflowGraph: React.FC<WorkflowGraphProps> = ({
                   fill="none"
                   stroke={T.accent}
                   strokeWidth={2.5}
+                  strokeLinecap="round"
                   markerEnd="url(#workflow-arrow-active)"
                 />
               )}

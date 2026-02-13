@@ -12,6 +12,7 @@ EVERMEMOS_ENABLED=1 且配置 EVERMEMOS_API_KEY 时：创作成功同时写入 E
 - retain：retain_plan, retain_chapter, retain_chapter_entities, retain_polish, retain_chat
 """
 import os
+import re
 import hashlib
 import json
 import logging
@@ -309,13 +310,43 @@ def retain_plan_to_evermemos(project_id: str, plan_summary: str) -> None:
         logger.warning("Failed to retain plan to EverMemOS (project_id=%s): %s", project_id, e, exc_info=True)
 
 
+def _extract_key_detail_sentences(content: str, max_sentences: int = 5, max_total: int = 600) -> str:
+    """提取包含关键细节的句子（数字、百分比、编号、技术相关词），便于长程召回精确回指。"""
+    parts = re.split(r'([。！？])', content)
+    sentences = []
+    buf = ""
+    for i, p in enumerate(parts):
+        if p in ("。", "！", "？"):
+            buf += p
+            if buf.strip():
+                sentences.append(buf.strip())
+            buf = ""
+        else:
+            buf += p
+    if buf.strip():
+        sentences.append(buf.strip())
+    out = []
+    total = 0
+    for s in sentences:
+        if len(s) < 10:
+            continue
+        if re.search(r'\d+%|第\d+[号章节]|\d+\.\d+|实验体|傅里叶|量子|维度|播种|遗迹|核心意识|保留率', s):
+            out.append(s)
+            total += len(s)
+            if len(out) >= max_sentences or total >= max_total:
+                break
+    if not out:
+        return ""
+    return " ".join(out)[:max_total]
+
+
 def retain_chapter_to_evermemos(
     project_id: str,
     chapter_number: int,
     content: str,
     chapter_summary: Optional[str] = None,
 ) -> None:
-    """续写章节成功后写入 EverMemOS。优先使用章节摘要（大纲或创作后生成），无摘要时用正文前 500 字。"""
+    """续写章节成功后写入 EverMemOS。优先使用章节摘要，无摘要时用正文前 500 字；另写入关键细节点（数字、术语、一次性事件）便于长程召回。"""
     try:
         from api_EverMemOS import is_available, add_memory
         if not is_available():
@@ -329,6 +360,11 @@ def retain_chapter_to_evermemos(
             summary_text = (summary_text[:800] + "…") if len(summary_text) > 800 else summary_text
         add_memory([{"message_id": msg_id, "create_time": ts, "sender": CREATOR_SENDER, "content": f"【第{chapter_number}章】{summary_text}", "group_id": _evermemos_group_id(project_id)}])
         _append_evermemos_ids(project_id, [msg_id])
+        details = _extract_key_detail_sentences(content)
+        if details:
+            msg_id2 = "msg_" + uuid.uuid4().hex
+            add_memory([{"message_id": msg_id2, "create_time": ts, "sender": CREATOR_SENDER, "content": f"【第{chapter_number}章细节点】{details}", "group_id": _evermemos_group_id(project_id)}])
+            _append_evermemos_ids(project_id, [msg_id2])
         logger.info("Retained chapter %s to EverMemOS for project_id=%s", chapter_number, project_id)
     except Exception as e:
         logger.warning(
@@ -536,6 +572,9 @@ RETRIEVAL_DEMO_QUERIES = [
 # 续写专用：近期情节（章节数>5 时启用，强化前后章衔接）
 CONTINUE_QUERY_RECENT = ("近期情节", "近期 情节 发展 剧情 承接 上一章")
 
+# 长程召回（章节>=21 时启用）：针对早期章节的叙事细节（初次相遇、遗迹发现、人物登场、具体数字与术语）
+CONTINUE_QUERY_LONGRANGE = ("长程细节", "主角初次相遇 遗迹发现 人物登场 早期情节 具体数字 技术术语")
+
 # 按模式区分的查询策略：(单 query 字符串) 或 (多 (label, query) 的列表)，以及 top_k
 MODE_QUERY_CONFIG = {
     "create": {"query": "风格 主题 类型 过往创作 大纲 设定 世界观", "top_k": 8},
@@ -548,15 +587,22 @@ def recall_three_types_from_evermemos(
     project_id: str,
     top_k_per_type: int = 5,
     include_recent_plot: bool = False,
+    include_longrange: bool = False,
+    extra_queries: Optional[List[Tuple[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
-    """按三类（跨章人物、伏笔、长线设定）检索云端记忆并合并去重；可选加入近期情节。
-    返回格式与 recall_from_evermemos 一致，可直接用于 extra_memory_context。"""
+    """按三类（跨章人物、伏笔、长线设定）检索云端记忆并合并去重；可选近期情节、长程细节、额外查询。
+    返回格式与 recall_from_evermemos 一致，可直接用于 extra_memory_context。
+    include_longrange：章节>=21 时 True，加入长程召回以获取早期章节的叙事细节。"""
     seen_ids: set = set()
     seen_content_prefix: set = set()
     out: List[Dict[str, Any]] = []
     queries = list(RETRIEVAL_DEMO_QUERIES)
     if include_recent_plot:
         queries.append(CONTINUE_QUERY_RECENT)
+    if include_longrange:
+        queries.append(CONTINUE_QUERY_LONGRANGE)
+    if extra_queries:
+        queries.extend(extra_queries)
     for _label, query in queries:
         items = recall_from_evermemos(project_id, query, top_k=top_k_per_type)
         for x in items:
@@ -591,10 +637,15 @@ def recall_for_mode(
     except Exception:
         return []
     if mode == "continue":
-        top_k_per = 5 if (chapter_number or 0) <= 10 else 6
-        include_recent = (chapter_number or 0) > 5
+        ch = chapter_number or 0
+        top_k_per = 5 if ch <= 10 else (6 if ch <= 20 else 7)
+        include_recent = ch > 5
+        include_longrange = ch >= 21
         return recall_three_types_from_evermemos(
-            project_id, top_k_per_type=top_k_per, include_recent_plot=include_recent
+            project_id,
+            top_k_per_type=top_k_per,
+            include_recent_plot=include_recent,
+            include_longrange=include_longrange,
         )
     cfg = MODE_QUERY_CONFIG.get(mode)
     if not cfg:
@@ -613,9 +664,10 @@ def run_retrieval_demo(
     top_k: int = 8,
     log_path: Optional[Path] = None,
     include_recent_plot: bool = True,
+    include_longrange: bool = True,
 ) -> List[Dict[str, Any]]:
-    """跑三类检索（跨章人物、伏笔、长线设定、近期情节）并返回摘要；若提供 log_path 则追加到 JSONL 日志。
-    与续写流程一致；include_recent_plot 为 True 时加入近期情节类（章节>5 时续写会启用）。"""
+    """跑三类检索（跨章人物、伏笔、长线设定、近期情节、长程细节）并返回摘要；若提供 log_path 则追加到 JSONL 日志。
+    与续写流程一致；include_recent_plot 为 True 时加入近期情节；include_longrange 为 True 时加入长程细节（续写 ch≥21 时启用）。"""
     try:
         from api_EverMemOS import is_available
         if not is_available():
@@ -628,6 +680,8 @@ def run_retrieval_demo(
     queries = list(RETRIEVAL_DEMO_QUERIES)
     if include_recent_plot:
         queries.append(CONTINUE_QUERY_RECENT)
+    if include_longrange:
+        queries.append(CONTINUE_QUERY_LONGRANGE)
     for query_type, query in queries:
         items = recall_from_evermemos(project_id, query, top_k=top_k)
         count = len(items)

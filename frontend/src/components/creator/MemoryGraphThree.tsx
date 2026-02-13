@@ -25,6 +25,18 @@ const TYPE_LABELS: Record<string, string> = {
   atom: '原子笔记',
 };
 
+/** 按类型返回节点几何体，使实体/事实/原子笔记在图中形状区分明显 */
+function getNodeGeometry(type: string, baseSize: number): THREE.BufferGeometry {
+  switch (type) {
+    case 'entity':
+      return new THREE.OctahedronGeometry(baseSize, 0);
+    case 'fact':
+      return new THREE.CylinderGeometry(baseSize * 0.85, baseSize * 0.85, baseSize * 0.5, 24);
+    default:
+      return new THREE.SphereGeometry(baseSize, 28, 28);
+  }
+}
+
 export interface MemoryGraphThreeProps {
   data: MemoryGraphData;
   width: number;
@@ -135,6 +147,10 @@ function NodeMesh({
   const labelFontSize = variant === 'intro' ? 14 : 11;
   const labelPadding = variant === 'intro' ? '6px 12px' : '4px 10px';
   const labelDistanceFactor = variant === 'intro' ? 16 : 12;
+  const nodeGeometry = useMemo(
+    () => getNodeGeometry(node.type, baseSize),
+    [node.type, baseSize]
+  );
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -176,7 +192,7 @@ function NodeMesh({
         onPointerOut={() => onHover(false)}
         scale={isHovered ? 1.15 : 1}
       >
-        <sphereGeometry args={[baseSize, 28, 28]} />
+        <primitive object={nodeGeometry} attach="geometry" />
         <meshStandardMaterial
           color={color}
           emissive={color}
@@ -189,19 +205,27 @@ function NodeMesh({
         <div
           style={{
             padding: labelPadding,
-            borderRadius: 999,
+            borderRadius: variant === 'intro' ? 12 : 999,
             fontSize: labelFontSize,
             fontWeight: T.fontWeightSemibold,
-            whiteSpace: 'nowrap',
+            whiteSpace: variant === 'intro' && (node.brief || node.source) ? 'normal' : 'nowrap',
             cursor: 'pointer',
             background: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.7)',
             color: isActive ? '#0a0a0a' : '#fafafa',
             border: `2px solid ${color}`,
             transform: isActive ? 'scale(1.08)' : undefined,
             transition: 'background 0.2s, color 0.2s, transform 0.2s',
+            textAlign: 'center',
+            minWidth: variant === 'intro' ? 72 : undefined,
+            maxWidth: variant === 'intro' ? 120 : undefined,
           }}
         >
-          {TYPE_ICONS[node.type]} {node.label}
+          <div>{TYPE_ICONS[node.type]} {node.label}</div>
+          {variant === 'intro' && (node.brief || node.source) && (
+            <div style={{ fontSize: labelFontSize - 2, fontWeight: 400, opacity: 0.85, marginTop: 2 }}>
+              {node.brief ?? node.source}
+            </div>
+          )}
         </div>
       </Html>
     </group>
@@ -361,7 +385,7 @@ export const MemoryGraphThree: React.FC<MemoryGraphThreeProps> = ({
       >
         <span style={{ width: isIntro ? 10 : 8, height: isIntro ? 10 : 8, borderRadius: '50%', background: '#22c55e' }} />
         <span style={{ fontSize: isIntro ? 15 : 13, fontWeight: T.fontWeightSemibold, color: T.accent, fontFamily: 'monospace' }}>
-          记忆网络在线
+          云记忆
         </span>
       </div>
       <div
@@ -419,7 +443,7 @@ export const MemoryGraphThree: React.FC<MemoryGraphThreeProps> = ({
       >
         {(['entity', 'fact', 'atom'] as const).map((type) => (
           <div key={type} style={{ display: 'flex', alignItems: 'center', gap: isIntro ? 10 : 8 }}>
-            <span style={{ fontSize: isIntro ? 18 : 16 }}>{TYPE_ICONS[type]}</span>
+            <span style={{ fontSize: isIntro ? 18 : 16, color: COLORS[type] }}>{TYPE_ICONS[type]}</span>
             <span style={{ fontSize: isIntro ? 14 : 13, color: T.textMuted }}>{TYPE_LABELS[type]}</span>
           </div>
         ))}

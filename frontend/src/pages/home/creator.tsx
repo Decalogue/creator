@@ -11,6 +11,7 @@ import {
   Segmented,
   Select,
   Modal,
+  Drawer,
   List,
   Checkbox,
   InputNumber,
@@ -68,9 +69,15 @@ const CREATOR_POLL_INTERVAL_MS = 2500;
 /** 流式创作单次请求最长等待 300s，超时则前端 abort */
 const CREATOR_STREAM_TIMEOUT_MS = 300 * 1000;
 
-/** 后端 step 与前端 Agent 映射（P1 编排事件） */
+/** 后端 step 与前端 Agent 映射（与 api/orchestration_events CREATOR_STEPS 一致） */
 function stepToAgentKey(step: string): AgentKey | null {
-  const map: Record<string, AgentKey> = { plan: 'planner', memory: 'memory', write: 'writer' };
+  const map: Record<string, AgentKey> = {
+    plan: 'planner',
+    memory: 'memory',
+    write: 'writer',
+    polish: 'editor',
+    qa: 'qa',
+  };
   return map[step] ?? null;
 }
 
@@ -216,13 +223,13 @@ async function parseCreatorRunResponse(
   return { data, error: null };
 }
 
-// 智能体定义：记忆为通用支撑（实体/关系/事实/原子笔记），排首位；其余为创作流水线
+// 与主页创作流程图、后端 CREATOR_STEPS 一致：构思→记忆召回→续写→质检→润色（实体提取与记忆入库在续写后自动执行）
 const AGENTS = [
-  { key: 'memory', name: '记忆', icon: <DatabaseOutlined />, color: '#06b6d4' },
-  { key: 'planner', name: '大纲', icon: <BulbOutlined />, color: '#f59e0b' },
-  { key: 'writer', name: '写手', icon: <EditOutlined />, color: '#8b5cf6' },
-  { key: 'editor', name: '润色', icon: <EditOutlined />, color: '#10b981' },
+  { key: 'planner', name: '构思', icon: <BulbOutlined />, color: '#f59e0b' },
+  { key: 'memory', name: '记忆召回', icon: <DatabaseOutlined />, color: '#06b6d4' },
+  { key: 'writer', name: '续写', icon: <EditOutlined />, color: '#8b5cf6' },
   { key: 'qa', name: '质检', icon: <SafetyCertificateOutlined />, color: '#ec4899' },
+  { key: 'editor', name: '润色', icon: <EditOutlined />, color: '#10b981' },
 ] as const;
 
 type AgentKey = (typeof AGENTS)[number]['key'];
@@ -244,7 +251,7 @@ const CreatorPage: React.FC = () => {
   const [orchestrationOpen, setOrchestrationOpen] = useState(true);
   const [memoryOpen, setMemoryOpen] = useState(true);
   const [memoryView, setMemoryView] = useState<'list' | 'graph'>('list');
-  const [graphMode, setGraphMode] = useState<'2d' | '3d'>('2d');
+  const [graphMode, setGraphMode] = useState<'2d' | '3d'>('3d');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [orchestration, setOrchestration] = useState<AgentKey[]>([]);
   const [activeAgent, setActiveAgent] = useState<AgentKey | null>(null);
@@ -253,6 +260,8 @@ const CreatorPage: React.FC = () => {
   const [projectList, setProjectList] = useState<string[]>([]);
   const [projectChapters, setProjectChapters] = useState<{ number: number; title: string; summary?: string; has_file: boolean }[]>([]);
   const [chapterListOpen, setChapterListOpen] = useState(false);
+  const [chapterContentDrawer, setChapterContentDrawer] = useState<{ number: number; title: string; content: string } | null>(null);
+  const [chapterContentLoading, setChapterContentLoading] = useState(false);
   /** 新作大纲目标章数（默认 100）；接续前卷时用 volumeTargetChapters */
   const [createTargetChapters, setCreateTargetChapters] = useState(100);
   /** 章节续写时是否注入 EverMemOS 云端检索结果（可关闭以对比测试） */
@@ -466,7 +475,7 @@ const CreatorPage: React.FC = () => {
   }, [messages, scrollToBottom]);
 
   const runOrchestration = useCallback(async () => {
-    const order: AgentKey[] = ['memory', 'planner', 'writer', 'editor', 'qa'];
+    const order: AgentKey[] = ['planner', 'memory', 'writer', 'qa', 'editor'];
     setOrchestration([]);
     for (const a of order) {
       setActiveAgent(a);
@@ -698,15 +707,21 @@ const CreatorPage: React.FC = () => {
           setActiveAgent(null);
         }
       } else {
+        const chatMessages = [
+          {
+            role: 'system',
+            content:
+              '你是多智能体创作助手中的对话助手，使用 Kimi 模型与用户交流。当被问及身份时，请以「创作助手」或「Kimi 助手」介绍自己，仅讨论与创作、大纲、章节、润色等相关内容，不要自称 Claude 或其他未使用的模型。',
+          },
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
+          { role: 'user', content: raw },
+        ];
         const res = await fetch(`${API_BASE}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: [
-              ...messages.map((m) => ({ role: m.role, content: m.content })),
-              { role: 'user', content: raw },
-            ],
-            model: 'DeepSeek-v3-2',
+            messages: chatMessages,
+            model: 'kimi-k2-5',
             stream: true,
           }),
         });
@@ -992,12 +1007,55 @@ const CreatorPage: React.FC = () => {
           onCancel={() => setChapterListOpen(false)}
           footer={null}
           width={520}
-          styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
+          styles={{ body: { maxHeight: '70vh', overflowY: 'auto', position: 'relative' } }}
         >
           <List
             dataSource={projectChapters}
             renderItem={(ch) => (
-              <List.Item style={{ alignItems: 'flex-start' }}>
+              <List.Item
+                style={{
+                  alignItems: 'flex-start',
+                  cursor: ch.has_file ? 'pointer' : 'default',
+                }}
+                onClick={
+                  ch.has_file
+                    ? async () => {
+                        setChapterContentLoading(true);
+                        try {
+                          const url = `${API_BASE}/api/creator/chapter?project_id=${encodeURIComponent(projectId)}&number=${ch.number}`;
+                          const res = await fetch(url);
+                          const text = await res.text();
+                          let data: { code?: number; message?: string; content?: string; number?: number; title?: string } = {};
+                          try {
+                            data = JSON.parse(text);
+                          } catch {
+                            const isHtml = text.trimStart().toLowerCase().startsWith('<!');
+                            const hint = res.status === 404
+                              ? '章节接口未找到，请确认后端已重启（需支持 GET /api/creator/chapter）'
+                              : isHtml ? `请求失败 ${res.status}` : (text ? `${text.slice(0, 80)}` : `请求失败 ${res.status}`);
+                            message.error(res.ok ? '加载章节失败' : hint);
+                            return;
+                          }
+                          if (data.code === 0 && data.content != null) {
+                            setChapterContentDrawer({
+                              number: data.number ?? ch.number,
+                              title: data.title || ch.title,
+                              content: data.content,
+                            });
+                            setChapterListOpen(false);
+                          } else {
+                            message.error(data.message || '加载章节失败');
+                          }
+                        } catch (e) {
+                          const msg = e instanceof Error ? e.message : String(e);
+                          message.error(msg && msg !== 'Failed to fetch' ? msg : '加载章节失败，请检查网络或后端是否已启动');
+                        } finally {
+                          setChapterContentLoading(false);
+                        }
+                      }
+                    : undefined
+                }
+              >
                 <div style={{ width: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <span style={{ color: 'rgba(0,0,0,0.45)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
@@ -1019,7 +1077,33 @@ const CreatorPage: React.FC = () => {
               </List.Item>
             )}
           />
+          {chapterContentLoading && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+              <Spin />
+            </div>
+          )}
         </Modal>
+        <Drawer
+          title={chapterContentDrawer ? `第 ${chapterContentDrawer.number} 章 ${chapterContentDrawer.title}` : ''}
+          open={!!chapterContentDrawer}
+          onClose={() => setChapterContentDrawer(null)}
+          width="min(90vw, 640)"
+          styles={{ body: { paddingTop: 8 } }}
+        >
+          {chapterContentDrawer && (
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontSize: 15,
+                lineHeight: 1.8,
+                color: 'rgba(0,0,0,0.88)',
+              }}
+            >
+              {chapterContentDrawer.content}
+            </div>
+          )}
+        </Drawer>
       </header>
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
@@ -1210,7 +1294,7 @@ const CreatorPage: React.FC = () => {
                       lineHeight: 1.65,
                     }}
                   >
-                    大纲、写手、记忆、润色、质检等智能体按任务动态编排，结合记忆系统保持设定与风格一致。
+                    构思、记忆召回、续写、质检、润色等智能体按任务动态编排，与主页创作流程图一致；续写完成后自动执行实体提取与记忆入库。
                     <br />
                     选择模式：大纲 → 章节 → 润色/对话。
                   </div>
@@ -1391,6 +1475,29 @@ const CreatorPage: React.FC = () => {
             <div
               style={{
                 maxWidth: 760,
+                margin: '12px auto 0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Segmented
+                className="creator-segmented-mode"
+                value={mode}
+                onChange={(v) => setMode(v as typeof mode)}
+                options={[
+                  { value: 'create', label: '大纲' },
+                  { value: 'continue', label: '章节' },
+                  { value: 'polish', label: '润色' },
+                  { value: 'chat', label: '对话' },
+                ]}
+                size="small"
+                style={{ background: T.segBg }}
+              />
+            </div>
+            <div
+              style={{
+                maxWidth: 760,
                 margin: '10px auto 0',
                 display: 'flex',
                 alignItems: 'center',
@@ -1460,7 +1567,7 @@ const CreatorPage: React.FC = () => {
                   >
                     <DatabaseOutlined style={{ color: T.accent, fontSize: 12 }} />
                     <span style={{ fontSize: 11, fontWeight: T.fontWeightSemibold, color: T.accent, letterSpacing: '0.04em' }}>
-                      {memoryView === 'graph' ? '记忆网络在线' : 'AI 记忆系统'}
+                      {memoryView === 'graph' ? '云记忆' : 'AI 记忆系统'}
                     </span>
                     {memoryView === 'graph' && memoryGraph.nodes.length > 0 && (
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />

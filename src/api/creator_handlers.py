@@ -481,15 +481,18 @@ def run_continue(
                     previous_chapter_tail = raw_prev[-tail_len:]
             except Exception as ex:
                 logger.debug("读取上一章正文末尾失败: %s", ex)
-        # 更前章节（第 1 章～第 N-2 章）的摘要，仅从已有大纲条目取，避免越界
+        # 更前章节摘要：仅取最近 10 章、每条约 180 字，控制 prompt 长度
+        earlier_max_chapters = 10
+        earlier_summary_cap = 180
         if outline_index >= 2:
             parts = []
-            for i in range(0, min(outline_index - 1, len(co))):
+            start_i = max(0, outline_index - 1 - earlier_max_chapters)
+            for i in range(start_i, min(outline_index - 1, len(co))):
                 if isinstance(co[i], dict):
                     num = co[i].get("chapter_number", i + 1)
                     s = (co[i].get("summary") or "").strip()
                     if s:
-                        parts.append(f"第{num}章：{s[:300]}{'…' if len(s) > 300 else ''}")
+                        parts.append(f"第{num}章：{s[:earlier_summary_cap]}{'…' if len(s) > earlier_summary_cap else ''}")
             if parts:
                 earlier_chapters_summaries = "\n".join(parts)
 
@@ -525,13 +528,27 @@ def run_continue(
             except Exception as ex:
                 logger.warning("Could not load semantic mesh for continue: %s", ex)
 
+        # 云端记忆注入总长上限，避免 prompt 过长导致生成变慢
+        CONTINUE_CLOUD_MEMORY_CAP = 8000
         extra_memory = ""
         if use_evermemos_context:
             try:
                 from api.memory_handlers import recall_for_mode
                 items = recall_for_mode(project_id, "continue", chapter_number=chapter_number)
                 if items:
-                    extra_memory = "\n".join((x.get("content") or "").strip() for x in items if x.get("content"))
+                    parts = []
+                    total = 0
+                    max_cloud_chars = CONTINUE_CLOUD_MEMORY_CAP
+                    for x in items:
+                        c = (x.get("content") or "").strip()
+                        if not c:
+                            continue
+                        if total + len(c) + 1 > max_cloud_chars:
+                            parts.append(c[: max_cloud_chars - total - 1].strip())
+                            break
+                        parts.append(c)
+                        total += len(c) + 1
+                    extra_memory = "\n".join(parts) if parts else ""
             except Exception as ex:
                 logger.debug("EverMemOS recall for continue skipped: %s", ex)
         chapter = creator.create_chapter(

@@ -5,7 +5,7 @@ import { ThunderboltOutlined, MessageOutlined, HomeOutlined } from '@ant-design/
 import { CREATOR_THEME, INTRO_THEME } from '@/components/creator/creatorTheme';
 
 const navItems = [
-  { path: '/', label: '介绍', icon: <HomeOutlined /> },
+  { path: '/', label: '主页', icon: <HomeOutlined /> },
   { path: '/creator', label: '创作助手', icon: <ThunderboltOutlined /> },
   { path: '/ai', label: 'AI 对话', icon: <MessageOutlined /> },
 ];
@@ -44,7 +44,7 @@ export default function Layout() {
         ['--nav-hover-color' as string]: isIntro ? INTRO_THEME.text : CREATOR_THEME.text,
       }}
     >
-      {/* 顶栏 — 介绍页亮色 / 应用页深色，参考 Navigation */}
+      {/* 顶栏 — 主页亮色 / 应用页深色，参考 Navigation */}
       <header
         style={{
           position: 'sticky',

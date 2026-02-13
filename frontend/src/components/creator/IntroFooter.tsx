@@ -1,5 +1,5 @@
 /**
- * 介绍页页脚 — 与参考一致：深色、品牌 + 四栏链接 + 订阅 + 底栏
+ * 主页页脚 — 与参考一致：深色、品牌 + 四栏链接 + 订阅 + 底栏
  */
 import React from 'react';
 import { Button, Input } from 'antd';
@@ -22,7 +22,7 @@ const FOOTER_LINKS = {
   product: {
     title: '产品',
     links: [
-      { name: '介绍', href: '/' },
+      { name: '主页', href: '/' },
       { name: '创作助手', href: '/creator' },
       { name: 'AI 对话', href: '/ai' },
       { name: '定价方案', href: '#pricing' },
@@ -103,17 +103,17 @@ export const IntroFooter: React.FC = () => (
             智能创作助手，让 AI 为你的创意赋能。从构思到发布，一站式内容创作平台。
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <a href="mailto:decalogue80@gmail.com" style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} className="intro-footer-link">
               <MailOutlined style={{ fontSize: 14 }} />
-              <span>hello@chuangxiang.ai</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span>decalogue80@gmail.com</span>
+            </a>
+            <a href="tel:13661445290" style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} className="intro-footer-link">
               <PhoneOutlined style={{ fontSize: 14 }} />
-              <span>400-888-8888</span>
-            </div>
+              <span>13661445290</span>
+            </a>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <EnvironmentOutlined style={{ fontSize: 14 }} />
-              <span>北京市朝阳区科技园区</span>
+              <span>上海市</span>
             </div>
           </div>
         </div>
@@ -231,7 +231,7 @@ export const IntroFooter: React.FC = () => (
         className="intro-footer-bottom"
       >
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0, flex: '1 1 auto', minWidth: 0 }}>
-          © 2024 创想AI. 保留所有权利.
+          © 2026 创想AI. 保留所有权利.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           {SOCIAL_LINKS.map((s) => (
