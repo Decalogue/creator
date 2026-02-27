@@ -1,1 +1,6 @@
 python-dotenv
+openai==2.15.0
+evermemos==0.3.11
+flask==2.2.5
+flask_cors==4.0.1
+py2neo==2021.2.4

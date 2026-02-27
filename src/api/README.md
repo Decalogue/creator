@@ -27,9 +27,9 @@
 
 **记忆只读 fallback**：当 `api.memory_handlers` 未加载时，`api_flask` 仍从本地 `project_dir(pid)/semantic_mesh/mesh.json` 提供实体/图谱/最近/节点详情；云端记忆在 fallback 下通过单独导入 `api_EverMemOS` 按 group_id 拉列表，保证「作品列表正常但记忆看不到」时可展示本地 mesh 与云端列表。
 
-**章节列表**：`GET /api/creator/chapters?project_id=xxx` 由 `creator_handlers.get_project_chapters` 提供；CREATOR 未就绪时由 `api_flask._fallback_chapters` 从本地 `novel_plan.json` + `chapters/` 目录读取。
+**章节列表**：`GET /api/creator/chapters?project_id=xxx` 由 `creator_handlers.get_project_chapters` 提供；CREATOR 未就绪时由 `api_flask._fallback_chapters` 从本地 `novel_plan.json` + `chapters/` 目录读取。支持顶层 `chapter_outline`、无 outline 时从 `phases[].chapters` 合并；若大纲条数少于 `novel_plan.json` 中的 `target_chapters`（如渐进式只生成了首阶段），会补齐到 `target_chapters`，保证「共 N 章，已写 M 章」显示正确。无 `novel_plan.json` 时仅从 `chapters/chapter_*.txt` 推断。创作时可通过请求体传 `use_progressive: false` 一次性生成全部章节大纲（否则目标章数 ≥50 时默认渐进式，仅首阶段约 20 章）。
 
-**单章全文**：`GET /api/creator/chapter?project_id=xxx&number=1` 由 `api_flask._get_chapter_content` 从 `project_dir(pid)/chapters/chapter_001.txt` 读取正文并返回 `{ code, message, number?, title?, content? }`；用于创作页「章节列表」中点击已写章节查看全文。支持顶层 `chapter_outline`、无 outline 时从 `phases[].chapters` 合并；若大纲条数少于 `novel_plan.json` 中的 `target_chapters`（如渐进式只生成了首阶段），会补齐到 `target_chapters`，保证「共 N 章，已写 M 章」显示正确。无 `novel_plan.json` 时仅从 `chapters/chapter_*.txt` 推断。创作时可通过请求体传 `use_progressive: false` 一次性生成全部章节大纲（否则目标章数 ≥50 时默认渐进式，仅首阶段约 20 章）。
+**单章全文**：`GET /api/creator/chapter?project_id=xxx&number=1` 由 `api_flask._get_chapter_content` 从 `project_dir(pid)/chapters/chapter_001.txt` 读取正文并返回 `{ code, message, number?, title?, content? }`；用于创作页「章节列表」中点击已写章节查看全文。新增此接口后需重启后端方可生效。
 
 **续写与 target_chapters**：`run_continue` 以 `plan.target_chapters`（缺省为当前大纲条数）为上限；当下一章号不超过目标章数时允许续写。若当前大纲条数少于目标章数（如渐进式只生成 20 章、目标 100 章），第 21 章及以后：**渐进式大纲**会在写新阶段首章（如第 21 章）前自动扩展该阶段大纲（如 21–40 章），再按新大纲写；若扩展失败则使用占位。上一章摘要与正文末尾从已有大纲或已写文件读取。
 

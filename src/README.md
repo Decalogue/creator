@@ -6,10 +6,10 @@
 
 | 类型 | 说明 | 主要入口与模块 |
 |------|------|----------------|
-| **主路径** | 前端 → 创作/记忆 API → ReactNovelCreator + semantic_mesh（+ 可选 UniMem + 可选 EverMemOS 云记忆） | `api_flask.py`（/api/creator/run、/stream，/api/memory/*、/api/memory/evermemos）→ `api/creator_handlers.py`、`api/memory_handlers.py`、`api_EverMemOS.py` → `task/novel/react_novel_creator.py`、`context/` |
-| **支线（实验）** | 多智能体编排、工作流定义，未接入 /api/creator | `workflow/`（NovelWorkflow、CreativeOrchestrator）、`puppeteer/`（GraphReasoning 等）— **标实验，后续 DAG 备选** |
+| **主路径** | 前端 → 创作/记忆 API → ReactNovelCreator + semantic_mesh（+ 可选 UniMem + 可选 EverMemOS 云记忆） | `api_flask.py`（/api/creator/run、/api/creator/stream（create/continue）、/api/creator/chapters、/api/creator/chapter 单章全文，/api/memory/*、/api/memory/evermemos）→ `api/creator_handlers.py`、`api/memory_handlers.py`、`api_EverMemOS.py` → `task/novel/react_novel_creator.py`、`context/` |
+| **支线（实验）** | 多智能体编排、工作流定义，未接入 /api/creator | `orchestrator/` 等 — **标实验，后续 DAG 备选** |
 
-新人改「创作流程」或「记忆/图谱」时，优先看主路径；Puppeteer/Workflow 仅作实验或后续 DAG 备选，避免误以为必须维护。
+**主路径创作流程**（与主页/创作页流程图一致）：构思 → 记忆召回（跨章人物、伏笔、长线设定）→ 续写 → 质检 ⇄ 重写 → 实体提取 → 记忆入库。流式接口仅用于 create/continue；润色走 `run_polish`（非 stream）。新人改「创作流程」或「记忆/图谱」时，优先看主路径；支线编排仅作实验或后续 DAG 备选，避免误以为必须维护。
 
  模块依赖简图
 
@@ -18,7 +18,7 @@ api_flask.py (HTTP)
     → api/creator_handlers, api/memory_handlers
         → task/novel/react_novel_creator, context (semantic_mesh)
         → unimem (可选，通过 memory_handlers 懒加载)
-task.novel 不依赖 workflow、puppeteer
+task.novel 不依赖 orchestrator 支线
 unimem 不反向依赖 api（通过配置/环境变量解耦）
 ```
 
@@ -38,7 +38,6 @@ graph LR
     subgraph Orchestration["🎭 编排层 Orchestration"]
         direction TB
         ReAct[ReAct 编排器]:::orchestration
-        Puppeteer[Puppeteer 编排器]:::orchestration
         Hybrid[混合编排器]:::orchestration
     end
     
@@ -46,7 +45,6 @@ graph LR
     subgraph Creation["✍️ 创作层 Creation"]
         direction TB
         NovelCreator[小说创作器<br/>ReactNovelCreator]:::creation
-        Workflow[工作流<br/>NovelWorkflow]:::creation
         Quality[质量检查<br/>QualityChecker]:::creation
     end
     
@@ -106,14 +104,11 @@ graph LR
     
     %% 编排层内部连接
     ReAct --> NovelCreator
-    Puppeteer --> Workflow
     Hybrid --> NovelCreator
-    Hybrid --> Workflow
     
     %% 创作层内部连接
     NovelCreator --> Quality
     NovelCreator --> ReActAgent
-    Workflow --> ReActAgent
     
     %% Agent 层内部连接
     ReActAgent --> ContextMgr
@@ -131,7 +126,6 @@ graph LR
     NovelCreator --> ContextRouter
     NovelCreator --> PubSub
     NovelCreator --> UniMem
-    Workflow --> UniMem
     SemanticMesh --> ContextRouter
     ContextRouter --> PubSub
     
@@ -168,13 +162,12 @@ graph LR
  编排层 (Orchestration Layer)
 
 - **ReAct 编排器**：基于 ReAct 的推理-行动循环
-- **Puppeteer 编排器**：基于强化学习的动态编排（待完善）
 - **混合编排器**：根据场景自动选择编排方式
 
  创作层 (Creation Layer)
 
 - **小说创作器**：核心创作引擎，支持章节创作、大纲生成
-- **工作流**：定义创作流程（大纲→人物→章节→检查）
+- **工作流**：主路径流程为构思→记忆召回→续写→质检⇄重写→实体提取→记忆入库；工作流组件定义步骤（大纲→人物→章节→检查）为支线参考
 - **质量检查**：多维度一致性检查（角色、设定、情节、风格）
 
  Agent 层
@@ -187,7 +180,7 @@ graph LR
  记忆系统 (Memory System)
 
 - **UniMem**：长期记忆系统，支持经验存储和检索
-- **EverMemOS**：云记忆 API 封装（`api_EverMemOS.py`），add/get/search 对齐[官方文档](https://docs.evermind.ai/api-reference/introduction)；规划/续写/润色/对话全流程检索注入与写入，见 [INTEGRATION.md](../todo/EverMemOS/INTEGRATION.md)。删除接口需同时传 **query 参数**（`user_id`、`memory_id`），因部分环境会忽略 DELETE 请求体；清空全部云端记忆可运行 `delete_memory.py`（见该文件头部用法）。续写时自动使用**三类检索**（跨章人物、伏笔、长线设定）合并结果注入上下文（`recall_three_types_from_evermemos`）；手动「跑检索测试」与脚本 `evermemos_retrieval_demo` 共用同一组查询并记 JSONL 日志。HTTP 接口使用 POST/JSON（`/api/memory/evermemos`、`/api/memory/evermemos/retrieval-demo`），避免中文进 URL。
+- **EverMemOS**：云记忆 API 封装（`api_EverMemOS.py`），add/get/search 对齐[官方文档](https://docs.evermind.ai/api-reference/introduction)；规划/续写/润色/对话全流程检索注入与写入，见 [EVERMEMOS_INTEGRATION.md](../docs/EVERMEMOS_INTEGRATION.md)。删除接口需同时传 **query 参数**（`user_id`、`memory_id`），因部分环境会忽略 DELETE 请求体；清空全部云端记忆可运行 `delete_memory.py`（见该文件头部用法）。续写时自动使用**三类检索**（跨章人物、伏笔、长线设定）合并结果注入上下文（`recall_three_types_from_evermemos`）；手动「跑检索测试」与脚本 `evermemos_retrieval_demo` 共用同一组查询并记 JSONL 日志。HTTP 接口使用 POST/JSON（`/api/memory/evermemos`、`/api/memory/evermemos/retrieval-demo`），避免中文进 URL。
 - **语义网格记忆**：实体-关系图谱，维护创作一致性
 - **动态上下文路由**：根据用户行为预测并预加载上下文
 - **订阅式记忆总线**：Agent 间实时通信，自动检测冲突
@@ -201,8 +194,8 @@ graph LR
 
  LLM 层
 
-- **统一接口**：抽象 LLM 调用
-- **多模型支持**：DeepSeek、Claude、Gemini、GLM 等
+- **统一接口**：抽象 LLM 调用；详见 [llm/README.md](llm/README.md)
+- **主路径使用**：Kimi K2.5 为主模型（续写、对话等）；DeepSeek V3.2 用于质检、实体投票等；润色与对话模型配置见前端与 api 层
 
  🔄 数据流
 
@@ -257,15 +250,17 @@ src/
 │   └── search_tool_docs.py      工具文档搜索
 ├── llm/                 LLM 接口
 ├── unimem/              UniMem 记忆系统
-├── puppeteer/           Puppeteer 编排系统
-└── workflow/            工作流定义
+├── api/                 创作与记忆 API（creator_handlers、memory_handlers）
+├── config/              项目路径与配置
+├── scripts/             脚本（含 novel、evermemos 等）
+├── skills/              技能封装
+└── ...                  tests、docs 等
 ```
 
  🎯 关键特性
 
  1. 动态编排
-- 支持 ReAct 和 Puppeteer 两种编排方式
-- 混合编排器自动选择最优方式
+- 支持 ReAct 编排；混合编排器可根据场景选择
 
  2. 上下文管理
 - **工具结果卸载**：结果超过500字符时自动写入文件，返回文件路径引用
