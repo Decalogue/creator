@@ -22,13 +22,15 @@
 
 ## 二、参赛提交前待办（对齐官方 Submission Checklist）
 
+**当前状态**：必选项已就绪。Video Demo 见 [creator-1080p.mp4](creator-1080p.mp4)。
+
 按 [Memory Genesis 2026 How to Submit](https://github.com/EverMind-AI/EverMemOS) 与 [VIDEO_DEMO.md](VIDEO_DEMO.md) 执行，提交前逐项勾选：
 
 | 必选 | 项 | 说明 |
 |------|-----|------|
-| ✅/☐ | **GitHub 仓库** | 仓库公开可访问，代码完整可复现 |
+| ✅ | **GitHub 仓库** | 仓库公开可访问，代码完整可复现 |
 | ✅ | **README.md** | 含项目概览、**环境与运行（Setup）**、**How EverMemOS is used** 表格；详见根目录 README。 |
-| ☐ | **Video Demo（3–5 分钟）** | **Covers functionality**：创作流程（至少含续写）、云端记忆列表展示；**Covers concept**：说明 EverMemOS 在方案中的角色。建议含**开关云端记忆**对比（关/开各续写一段）。详见 [VIDEO_DEMO.md](VIDEO_DEMO.md) 结构与自检。 |
+| ✅ | **Video Demo（3–5 分钟）** | 已就绪：[creator-1080p.mp4](creator-1080p.mp4)。Covers functionality + concept；详见 [VIDEO_DEMO.md](VIDEO_DEMO.md) 结构与自检。 |
 | ✅ | **Live Demo** | 链接已写入 README（根目录首段下与 Submission 小节）。 |
 
 **推荐顺序**：README（概览 + setup + How EverMemOS is used）已就绪 → 录 Video Demo（按 VIDEO_DEMO 七～十一节）；Live Demo 链接已写入 README。

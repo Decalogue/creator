@@ -24,3 +24,4 @@
 | [EVERMEMOS_LEARN.md](EVERMEMOS_LEARN.md) | EverMemOS 项目通读摘要（定位、三阶段模型、六层架构、与 Creator 关系） |
 | [因果核_三项目对比.md](因果核_三项目对比.md) | 同大纲_开/关云端、新大纲_关云端 三项目 21–25 章对比（总览、实验设计、大纲与正文要点、结论） |
 | [article.md](article.md) | 调研论文与资源索引（Memory / Agent） |
+| [creator-1080p.mp4](creator-1080p.mp4) | Memory Genesis 2026 参赛 Video Demo（1080p） |

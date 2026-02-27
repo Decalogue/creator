@@ -4,6 +4,8 @@
 
 **Live Demo**：[http://azj1.dc.huixingyun.com:58185/](http://azj1.dc.huixingyun.com:58185/)
 
+**Video Demo**（点击封面观看）：[![Creator Video Demo](docs/creator.jpg)](docs/creator-1080p.mp4)
+
 ---
 
 ## 环境与运行（Setup）
@@ -91,11 +93,11 @@ Creator 以 **Content Creator Copilot** 形态参与 [Memory Genesis Competition
 
 *Note: A submission portal will be available soon. Stay tuned for updates.*
 
-**Required**：GitHub 公开仓库 | README（项目介绍、环境与运行说明、**how EverMemOS is used**）| **Video Demo**（3–5 分钟，demonstrating your project and explaining the concept，covers functionality + concept）。
+**Required**：GitHub 公开仓库 | README（项目介绍、环境与运行说明、**how EverMemOS is used**）| **Video Demo**（3–5 分钟，demonstrating your project and explaining the concept，covers functionality + concept）→ 视频文件：[docs/creator-1080p.mp4](docs/creator-1080p.mp4)。
 
 **Optional (Preferred)**：**[Live Demo](http://azj1.dc.huixingyun.com:58185/)** — 可访问的在线创作助手（前端 + 后端）。
 
-**Submission Checklist**：仓库公开可访问；README 含项目概览与 setup；README 说明 EverMemOS 如何支撑方案；视频 3–5 分钟且 **covers functionality + concept**；Live Demo URL 见上。参赛策略、提交清单与视频准备见 [docs/VIDEO_DEMO.md](docs/VIDEO_DEMO.md)。
+**Submission Checklist**：仓库公开可访问；README 含项目概览与 setup；README 说明 EverMemOS 如何支撑方案；视频 3–5 分钟且 **covers functionality + concept**（已就绪：[docs/creator-1080p.mp4](docs/creator-1080p.mp4)）；Live Demo URL 见上。参赛策略、提交清单与视频准备见 [docs/VIDEO_DEMO.md](docs/VIDEO_DEMO.md)。
 
 ---
 
